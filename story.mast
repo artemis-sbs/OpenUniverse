@@ -1,0 +1,3 @@
+# Entry story for the Open Universe mission. The actual content (the @map/universe
+# label, clans, quests, systems) lives in the local `universe/` addon, which loads
+# automatically alongside the LegendaryMissions addons listed in story.json.

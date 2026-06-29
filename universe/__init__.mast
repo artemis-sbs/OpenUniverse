@@ -1,0 +1,11 @@
+# Open Universe addon (extracted from LegendaryMissions/maps). Loaded like any
+# other local addon. Helpers/data first, then the registry, then the map itself
+# (the shared MAST namespace means later files can call the earlier helpers).
+import universe_helpers.py
+import universe_clans.py
+import universe_reputation.py
+import universe_clan_quests.py
+import universe_systems.py
+import universe_standby.py
+import universes.mast
+import universe.mast
