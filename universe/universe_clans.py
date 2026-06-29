@@ -121,8 +121,9 @@ def universe_file(display):
 # needed. Legacy split files have their entries as level-1 headings (no sections);
 # the section helpers return None there so callers fall back to flat iteration.
 def universe_doc(content):
-    """Parse universe.amd (or a legacy flat clans.amd) into a document tree."""
-    return document_get_amd_file(None, "Universe", content=content)
+    """Parse universe.amd (or a legacy flat clans.amd) into a document tree, using
+    the friendly fact-sheet reader for fenced data (YAML still works via delegate)."""
+    return document_get_amd_file(None, "Universe", content=content, data_parser=universe_amd_data)
 
 
 def universe_root_node(doc):

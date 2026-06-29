@@ -1,35 +1,33 @@
 // The Default universe for the Open Universe - one authored file holding the
 // whole world: identity (the level-1 heading), its clans, the generic clan jobs
-// they offer, and the shared narrative arcs. This is the primary way to build a
-// universe (see UNIVERSE_CHANGES.md capstone). Heading level sets structure:
-//   #   the universe (identity + future tuning knobs)
+// they offer, and the shared narrative arcs. Heading level sets structure:
+//   #   the universe (identity + reputation rules)
 //   ##  a section: Clans / Jobs / Narrative
 //   ### an entry within a section (a clan, a job type, a narrative step)
-// Each heading's `---` data fence carries its YAML. Data fence is a line of only
-// dashes. Loaded by universe_clans.py / universe_clan_quests.py.
+// Each heading's data lives between `---` fences as friendly `Label: value` fact
+// lines (no YAML). Lists use commas; weights are `name N`; makeup is `N% Race`;
+// reputation axes are `pos / neg`; quest triggers are an English verb phrase.
 
 # [Default](default)
 ---
-display: Default
-# Reputation axes (per-captain spectrums) + standing tuning. Authoring an `axes`
-# list REPLACES the built-in set, so a different universe can carry its own axes
-# (e.g. pious/heretical); omit the whole `reputation` block to use these defaults.
-# Each axis: a positive `pos` pole and an optional opposite `neg` pole.
-reputation:
-  axes:
-    - { axis: honesty,     pos: honest,       neg: liar }
-    - { axis: nerve,       pos: fearsome,     neg: cowardly }
-    - { axis: temperament, pos: peaceful,     neg: violent }
-    - { axis: generosity,  pos: generous,     neg: selfish }
-    - { axis: kindness,    pos: kind,         neg: cruel }
-    - { axis: method,      pos: resourceful,  neg: by_the_book }
-    - { axis: intellect,   pos: intellectual, neg: foolish }
-  tiers: { t2: 20, t3: 50 }
-  foe_deal: 20
-  reward_mult_max: 2.0
-  ceasefire_free_at: 30
-  ceasefire_per_point: 20
-  alliance_standing: 60
+Display: Default
+// Reputation axes (per-captain spectrums). Authoring any Axis lines REPLACES the
+// built-in set, so a different universe can carry its own axes (e.g. pious /
+// heretical). Each axis is `positive / opposite`; drop the opposite for a single
+// pole. Omit all reputation lines to use the built-in seven + default tuning.
+Axis: honest / liar
+Axis: fearsome / cowardly
+Axis: peaceful / violent
+Axis: generous / selfish
+Axis: kind / cruel
+Axis: resourceful / by-the-book
+Axis: intellectual / foolish
+Job tiers: 20, 50
+Foe deals at: 20
+Max reward: 2.0
+Ceasefire free at: 30
+Ceasefire per point: 20
+Alliance at: 60
 ---
 A living frontier of clans, trade, reputation, and contestable space docks. The
 galaxy reacts to who you are, not to a scripted hero.
@@ -37,242 +35,230 @@ galaxy reacts to who you are, not to a scripted hero.
 ## [Clans](clans)
 
 The factions that hold this galaxy. Each heading key is the clan's side key; the
-data section sets identity + home systems; the prose is the description. Spawned
-as sides by universe_clans.py.
+fact sheet sets identity + home systems; the prose is the description. Spawned as
+sides by universe_clans.py.
 
-makeup = the race composition of a clan's ships: a single race ("Torgoth"), an
-even list ([Torgoth, Kralien]), or a weighted dict ({Torgoth: 70, Kralien: 30}).
-Omit it for a random mix. Races: Kralien, Torgoth, Arvonian, Ximni.
+Flies = the race composition of a clan's ships: a single race (Torgoth), an even
+list (Torgoth, Kralien), or weighted (60% Kralien, 40% Arvonian). Omit for a
+random mix. Races: Kralien, Torgoth, Arvonian, Ximni.
 
 ### [Iron Concord](iron)
 ---
-color: "#3399ff"
-archetype: military
-diplomacy: neutral
-homes: [[6, 4]]
-leans: { by_the_book: 40, fearsome: 30, honest: 20 }
-quest_pool: [patrol, escort, strike]
-makeup: { Kralien: 60, Arvonian: 40 }
+Color: #3399ff
+Archetype: military
+Disposition: neutral
+Home: 6, 4
+Values: by-the-book 40, fearsome 30, honest 20
+Offers: patrol, escort, strike
+Flies: 60% Kralien, 40% Arvonian
 ---
 Disciplined and territorial. Respects strength and straight dealing; honor a deal
 and the Concord remembers - break one and they remember longer.
 
 ### [Verdant Pact](verdant)
 ---
-color: "#44cc88"
-archetype: trader
-diplomacy: neutral
-homes: [[-5, 3]]
-leans: { peaceful: 40, generous: 30, kind: 20 }
-quest_pool: [supply, escort, survey]
-makeup: [Arvonian]
+Color: #44cc88
+Archetype: trader
+Disposition: neutral
+Home: -5, 3
+Values: peaceful 40, generous 30, kind 20
+Offers: supply, escort, survey
+Flies: Arvonian
 ---
 Green-world traders and farmers. Quick to deal, slow to fight; pay them in
 kindness and they pay you back in goods.
 
 ### [Free Holders](free)
 ---
-color: "#bb8855"
-archetype: settler
-diplomacy: neutral
-homes: [[-7, -7]]
-leans: { resourceful: 40, honest: 30, kind: 10 }
-quest_pool: [salvage, rescue, supply]
-makeup: [Kralien, Torgoth, Arvonian, Ximni]
+Color: #bb8855
+Archetype: settler
+Disposition: neutral
+Home: -7, -7
+Values: resourceful 40, honest 30, kind 10
+Offers: salvage, rescue, supply
+Flies: Kralien, Torgoth, Arvonian, Ximni
 ---
 Independent settlers scratching a living from the drift. Self-reliant and plain-
 spoken; they value a captain who gets things done.
 
 ### [Mercury Guild](mercury)
 ---
-color: "#ffbb00"
-archetype: mercenary
-diplomacy: neutral
-homes: [[5, -3]]
-leans: { resourceful: 30, selfish: 30, fearsome: 20 }
-quest_pool: [bounty, escort, smuggle]
-makeup: { Ximni: 40, Torgoth: 30, Kralien: 30 }
+Color: #ffbb00
+Archetype: mercenary
+Disposition: neutral
+Home: 5, -3
+Values: resourceful 30, selfish 30, fearsome 20
+Offers: bounty, escort, smuggle
+Flies: 40% Ximni, 30% Torgoth, 30% Kralien
 ---
 Brokers of muscle and cargo - loyal to the contract, not the cause. Coin and a
 fearsome reputation open their doors.
 
 ### [Ashfang Raiders](ashfang)
 ---
-color: "#ee3333"
-archetype: pirate
-diplomacy: foe
-homes: [[8, -5]]
-leans: { violent: 40, cruel: 30, cowardly: 20 }
-quest_pool: [raid, smuggle, bounty]
-makeup: [Torgoth]
+Color: #ee3333
+Archetype: pirate
+Disposition: foe
+Home: 8, -5
+Values: violent 40, cruel 30, cowardly 20
+Offers: raid, smuggle, bounty
+Flies: Torgoth
 ---
 Opportunist pirates who prey on the lanes. They respect violence and despise the
 weak; only the dangerous bargain with them.
 
 ### [Hollow Choir](choir)
 ---
-color: "#9933ff"
-archetype: cult
-diplomacy: foe
-homes: [[-4, 6]]
-leans: { intellectual: 40, liar: 30, selfish: 20 }
-quest_pool: [retrieve, escort, mystery]
-makeup: [Ximni]
+Color: #9933ff
+Archetype: cult
+Disposition: foe
+Home: -4, 6
+Values: intellectual 40, liar 30, selfish 20
+Offers: retrieve, escort, mystery
+Flies: Ximni
 ---
 A secretive cult chasing forbidden knowledge in the deep dark. Honeyed words hide
 sharp intent; trust them at your peril.
 
 ## [Jobs](jobs)
 
-Generic clan jobs. Each heading key IS a pool type (see a clan's quest_pool); a
-clan offers the jobs whose type is in its pool, gated + reward-scaled by the
-captain's standing (universe_clan_quests.py). data: tier (1 basic / 2 / 3
-premium), objective, an on_* trigger, base reward. Authoring stays open - a clan
-may later carry its own bespoke quests; this is the shared baseline.
+Generic clan jobs. Each heading key is a pool type (see a clan's Offers); a clan
+offers the jobs whose type is in its pool, gated + reward-scaled by the captain's
+standing (universe_clan_quests.py). Goal is an English verb phrase that both sets
+the trigger and reads as the objective: destroy / recover / scan / dock / reach.
 
 ### [Patrol Sweep](patrol)
 ---
-tier: 1
-objective: Destroy 4 raiders
-on_kill: { role: raider, count: 4 }
-reward: { credits: 300 }
+Tier: 1
+Goal: destroy 4 raiders
+Pays: 300 credits
 ---
 Raiders have been probing our space. Sweep the system and drive them off.
 
 ### [Standing Bounty](bounty)
 ---
-tier: 1
-objective: Destroy 3 raiders
-on_kill: { role: raider, count: 3 }
-reward: { credits: 280 }
+Tier: 1
+Goal: destroy 3 raiders
+Pays: 280 credits
 ---
 There is a price on raider hulls. Collect three and the bounty is yours.
 
 ### [Supply Run](supply)
 ---
-tier: 1
-objective: Recover 3 crates of provisions
-on_collect: { key: provisions, count: 3 }
-reward: { credits: 260 }
+Tier: 1
+Goal: recover 3 provisions
+Pays: 260 credits
 ---
 Our stores are thin. Gather provision crates adrift in the system and bring
 them in.
 
 ### [Survey Contract](survey)
 ---
-tier: 1
-objective: Scan 2 derelicts
-on_scan: { role: universe_derelict, count: 2 }
-reward: { credits: 300 }
+Tier: 1
+Goal: scan 2 derelicts
+Pays: 300 credits
 ---
 We need eyes on the wrecks out here. Scan the derelicts and report what you find.
 
 ### [Salvage Sweep](salvage)
 ---
-tier: 1
-objective: Recover 2 tech components
-on_collect: { key: tech, count: 2 }
-reward: { credits: 340 }
+Tier: 1
+Goal: recover 2 tech
+Pays: 340 credits
 ---
 There is working tech in the debris if you know where to look. Bring it back and
 we will make it worth your while.
 
 ### [Convoy Escort](escort)
 ---
-tier: 1
-objective: Dock at a station
-on_dock: { role: station, count: 1 }
-reward: { credits: 260 }
+Tier: 1
+Goal: dock station
+Pays: 260 credits
 ---
 See our cargo safely to port. Dock at a station and the contract is fulfilled.
 
 ### [Run the Lanes](smuggle)
 ---
-tier: 2
-objective: Recover 2 contraband caches
-on_collect: { key: contraband, count: 2 }
-reward: { credits: 480 }
+Tier: 2
+Goal: recover 2 contraband
+Pays: 480 credits
 ---
 Quiet cargo, quiet questions. Recover the caches and keep this between us.
 
 ### [Raid the Lanes](raid)
 ---
-tier: 2
-objective: Destroy 5 raiders
-on_kill: { role: raider, count: 5 }
-reward: { credits: 500 }
+Tier: 2
+Goal: destroy 5 raiders
+Pays: 500 credits
 ---
 Hit them before they hit us. Five hulls, and do not be gentle about it.
 
 ### [Retrieve the Cache](retrieve)
 ---
-tier: 2
-objective: Recover 3 tech components
-on_collect: { key: tech, count: 3 }
-reward: { credits: 520 }
+Tier: 2
+Goal: recover 3 tech
+Pays: 520 credits
 ---
 Something we want is scattered in the drift. Retrieve three components - discreetly.
 
 ### [Search and Rescue](rescue)
 ---
-tier: 2
-objective: Scan a derelict, then dock
-on_scan: { role: universe_derelict, count: 1 }
-reward: { credits: 460 }
+Tier: 2
+Goal: scan 1 derelict
+Pays: 460 credits
 ---
 A ship went dark out here. Find the wreck, recover what survives, and bring it home.
 
 ### [Strike Package](strike)
 ---
-tier: 3
-objective: Destroy 8 raiders
-on_kill: { role: raider, count: 8 }
-reward: { credits: 760 }
+Tier: 3
+Goal: destroy 8 raiders
+Pays: 760 credits
 ---
 We are done waiting. Take the fight to them - eight hulls, and break their nerve.
 
 ### [Chase the Whisper](mystery)
 ---
-tier: 3
-objective: Scan 3 derelicts
-on_scan: { role: universe_derelict, count: 3 }
-reward: { credits: 720 }
+Tier: 3
+Goal: scan 3 derelicts
+Pays: 720 credits
 ---
 The signs are out there for those who would read them. Scan the wrecks. Tell no
 one what you see.
 
 ## [Narrative](narrative)
 
-Shared story arcs - game-wide reveal chains spanning systems, reusing the quest
-trigger vocab. Each heading is one step; data sets scope (shared), starting state
-(active now / secret = revealed later), the trigger, the next step to reveal, and
-rewards. Granted at universe start via quest_grant_amd (universe.mast).
+Shared story arcs - game-wide reveal chains spanning systems. Each heading is one
+step; the fact sheet sets scope (shared), starting state (active now / secret =
+revealed later), the trigger (When), the next step (Then: reveal ...), and any
+reward (Pays / Earns). Granted at universe start via quest_grant_amd.
 
 ### [The Long Truce: Summons](truce_1)
 ---
-scope: shared
-state: active
-on_reach: { sector: [6, 4] }
-reveal: truce_2
+Scope: shared
+State: active
+When: reach 6, 4
+Then: reveal truce_2
 ---
 A coded hail from Iron Concord HQ at system (6, 4). Travel there to hear them out.
 
 ### [The Long Truce: Proof of Resolve](truce_2)
 ---
-scope: shared
-state: secret
-on_kill: { role: ashfang, count: 3 }
-reveal: truce_3
-reward: { credits: 100 }
+Scope: shared
+State: secret
+When: destroy 3 ashfang
+Then: reveal truce_3
+Pays: 100 credits
 ---
 The Concord wants a broker for a ceasefire with the Ashfang Raiders. Thin the
 raiders - destroy three - to show the Concord you can hold the line.
 
 ### [The Long Truce: The Accord](truce_3)
 ---
-scope: shared
-state: secret
-on_dock: { role: station }
-reward: { credits: 800, rep: { iron: { honest: 20, fearsome: 10 } } }
+Scope: shared
+State: secret
+When: dock station
+Pays: 800 credits
+Earns: iron honest 20, iron fearsome 10
 ---
 Return to a Concord starbase to seal the accord.
