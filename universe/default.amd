@@ -8,7 +8,7 @@
 // lines (no YAML). Lists use commas; weights are `name N`; makeup is `N% Race`;
 // reputation axes are `pos / neg`; quest triggers are an English verb phrase.
 
-# [Default](default)
+# Default
 ---
 Display: Default
 // Reputation axes (per-captain spectrums). Authoring any Axis lines REPLACES the
@@ -32,7 +32,7 @@ Alliance at: 60
 A living frontier of clans, trade, reputation, and contestable space docks. The
 galaxy reacts to who you are, not to a scripted hero.
 
-## [Clans](clans)
+## Clans
 
 The factions that hold this galaxy. Each heading key is the clan's side key; the
 fact sheet sets identity + home systems; the prose is the description. Spawned as
@@ -42,7 +42,7 @@ Flies = the race composition of a clan's ships: a single race (Torgoth), an even
 list (Torgoth, Kralien), or weighted (60% Kralien, 40% Arvonian). Omit for a
 random mix. Races: Kralien, Torgoth, Arvonian, Ximni.
 
-### [Iron Concord](iron)
+### Iron Concord (iron)
 ---
 Color: #3399ff
 Archetype: military
@@ -55,7 +55,7 @@ Flies: 60% Kralien, 40% Arvonian
 Disciplined and territorial. Respects strength and straight dealing; honor a deal
 and the Concord remembers - break one and they remember longer.
 
-### [Verdant Pact](verdant)
+### Verdant Pact (verdant)
 ---
 Color: #44cc88
 Archetype: trader
@@ -68,7 +68,7 @@ Flies: Arvonian
 Green-world traders and farmers. Quick to deal, slow to fight; pay them in
 kindness and they pay you back in goods.
 
-### [Free Holders](free)
+### Free Holders (free)
 ---
 Color: #bb8855
 Archetype: settler
@@ -81,7 +81,7 @@ Flies: Kralien, Torgoth, Arvonian, Ximni
 Independent settlers scratching a living from the drift. Self-reliant and plain-
 spoken; they value a captain who gets things done.
 
-### [Mercury Guild](mercury)
+### Mercury Guild (mercury)
 ---
 Color: #ffbb00
 Archetype: mercenary
@@ -94,7 +94,7 @@ Flies: 40% Ximni, 30% Torgoth, 30% Kralien
 Brokers of muscle and cargo - loyal to the contract, not the cause. Coin and a
 fearsome reputation open their doors.
 
-### [Ashfang Raiders](ashfang)
+### Ashfang Raiders (ashfang)
 ---
 Color: #ee3333
 Archetype: pirate
@@ -107,7 +107,7 @@ Flies: Torgoth
 Opportunist pirates who prey on the lanes. They respect violence and despise the
 weak; only the dangerous bargain with them.
 
-### [Hollow Choir](choir)
+### Hollow Choir (choir)
 ---
 Color: #9933ff
 Archetype: cult
@@ -120,14 +120,14 @@ Flies: Ximni
 A secretive cult chasing forbidden knowledge in the deep dark. Honeyed words hide
 sharp intent; trust them at your peril.
 
-## [Jobs](jobs)
+## Jobs
 
 Generic clan jobs. Each heading key is a pool type (see a clan's Offers); a clan
 offers the jobs whose type is in its pool, gated + reward-scaled by the captain's
 standing (universe_clan_quests.py). Goal is an English verb phrase that both sets
 the trigger and reads as the objective: destroy / recover / scan / dock / reach.
 
-### [Patrol Sweep](patrol)
+### Patrol Sweep (patrol)
 ---
 Tier: 1
 Goal: destroy 4 raiders
@@ -135,7 +135,7 @@ Pays: 300 credits
 ---
 Raiders have been probing our space. Sweep the system and drive them off.
 
-### [Standing Bounty](bounty)
+### Standing Bounty (bounty)
 ---
 Tier: 1
 Goal: destroy 3 raiders
@@ -143,7 +143,7 @@ Pays: 280 credits
 ---
 There is a price on raider hulls. Collect three and the bounty is yours.
 
-### [Supply Run](supply)
+### Supply Run (supply)
 ---
 Tier: 1
 Goal: recover 3 provisions
@@ -152,7 +152,7 @@ Pays: 260 credits
 Our stores are thin. Gather provision crates adrift in the system and bring
 them in.
 
-### [Survey Contract](survey)
+### Survey Contract (survey)
 ---
 Tier: 1
 Goal: scan 2 derelicts
@@ -160,7 +160,7 @@ Pays: 300 credits
 ---
 We need eyes on the wrecks out here. Scan the derelicts and report what you find.
 
-### [Salvage Sweep](salvage)
+### Salvage Sweep (salvage)
 ---
 Tier: 1
 Goal: recover 2 tech
@@ -169,7 +169,7 @@ Pays: 340 credits
 There is working tech in the debris if you know where to look. Bring it back and
 we will make it worth your while.
 
-### [Convoy Escort](escort)
+### Convoy Escort (escort)
 ---
 Tier: 1
 Goal: dock station
@@ -177,7 +177,7 @@ Pays: 260 credits
 ---
 See our cargo safely to port. Dock at a station and the contract is fulfilled.
 
-### [Run the Lanes](smuggle)
+### Run the Lanes (smuggle)
 ---
 Tier: 2
 Goal: recover 2 contraband
@@ -185,7 +185,7 @@ Pays: 480 credits
 ---
 Quiet cargo, quiet questions. Recover the caches and keep this between us.
 
-### [Raid the Lanes](raid)
+### Raid the Lanes (raid)
 ---
 Tier: 2
 Goal: destroy 5 raiders
@@ -193,7 +193,7 @@ Pays: 500 credits
 ---
 Hit them before they hit us. Five hulls, and do not be gentle about it.
 
-### [Retrieve the Cache](retrieve)
+### Retrieve the Cache (retrieve)
 ---
 Tier: 2
 Goal: recover 3 tech
@@ -201,7 +201,7 @@ Pays: 520 credits
 ---
 Something we want is scattered in the drift. Retrieve three components - discreetly.
 
-### [Search and Rescue](rescue)
+### Search and Rescue (rescue)
 ---
 Tier: 2
 Goal: scan 1 derelict
@@ -209,7 +209,7 @@ Pays: 460 credits
 ---
 A ship went dark out here. Find the wreck, recover what survives, and bring it home.
 
-### [Strike Package](strike)
+### Strike Package (strike)
 ---
 Tier: 3
 Goal: destroy 8 raiders
@@ -217,7 +217,7 @@ Pays: 760 credits
 ---
 We are done waiting. Take the fight to them - eight hulls, and break their nerve.
 
-### [Chase the Whisper](mystery)
+### Chase the Whisper (mystery)
 ---
 Tier: 3
 Goal: scan 3 derelicts
@@ -226,14 +226,14 @@ Pays: 720 credits
 The signs are out there for those who would read them. Scan the wrecks. Tell no
 one what you see.
 
-## [Narrative](narrative)
+## Narrative
 
 Shared story arcs - game-wide reveal chains spanning systems. Each heading is one
 step; the fact sheet sets scope (shared), starting state (active now / secret =
 revealed later), the trigger (When), the next step (Then: reveal ...), and any
 reward (Pays / Earns). Granted at universe start via quest_grant_amd.
 
-### [The Long Truce: Summons](truce_1)
+### The Long Truce: Summons (truce_1)
 ---
 Scope: shared
 State: active
@@ -242,7 +242,7 @@ Then: reveal truce_2
 ---
 A coded hail from Iron Concord HQ at system (6, 4). Travel there to hear them out.
 
-### [The Long Truce: Proof of Resolve](truce_2)
+### The Long Truce: Proof of Resolve (truce_2)
 ---
 Scope: shared
 State: secret
@@ -253,7 +253,7 @@ Pays: 100 credits
 The Concord wants a broker for a ceasefire with the Ashfang Raiders. Thin the
 raiders - destroy three - to show the Concord you can hold the line.
 
-### [The Long Truce: The Accord](truce_3)
+### The Long Truce: The Accord (truce_3)
 ---
 Scope: shared
 State: secret

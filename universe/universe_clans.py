@@ -123,7 +123,7 @@ def universe_file(display):
 def universe_doc(content):
     """Parse universe.amd (or a legacy flat clans.amd) into a document tree, using
     the friendly fact-sheet reader for fenced data (YAML still works via delegate)."""
-    return document_get_amd_file(None, "Universe", content=content, data_parser=universe_amd_data)
+    return document_get_amd_file(None, "Universe", content=content, data_parser=universe_amd_data, allow_bare_headings=True)
 
 
 def universe_root_node(doc):
