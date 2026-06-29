@@ -21,8 +21,19 @@ from sbs_utils.mast.mast_node import MastDataObject
 
 
 def universe_parse_clan_quests(content):
-    """Parse clan_quests.amd into a doc (each heading key is a pool job type)."""
+    """Parse a standalone clan_quests.amd into a doc (each heading key is a pool job
+    type). Legacy split-file path; the merged format uses universe_jobs_from_doc."""
     return document_get_amd_file(None, "ClanQuests", content=content)
+
+
+def universe_jobs_from_doc(doc):
+    """The `jobs` section node of a merged universe doc, whose children are the job
+    types (the shape clan_work_offers / _clan_job_node expect). None when the doc
+    has no jobs section (a legacy split file) so the caller falls back to a
+    standalone clan_quests.amd. universe_section is defined in universe_clans.py -
+    this cross-file bare call works because all of a mission's .py files now share
+    one namespace (the engine shared-namespace fix)."""
+    return universe_section(doc, "jobs")
 
 
 def _clan_job_node(doc, job_type):

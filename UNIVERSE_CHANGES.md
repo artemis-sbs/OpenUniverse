@@ -599,6 +599,126 @@ flavor is the highest-*delight* for content authors).
 
 ---
 
+## Capstone plan (DECIDED): one `universe.amd` per universe
+
+Resolves the Epic I "unified universe document" exploration above. A universe is
+authored as **one file** - `universe.amd` (per-universe, named by its registry
+label) - that holds identity, clans, clan jobs, and narrative in one place, with a
+home for universe-wide tuning knobs. This is the **primary** way to build a
+universe; the split files (`clans.amd` / `clan_quests.amd` / `narrative.amd`)
+remain a **fallback** so nothing existing breaks.
+
+### Why it's low-risk (no new AMD syntax)
+
+The AMD parser (`document_get_amd_file`, `quest.py`) **already supports nested
+headings**: `#` = level 1, `##` = level 2, `###` = level 3 build a `children`
+tree, and **each** heading carries its own `---` data fence. So one file with
+`## [Clans]` / `## [Jobs]` / `## [Narrative]` sections (each holding `###`
+entries) reuses the exact `# [Display](key)` + `---` fence idioms already in use -
+**nothing new to invent**, satisfying the markdown-shaped / confirm-first
+guardrail. (Confirmed with the user: **nested headings**, and **single-file
+primary with legacy fallback**.)
+
+### Two gaps this also fixes
+
+- `clan_quests.amd` is currently loaded **hardcoded** (`universe.mast`), not from
+  the selected universe - so jobs aren't actually per-universe today. Moving jobs
+  into the file's `jobs` section makes them per-universe.
+- `narrative.amd` is **referenced in the registry but never loaded** (the
+  `universe_narrative_file` helper is dead). The `narrative` section finally gets
+  loaded and its `scope: shared` arcs granted via the existing `quest_grant_amd`.
+
+### File shape
+
+```
+# [Default](default)
+---
+display: Default
+# future home for skybox/music, generation weights, reputation curves
+---
+Prose: what this universe is.
+
+## [Clans](clans)
+### [Iron Concord](iron)
+---
+color: "#3399ff"
+archetype: military
+diplomacy: neutral
+homes: [[6, 4]]
+leans: { by_the_book: 40, fearsome: 30, honest: 20 }
+quest_pool: [patrol, escort, strike]
+makeup: { Kralien: 60, Arvonian: 40 }
+---
+Disciplined and territorial...
+
+## [Jobs](jobs)
+### [Patrol Sweep](patrol)
+---
+tier: 1
+objective: Destroy 4 raiders
+on_kill: { role: raider, count: 4 }
+reward: { credits: 300 }
+---
+Raiders have been probing our space...
+
+## [Narrative](narrative)
+### [The Long Truce: Summons](truce_1)
+---
+scope: shared
+state: active
+on_reach: { sector: [6, 4] }
+reveal: truce_2
+---
+A coded hail from Iron Concord HQ...
+```
+
+### Loader changes (all in this repo, all small)
+
+1. **Registry** (`universes.mast`): each `@universe/<key>` label points at one
+   `universe: default.amd` instead of the `clans:`/`narrative:` pair. The loader
+   still reads the old `clans`/`narrative` keys when present (fallback).
+2. **`universe_clans.py`**: add `universe_file(display)` (the .amd filename, falling
+   back to the legacy clans file) and `universe_section(doc, key)` (a child section
+   by key). `universe_parse_clans` iterates the `clans` section's children; if
+   there's no `clans` section (a legacy flat file), it iterates the root - a
+   one-line branch, backward compatible.
+3. **`universe_clan_quests.py`**: same pattern reading the `jobs` section (fallback
+   to flat). Fixes the hardcoded-jobs gap.
+4. **`universe.mast` load block** (currently 2 parses, lines ~59-62): read the file
+   **once** into `UNIVERSE_DOC = document_get_amd_file(..., content=...)`, then
+   derive `UNIVERSE_CLANS` / `UNIVERSE_CLAN_QUESTS` / new `UNIVERSE_NARRATIVE` from
+   its sections.
+5. **Narrative wiring** (new, small): load the `narrative` section and grant its
+   `scope: shared` arcs via `quest_grant_amd` (the dead reference goes live). May
+   ship as an immediate follow-up to keep the first cut tight.
+
+### Capstone payoff (phased)
+
+The level-1 root's data fence is the home for universe-wide knobs. Ship the
+**container** first (identity + clans + jobs + narrative), then expose tuning
+**incrementally** - each knob a small, testable change rather than one big bang:
+- now: `display` (move off the registry label; the label just names file + key);
+- next: skybox/music theme, generation weights (kind distribution, POI-deck
+  weights), reputation tier thresholds / forgiveness curves, galaxy bounds.
+
+### Migration & scope
+
+- Fold `clans.amd` + `clan_quests.amd` + the Appendix C narrative draft into
+  `universe/default.amd`.
+- Keep the legacy split-file load path as a fallback; new universes are one file.
+- **Save:** no structural change (`universe_selection` already persists; identity
+  is authored, not saved) - **no version bump**.
+- **Test:** headless `--test 30 --map universe --use-working-tree` - clans spawn,
+  jobs offer, a narrative arc grants, and a legacy split-file universe still loads
+  via fallback; add a unit test for `universe_section` / section partitioning.
+
+> Not in scope here: the movie-script **dialogue** flavor (Epic I sub-idea) - that
+> stays a separate, confirm-first design. This capstone is the *document
+> structure*; dialogue is a later content layer that would slot in as another
+> section/flavor once its syntax is signed off.
+
+---
+
 ## Persistence additions (all additive to the universe save)
 
 New state each epic stores. All are **new keys read with `.get(default)`**, so per

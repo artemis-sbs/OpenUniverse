@@ -1,13 +1,15 @@
 # Discoverable universes for the Open Universe start-screen "Universe" dropdown.
-# Each label registers a universe (type: universe/<key>) naming its clans and
-# narrative AMD files. Add more universes by adding more labels here.
+# Each label registers a universe (type: universe/<key>). The primary format names
+# a single merged `universe:` AMD file (identity + clans + jobs + narrative in one
+# place - see UNIVERSE_CHANGES.md capstone). Legacy labels may instead name split
+# `clans:` / `narrative:` files; the loader falls back to those (universe_file).
+# Add more universes by adding more labels here.
 
 === universe_default
 metadata:``` yaml
 type: universe/default
 key: default
 display: Default
-clans: clans.amd
-narrative: narrative.amd
+universe: default.amd
 ```
     ->END

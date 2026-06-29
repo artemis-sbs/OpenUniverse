@@ -14,6 +14,7 @@ from sbs_utils.procedural.roles import all_roles
 from sbs_utils.procedural.gui import gui_row, gui_text
 from sbs_utils.procedural.comms import comms_info_card
 from sbs_utils.mast.mast_node import MastDataObject
+from sbs_utils.agent import Agent
 
 # Fallback race pool when a clan declares no makeup.
 _DEFAULT_RACES = ["Kralien", "Torgoth", "Arvonian", "Ximni"]
@@ -101,16 +102,76 @@ def universe_narrative_file(display):
     return _universe_field(display, "narrative", "narrative.amd")
 
 
+def universe_file(display):
+    """The single merged universe.amd filename for the selected universe.
+
+    The primary authoring format is one file holding identity + clans + jobs +
+    narrative (see UNIVERSE_CHANGES.md capstone). A registry label names it with
+    `universe:`. Labels that predate the merge name a split `clans:` file instead;
+    fall back to that so old universes keep loading.
+    """
+    return _universe_field(display, "universe", None) or universe_clans_file(display)
+
+
+# --- Merged universe document (one file, nested sections) --------------------
+# A universe.amd parses to a tree: one level-1 heading (the universe root) whose
+# children are `## [Clans]`/`## [Jobs]`/`## [Narrative]` section nodes, each
+# holding `###` entries. The parser already builds this nesting (heading level ->
+# depth) and attaches each heading's `---` data fence, so no new AMD syntax is
+# needed. Legacy split files have their entries as level-1 headings (no sections);
+# the section helpers return None there so callers fall back to flat iteration.
+def universe_doc(content):
+    """Parse universe.amd (or a legacy flat clans.amd) into a document tree."""
+    return document_get_amd_file(None, "Universe", content=content)
+
+
+def universe_root_node(doc):
+    """The single level-1 universe heading node (the file's root content), or None."""
+    kids = doc.get("children", []) if doc else []
+    return kids[0] if kids else None
+
+
+def universe_section(doc, key):
+    """The named section node (`clans`/`jobs`/`narrative`) under the universe root,
+    or None when absent (a legacy flat file -> caller iterates the root instead)."""
+    root = universe_root_node(doc)
+    if root is None:
+        return None
+    for n in root.get("children", []):
+        if n.get("key") == key:
+            return n
+    return None
+
+
+def universe_shared_id():
+    """The game-wide SHARED agent id - where shared narrative arcs are granted
+    (quest_grant_amd routes scope: shared steps here). Lets the mast grant the
+    `narrative` section without referencing Agent in MAST scope."""
+    return Agent.SHARED_ID
+
+
+def universe_clans_from_doc(doc):
+    """Clan records from a parsed universe doc: the `clans` section's children if
+    present, else the doc's top-level children (a legacy flat clans.amd)."""
+    section = universe_section(doc, "clans")
+    nodes = section.get("children", []) if section is not None else (doc.get("children", []) if doc else [])
+    return _clans_from_nodes(nodes)
+
+
 def universe_parse_clans(content):
-    """Parse clans.amd content into a list of clan records (MastDataObject).
+    """Parse universe.amd / clans.amd content into a list of clan records
+    (MastDataObject). Section-aware with a legacy flat-file fallback.
 
     Each record: key, name, desc, color, archetype, diplomacy (foe/neutral),
     homes [[i,j],...], leans {axis:val}, quest_pool [..], and enemies (csv for
     prefab_side_generic - "tsn" for foe clans, "" for neutral).
     """
-    doc = document_get_amd_file(None, "Clans", content=content)
+    return universe_clans_from_doc(universe_doc(content))
+
+
+def _clans_from_nodes(nodes):
     clans = []
-    for n in doc.get("children", []):
+    for n in nodes:
         data = n.get("data") or {}
         diplomacy = data.get("diplomacy", "neutral")
         clans.append(MastDataObject({
