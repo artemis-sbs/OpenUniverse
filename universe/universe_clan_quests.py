@@ -58,7 +58,7 @@ def clan_work_offers(agent_id, clans, clan_key, doc):
     if clan is None or doc is None:
         return []
     standing = clan_standing(agent_id, clan)
-    if clan.get("diplomacy") == "foe" and standing < 20:
+    if clan.get("diplomacy") == "foe" and standing < clan_foe_deal_standing():
         return []
     tier = clan_offer_tier(standing)
     mult = clan_reward_mult(standing)

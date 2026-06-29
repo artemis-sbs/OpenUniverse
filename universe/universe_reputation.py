@@ -11,11 +11,12 @@ either pole works (honest>40 == liar<-40). See UNIVERSE_CHANGES.md (Epic F).
 """
 from sbs_utils.procedural.inventory import get_inventory_value, set_inventory_value
 
-REP_MIN = -100
-REP_MAX = 100
-
-# pole -> (canonical axis, sign). +pole raises the axis, -pole lowers it.
-REP_POLES = {
+# Built-in default axes (pole -> (canonical axis, sign); +pole raises the axis,
+# -pole lowers it). A universe can REPLACE this whole set by authoring a
+# `reputation: axes:` block in its root data fence (see reputation_configure); a
+# universe with no block uses these seven. See UNIVERSE_CHANGES.md (reputation
+# flexibility plan).
+_DEFAULT_POLES = {
     "honest": ("honesty", 1),        "liar": ("honesty", -1),
     "fearsome": ("nerve", 1),        "cowardly": ("nerve", -1),
     "peaceful": ("temperament", 1),  "violent": ("temperament", -1),
@@ -25,13 +26,74 @@ REP_POLES = {
     "intellectual": ("intellect", 1), "foolish": ("intellect", -1),
 }
 
+# Built-in default standing tuning. Each knob is overridable per-universe.
+_DEFAULT_TUNING = {
+    "min": -100, "max": 100,
+    "tier2": 20, "tier3": 50,    # standing to unlock job tiers 2 / 3
+    "foe_deal": 20,              # standing a foe clan needs before it deals
+    "reward_mult_max": 2.0,      # reward multiplier at standing +100
+    "ceasefire_free_at": 30,     # ceasefire free at/above this standing
+    "ceasefire_per_point": 20,   # cr per standing-point below the free line
+    "alliance_standing": 60,     # standing to propose an alliance
+}
+
+# Live config - module globals rebuilt per universe load by reputation_configure().
+# Seeded with the defaults so a universe with no reputation: block is unchanged.
+_REP_POLES = dict(_DEFAULT_POLES)
+_TUNING = dict(_DEFAULT_TUNING)
+
+
+def reputation_configure(cfg):
+    """Configure the reputation axes + standing tuning for the loaded universe from
+    its root `reputation:` block.
+
+    Always resets to the built-in defaults first: these are module globals that
+    persist for the whole process, so re-selecting a universe must not inherit the
+    previous one's axes/tuning. cfg None or missing keys -> the defaults stand.
+
+    cfg shape (all optional):
+        axes: [ { axis: honesty, pos: honest, neg: liar }, ... ]  # REPLACES the set
+        min / max / foe_deal / reward_mult_max / ceasefire_free_at /
+        ceasefire_per_point / alliance_standing: <number>          # per-knob override
+        tiers: { t2: 20, t3: 50 }
+    """
+    global _REP_POLES, _TUNING
+    _REP_POLES = dict(_DEFAULT_POLES)
+    _TUNING = dict(_DEFAULT_TUNING)
+    if not isinstance(cfg, dict):
+        return
+    axes = cfg.get("axes")
+    if isinstance(axes, list) and axes:
+        poles = {}
+        for a in axes:
+            if not isinstance(a, dict):
+                continue
+            axis, pos, neg = a.get("axis"), a.get("pos"), a.get("neg")
+            if axis is None or pos is None:
+                continue
+            poles[pos] = (axis, 1)
+            if neg is not None:
+                poles[neg] = (axis, -1)
+        if poles:
+            _REP_POLES = poles
+    for key in ("min", "max", "foe_deal", "reward_mult_max",
+                "ceasefire_free_at", "ceasefire_per_point", "alliance_standing"):
+        if key in cfg:
+            _TUNING[key] = cfg[key]
+    tiers = cfg.get("tiers")
+    if isinstance(tiers, dict):
+        if "t2" in tiers:
+            _TUNING["tier2"] = tiers["t2"]
+        if "t3" in tiers:
+            _TUNING["tier3"] = tiers["t3"]
+
 
 def _rep_map(agent_id):
     return get_inventory_value(agent_id, "reputation", None) or {}
 
 
 def _axis_sign(pole):
-    return REP_POLES.get(pole, (pole, 1))
+    return _REP_POLES.get(pole, (pole, 1))
 
 
 def reputation_get(agent_id, clan, pole, default=0):
@@ -59,7 +121,7 @@ def reputation_adjust(agent_id, clan, pole, delta):
     if not isinstance(cm, dict):
         cm = {}
         reps[clan] = cm
-    val = max(REP_MIN, min(REP_MAX, cm.get(axis, 0) + sign * delta))
+    val = max(_TUNING["min"], min(_TUNING["max"], cm.get(axis, 0) + sign * delta))
     cm[axis] = val
     set_inventory_value(agent_id, "reputation", reps)
     return val
@@ -100,17 +162,24 @@ def clan_standing(agent_id, clan):
 
 
 def clan_offer_tier(standing):
-    """Highest job tier a standing unlocks: 1 (basic) always, 2 at >=20, 3 at >=50."""
-    if standing >= 50:
+    """Highest job tier a standing unlocks: 1 (basic) always, 2 at >=tier2, 3 at
+    >=tier3 (defaults 20 / 50; per-universe via reputation: tiers)."""
+    if standing >= _TUNING["tier3"]:
         return 3
-    if standing >= 20:
+    if standing >= _TUNING["tier2"]:
         return 2
     return 1
 
 
+def clan_foe_deal_standing():
+    """Standing a foe clan needs before it offers any work (default 20)."""
+    return _TUNING["foe_deal"]
+
+
 def clan_reward_mult(standing):
-    """Reward multiplier from standing: 1.0 at <=0, up to 2.0 at +100."""
-    return 1.0 + max(0, standing) / 100.0
+    """Reward multiplier from standing: 1.0 at <=0, up to reward_mult_max at +100
+    (default 2.0; per-universe via reputation: reward_mult_max)."""
+    return 1.0 + max(0, standing) / 100.0 * (_TUNING["reward_mult_max"] - 1.0)
 
 
 # --- Diplomacy negotiation (standing -> side-wide relations) -------------------
@@ -118,11 +187,13 @@ def clan_reward_mult(standing):
 # (the bridge between per-captain reputation and side diplomacy). A ceasefire can
 # be bought with a tribute when standing is low (breaks the catch-22 of needing a
 # truce to earn a foe clan's respect); an alliance must be genuinely earned.
-CEASEFIRE_FREE_AT = 30   # standing at/above which a ceasefire costs nothing
-ALLIANCE_STANDING = 60   # standing needed to propose an alliance
-
-
+# Thresholds are per-universe (reputation: ceasefire_free_at / alliance_standing).
 def clan_ceasefire_cost(standing):
-    """Tribute (credits) to buy a ceasefire: 0 at standing>=30, scaling to 600 at
-    standing 0 (20 cr per point below the free threshold)."""
-    return max(0, CEASEFIRE_FREE_AT - max(0, standing)) * 20
+    """Tribute (credits) to buy a ceasefire: 0 at standing>=ceasefire_free_at,
+    scaling by ceasefire_per_point below it (defaults 30 / 20 cr -> 600 at 0)."""
+    return max(0, _TUNING["ceasefire_free_at"] - max(0, standing)) * _TUNING["ceasefire_per_point"]
+
+
+def clan_alliance_standing():
+    """Standing needed to propose an alliance (default 60)."""
+    return _TUNING["alliance_standing"]

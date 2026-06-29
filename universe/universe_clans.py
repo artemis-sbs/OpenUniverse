@@ -143,6 +143,14 @@ def universe_section(doc, key):
     return None
 
 
+def universe_reputation_cfg(doc):
+    """The universe root's `reputation:` config block (axes + standing tuning), or
+    None when absent (-> the built-in defaults). Fed to reputation_configure."""
+    root = universe_root_node(doc)
+    data = (root.get("data") if root is not None else None) or {}
+    return data.get("reputation")
+
+
 def universe_shared_id():
     """The game-wide SHARED agent id - where shared narrative arcs are granted
     (quest_grant_amd routes scope: shared steps here). Lets the mast grant the

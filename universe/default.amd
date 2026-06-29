@@ -11,6 +11,25 @@
 # [Default](default)
 ---
 display: Default
+# Reputation axes (per-captain spectrums) + standing tuning. Authoring an `axes`
+# list REPLACES the built-in set, so a different universe can carry its own axes
+# (e.g. pious/heretical); omit the whole `reputation` block to use these defaults.
+# Each axis: a positive `pos` pole and an optional opposite `neg` pole.
+reputation:
+  axes:
+    - { axis: honesty,     pos: honest,       neg: liar }
+    - { axis: nerve,       pos: fearsome,     neg: cowardly }
+    - { axis: temperament, pos: peaceful,     neg: violent }
+    - { axis: generosity,  pos: generous,     neg: selfish }
+    - { axis: kindness,    pos: kind,         neg: cruel }
+    - { axis: method,      pos: resourceful,  neg: by_the_book }
+    - { axis: intellect,   pos: intellectual, neg: foolish }
+  tiers: { t2: 20, t3: 50 }
+  foe_deal: 20
+  reward_mult_max: 2.0
+  ceasefire_free_at: 30
+  ceasefire_per_point: 20
+  alliance_standing: 60
 ---
 A living frontier of clans, trade, reputation, and contestable space docks. The
 galaxy reacts to who you are, not to a scripted hero.

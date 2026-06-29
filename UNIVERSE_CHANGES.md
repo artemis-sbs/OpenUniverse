@@ -719,6 +719,119 @@ The level-1 root's data fence is the home for universe-wide knobs. Ship the
 
 ---
 
+## Reputation flexibility plan (DECIDED): author-defined axes + tuning
+
+Closes the Epic-I gap "the reputation axes themselves (`REP_POLES` is a code
+constant) - can't add a 'pious/heretical' axis for a religious universe," plus
+the adjacent "reputation & diplomacy tuning ... no way to author 'the pirates
+forgive quickly but the cult never forgets.'" Both become **authored data** in the
+universe root's `reputation:` block (the capstone identity fence). Built on the
+merged `universe.amd`.
+
+Confirmed with the user: **explicit axis list** schema; a declared block
+**replaces** the built-in axis set (no block -> the built-in 7); ship **axes +
+tuning knobs together**.
+
+### What's hardcoded today
+
+- `universe_reputation.py`: `REP_POLES` (7 axes / 14 poles) as a module constant;
+  `REP_MIN/MAX`; tier thresholds (`>=20/>=50` in `clan_offer_tier` AND the foe gate
+  in `clan_work_offers`); reward curve (`clan_reward_mult`); `CEASEFIRE_FREE_AT=30`
+  + per-point cost in `clan_ceasefire_cost`; and the **alliance threshold is a bare
+  literal `60`** in the `universe.mast` station comms route (not even a constant).
+- Nuance: `_axis_sign` already defaults an unknown pole to `(pole, +1)`, so a new
+  pole name *already* works one-directionally; what's missing is a **paired
+  opposite**, replacing/renaming the set, and author discoverability.
+- Everything else references poles **by name** (`leans`, `rep:` blocks,
+  `reputation_get/adjust/apply`, `%{pole>N}` comms gates), so it all keeps working
+  unchanged once the pole map is authored.
+
+### Authored schema (in the universe root data fence)
+
+```
+# [Default](default)
+---
+display: Default
+reputation:
+  axes:
+    - { axis: honesty,     pos: honest,       neg: liar }
+    - { axis: nerve,       pos: fearsome,     neg: cowardly }
+    - { axis: temperament, pos: peaceful,     neg: violent }
+    - { axis: generosity,  pos: generous,     neg: selfish }
+    - { axis: kindness,    pos: kind,         neg: cruel }
+    - { axis: method,      pos: resourceful,  neg: by_the_book }
+    - { axis: intellect,   pos: intellectual, neg: foolish }
+  min: -100
+  max: 100
+  tiers: { t2: 20, t3: 50 }      # standing to unlock job tiers 2 / 3
+  foe_deal_standing: 20          # standing a foe clan needs before it deals
+  reward_mult_max: 2.0           # reward multiplier at standing +100
+  ceasefire_free_at: 30          # ceasefire free at/above; scales below
+  ceasefire_per_point: 20        # cr per standing-point under the free line
+  alliance_standing: 60          # standing to propose an alliance
+---
+```
+
+A custom universe (religious, forgiving pirates) just authors its own:
+
+```
+reputation:
+  axes:
+    - { axis: devotion, pos: pious,  neg: heretical }
+    - { axis: valor,    pos: brave,  neg: craven }
+    - { axis: zeal,     pos: zealous }     # single-pole axis (no opposite)
+  tiers: { t2: 10, t3: 40 }               # forgiving thresholds
+```
+
+- **Axes = replace-with-fallback:** if `axes:` is present it fully defines the
+  pole map; if absent, the built-in 7 stand. Each axis -> two poles
+  (`pos`->`(axis,+1)`, `neg`->`(axis,-1)`); `neg` optional (single-pole axis).
+- **Tuning = per-knob override:** each knob present overrides its default; absent
+  keeps today's value (so a universe can retune `tiers` without redefining axes).
+- Explicit-list shape (vs bare pole pairs) was chosen to leave room for future
+  per-axis metadata (display name, color) without a schema change. Reuses the `---`
+  YAML fence - **no new AMD syntax**.
+
+### Code changes (all in this repo)
+
+1. **`universe_reputation.py`**
+   - `REP_POLES` -> module global `_REP_POLES` seeded from a `_DEFAULT_POLES`
+     table; same for the tuning constants (`_TIER2/_TIER3`, `_FOE_DEAL`,
+     `_REWARD_MULT_MAX`, `_REP_MIN/MAX`, `_CEASEFIRE_FREE_AT`,
+     `_CEASEFIRE_PER_POINT`, `_ALLIANCE_STANDING`).
+   - New `reputation_configure(rep_cfg)`: **reset to defaults first** (module
+     globals persist process-wide, so re-selecting a universe must not leak prior
+     config), then rebuild `_REP_POLES` from `axes:` and apply any tuning overrides.
+   - `_axis_sign`, `clan_offer_tier`, `clan_reward_mult`, `clan_ceasefire_cost`,
+     and `clan_work_offers`' foe gate read the globals instead of literals.
+   - New getter `clan_alliance_standing()` (so the comms route stops hardcoding 60).
+2. **`universe.mast`**
+   - Load block: after `UNIVERSE_DOC` is parsed, call
+     `reputation_configure((universe_root_node(UNIVERSE_DOC).get("data") or {}).get("reputation"))`.
+   - Station comms route: replace the literal `dip_standing >= 60` with
+     `dip_standing >= clan_alliance_standing()`.
+3. **`default.amd`**: add the explicit default `reputation:` block above - it both
+   documents the feature and serves as the authoring template (no behavior change,
+   since it equals the built-in defaults).
+
+### Save / compat / test
+
+- **Additive, no version bump.** Per-captain rep stays keyed by **canonical axis
+  name**. Authoring caveat: *renaming* axes in an existing universe orphans
+  previously-saved values for those axes (acceptable; a different universe is a
+  different rep context anyway). Document it.
+- **Test:** unit-test `reputation_configure` (axes replace; tuning override;
+  no-block fallback; reset-between-loads). Headless: a probe universe with custom
+  axes (`pious/heretical`) - leans, `clan_standing`, job gating, and a `rep:` block
+  all resolve on the custom poles; and the default universe is byte-for-byte
+  unchanged in behavior.
+
+> Out of scope (Phase C, flag only): **per-clan** forgiveness/grudge *rates* (decay
+> over time, asymmetric gain/loss) - a different flexibility axis than the set of
+> axes; revisit separately so this stays declarative.
+
+---
+
 ## Persistence additions (all additive to the universe save)
 
 New state each epic stores. All are **new keys read with `.get(default)`**, so per

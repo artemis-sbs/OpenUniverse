@@ -58,6 +58,10 @@ GameCode:
     # clans/jobs/narrative are sections of it. Legacy split-file universes have no
     # sections, so jobs fall back to a standalone clan_quests.amd.
     shared UNIVERSE_DOC = universe_doc(media_read_relative_file(universe_file(UNIVERSE_SELECT)))
+    # Reputation axes + standing tuning from the universe's root `reputation:` block
+    # (resets to the built-in 7 axes + defaults when absent). Must run before any
+    # rep read/write below.
+    reputation_configure(universe_reputation_cfg(UNIVERSE_DOC))
     # Clans -> spawned as sides below. The player side (tsn) already exists from the
     # server-start create_sides signal, so foe clans' enemies:"tsn" relation resolves.
     shared UNIVERSE_CLANS = universe_clans_from_doc(UNIVERSE_DOC)
@@ -285,7 +289,7 @@ GameCode:
             universe_diplomacy = universe_set_dip(universe_diplomacy, my_side, dip_clan, sbs.DIPLOMACY.NEUTRAL)
             universe_save_diplomacy(universe_diplomacy)
             >> "We have an understanding. Hostilities are suspended (tribute: {ceasefire_cost} cr)."
-        + "Propose Alliance" if dip_rel == sbs.DIPLOMACY.NEUTRAL and dip_standing >= 60:
+        + "Propose Alliance" if dip_rel == sbs.DIPLOMACY.NEUTRAL and dip_standing >= clan_alliance_standing():
             side_set_relations(my_side, dip_clan, sbs.DIPLOMACY.ALLIED)
             universe_diplomacy = universe_set_dip(universe_diplomacy, my_side, dip_clan, sbs.DIPLOMACY.ALLIED)
             universe_save_diplomacy(universe_diplomacy)
