@@ -43,3 +43,26 @@ Speaker: ashfang
 Speaker: ashfang
 ---
 % We're done here. For now.
+
+// Captain Vex Karr's hail (Speaker = the captain). His lines gate on the player's
+// PERSONAL standing with him (%{standing < -20} etc.), and the choices adjust it -
+// match his menace to earn respect, grovel to earn his contempt. Cross him enough
+// (standing < -20) and his `Rival when:` guard makes him a hunter.
+# Vex Karr (vex_hail)
+---
+Speaker: vex
+When: comms
+---
+%{standing < -20} You. The captain who crossed me. Bold, showing that face out here.
+%{standing >= 30} Karr's heard of your work. The Ashfang could use a hand like yours.
+% Vex Karr. You've heard the name. State your business.
+
+- [Match his menace](vex_parting) ; earns vex fearsome 10
+- [Grovel](vex_parting) ; earns vex cowardly 10
+- [Say nothing](vex_parting)
+
+# Parting (vex_parting)
+---
+Speaker: vex
+---
+% We'll cross paths again, captain. Count on it.

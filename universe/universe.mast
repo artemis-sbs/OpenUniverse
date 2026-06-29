@@ -82,6 +82,9 @@ GameCode:
     # Dialogue scenes (the `dialogue` section): key -> scene node, driven by the
     # //comms/dialogue route when a player hails a clan station.
     shared UNIVERSE_DIALOGUE = dialogue_scenes(UNIVERSE_DOC)
+    # Named NPC captains (the `captains` section): people with a personal reputation
+    # who can be hailed where they roam and turn rival per their `Rival when:` guard.
+    shared UNIVERSE_CAPTAINS = universe_parse_captains(UNIVERSE_DOC)
     for _clan in UNIVERSE_CLANS:
         await prefab_spawn(prefab_side_generic, {"key": _clan.key, "name": _clan.name, "desc": _clan.desc, "color": _clan.color, "enemies": _clan.enemies})
     shared universe_terrain_value = terrain_to_value(TERRAIN_SELECT)
@@ -267,12 +270,17 @@ GameCode:
 # completes the quest (on_reach) and pays out. Persists on the player ship.
 //comms if UNIVERSE_ACTIVE and has_role(COMMS_SELECTED_ID, "station")
     ship_id = COMMS_ORIGIN_ID
-    # Hail: if the station's clan has a dialogue scene (Speaker=clan, When=comms),
-    # open the conversation (universe_dialogue.py + the //comms/dialogue route).
+    # Hail: open a conversation (universe_dialogue.py + the //comms/dialogue route)
+    # with the station's clan, and with any named captain who roams this system. A
+    # captain entry scene is keyed the same way (Speaker = his key, When: comms).
     hail_clan = get_side(COMMS_SELECTED_ID)
     hail_entry = dialogue_clan_entry(UNIVERSE_DIALOGUE, hail_clan)
     if hail_entry is not None:
-        + "Hail {clan_name(UNIVERSE_CLANS, hail_clan)}" universe_dialogue_start {"clan": hail_clan, "scene": hail_entry}
+        + "Hail {clan_name(UNIVERSE_CLANS, hail_clan)}" universe_dialogue_start {"scene": hail_entry}
+    for hail_cap in captains_in_system(UNIVERSE_CAPTAINS, universe_i, universe_j):
+        cap_entry = dialogue_clan_entry(UNIVERSE_DIALOGUE, hail_cap.key)
+        if cap_entry is not None:
+            + "Hail {captain_full_name(hail_cap)}" universe_dialogue_start {"scene": cap_entry}
     + "Accept Cargo Run" if universe_delivery_available(ship_id, universe_i, universe_j):
         universe_grant_delivery(ship_id, universe_seed, universe_i, universe_j)
         universe_save_players()
@@ -329,27 +337,31 @@ GameCode:
 # whose guards pass; picking one applies its outcomes and advances to the next
 # scene. A scene with no choices is the end.
 
-# Start a conversation from the station's Hail button.
+# Start a conversation from a Hail button (clan or captain). The scene's Speaker
+# field decides the voice + the reputation context, so only the scene is needed.
 === universe_dialogue_start
-    DLG_CLAN = clan
     DLG_SCENE = scene
     jump universe_dialogue_enter
 
 # Show the current scene's spoken line, then render its choices (//comms/dialogue).
 # Reached on hail and after every choice, so each line is delivered exactly once.
+# The Speaker (a captain or a clan) sets the voice AND the rep context - a captain
+# reads the player's PERSONAL standing with him.
 === universe_dialogue_enter
     dlg_node = dialogue_get(UNIVERSE_DIALOGUE, DLG_SCENE)
-    dlg_clan = clan_get(UNIVERSE_CLANS, DLG_CLAN)
     if dlg_node is not None:
-        universe_chatter_card(dlg_clan, dialogue_pick_line(dialogue_parse(dlg_node), COMMS_ORIGIN_ID, dlg_clan))
+        dlg_scene = dialogue_parse(dlg_node)
+        dlg_spk = dialogue_speaker(UNIVERSE_CLANS, UNIVERSE_CAPTAINS, dlg_scene.get("speaker"))
+        universe_chatter_card(dlg_spk, dialogue_pick_line(dlg_scene, COMMS_ORIGIN_ID, dlg_spk))
     comms_navigate("//comms/dialogue")
     ->END
 
 # Apply a chosen line's outcomes (credits/reputation/signal) and advance. If a cost
 # can't be afforded the pick is refused and the scene re-renders.
 === universe_dialogue_choose
-    dlg_clan = clan_get(UNIVERSE_CLANS, DLG_CLAN)
-    if dialogue_apply(COMMS_ORIGIN_ID, dlg_clan, outcomes):
+    dlg_node = dialogue_get(UNIVERSE_DIALOGUE, DLG_SCENE)
+    dlg_spk = dialogue_speaker(UNIVERSE_CLANS, UNIVERSE_CAPTAINS, dialogue_parse(dlg_node).get("speaker"))
+    if dialogue_apply(COMMS_ORIGIN_ID, dlg_spk, outcomes):
         universe_save_players()
         DLG_SCENE = to
         jump universe_dialogue_enter
@@ -363,7 +375,8 @@ GameCode:
     dlg_node = dialogue_get(UNIVERSE_DIALOGUE, DLG_SCENE)
     if dlg_node is not None:
         dlg_scene = dialogue_parse(dlg_node)
-        for dlg_ch in dialogue_choices(dlg_scene, COMMS_ORIGIN_ID, clan_get(UNIVERSE_CLANS, DLG_CLAN)):
+        dlg_spk = dialogue_speaker(UNIVERSE_CLANS, UNIVERSE_CAPTAINS, dlg_scene.get("speaker"))
+        for dlg_ch in dialogue_choices(dlg_scene, COMMS_ORIGIN_ID, dlg_spk):
             + "{dlg_ch.label}" universe_dialogue_choose {"to": dlg_ch.target, "outcomes": dlg_ch.outcomes}
     + !0 "Leave" //comms
 

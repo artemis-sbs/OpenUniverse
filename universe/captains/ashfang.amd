@@ -1,0 +1,18 @@
+// Ashfang Raiders captains - named people of the clan, spliced into default.amd's
+// `## Captains` section via `File: captains/ashfang.amd`. A captain belongs to a
+// clan, flies a ship, embodies reputation poles (Values), roams a system (hailable
+// at its station), and has a `Rival when:` guard that turns him hostile against
+// the player's PERSONAL standing with him. His voice is authored in dialogue with
+// `Speaker: <his key>`.
+
+# Vex Karr (vex)
+---
+Clan: ashfang
+Title: the Ash-Captain
+Values: cruel 40, fearsome 30, violent 20
+Flies: Torgoth
+Roams: 8, -5
+Rival when: standing < -20
+---
+A scarred raider who runs the Ashfang lanes and collects grudges like trophies.
+Cross him and he does not forget.

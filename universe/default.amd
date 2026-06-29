@@ -166,6 +166,17 @@ Earns: iron honest 20, iron fearsome 10
 ---
 Return to a Concord starbase to seal the accord.
 
+## Captains
+---
+File: captains/ashfang.amd
+---
+
+Named NPC captains (people, not just clans), one file per clan. A captain belongs
+to a clan, roams a system (hailable at its station), embodies reputation poles
+(Values), and turns rival per his `Rival when:` guard against the player's personal
+standing with him. He speaks via dialogue scenes (Speaker = his key). Driven by
+universe_captains.py.
+
 ## Dialogue
 ---
 File: dialogue/ashfang.amd

@@ -1047,6 +1047,18 @@ system composition; POI-activation standby. Remaining are **tuning + spikes**:
     (parse + guard eval + outcome apply) and the `//comms/dialogue` scene loop; a
     station Hail opens it. Declarative only (no loops/vars), per the "writer's room"
     rule. Parsing + guards unit-tested; interactive comms flow wants a GUI pass.
+  - DONE (first cut): **NPC captains + rivals** (`## Captains` section, per-clan
+    files). A captain is an authored person: Clan, Title, Values (the reputation
+    poles he embodies), Flies, Roams (hailable at that station). The player holds a
+    **personal reputation** with him - the same per-(agent, subject) rep store keyed
+    by his key, so `clan_standing` / dialogue guards + outcomes work on a captain
+    record unchanged (free). He's a **dialogue Speaker** (scenes `Speaker: <his
+    key>` resolve his name/face/clan-color and read PERSONAL standing). A captain
+    turns **rival** when his authored `Rival when: <guard>` holds - emergent from
+    conduct, self-undoing, no script (reuses the dialogue guard grammar).
+    `universe_captains.py`; sample Vex Karr (Ashfang). Parse + rival guard + speaker
+    resolution unit-tested; headless PASS. **Follow-up:** the rival actually
+    spawning as a ship that hunts you across systems (spawn integration + GUI).
 
 > Fixed: universe_jump_to's console loops crashed (`'int' object has no
 > attribute 'client_id'`) when role("console") yielded a raw client id instead

@@ -152,7 +152,7 @@ def universe_amd_data(text):
             data["archetype"] = value
         elif label == "disposition":
             data["diplomacy"] = value
-        elif label in ("home", "homes"):
+        elif label in ("home", "homes", "roams"):
             data["homes"] = [c for c in (_f_coords(p) for p in value.split(";")) if len(c) == 2]
         elif label == "values":
             data["leans"] = _f_weighted(value)
