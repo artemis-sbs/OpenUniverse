@@ -1,0 +1,103 @@
+// Generic clan jobs for the Open Universe, split out of default.amd via the
+// `## Jobs` section's `File: jobs.amd`. Each heading key is a pool type (see a
+// clan's Offers). Goal is an English verb phrase that both sets the trigger and
+// reads as the objective: destroy / recover / scan / dock / reach.
+
+# Patrol Sweep (patrol)
+---
+Tier: 1
+Goal: destroy 4 raiders
+Pays: 300 credits
+---
+Raiders have been probing our space. Sweep the system and drive them off.
+
+# Standing Bounty (bounty)
+---
+Tier: 1
+Goal: destroy 3 raiders
+Pays: 280 credits
+---
+There is a price on raider hulls. Collect three and the bounty is yours.
+
+# Supply Run (supply)
+---
+Tier: 1
+Goal: recover 3 provisions
+Pays: 260 credits
+---
+Our stores are thin. Gather provision crates adrift in the system and bring
+them in.
+
+# Survey Contract (survey)
+---
+Tier: 1
+Goal: scan 2 derelicts
+Pays: 300 credits
+---
+We need eyes on the wrecks out here. Scan the derelicts and report what you find.
+
+# Salvage Sweep (salvage)
+---
+Tier: 1
+Goal: recover 2 tech
+Pays: 340 credits
+---
+There is working tech in the debris if you know where to look. Bring it back and
+we will make it worth your while.
+
+# Convoy Escort (escort)
+---
+Tier: 1
+Goal: dock station
+Pays: 260 credits
+---
+See our cargo safely to port. Dock at a station and the contract is fulfilled.
+
+# Run the Lanes (smuggle)
+---
+Tier: 2
+Goal: recover 2 contraband
+Pays: 480 credits
+---
+Quiet cargo, quiet questions. Recover the caches and keep this between us.
+
+# Raid the Lanes (raid)
+---
+Tier: 2
+Goal: destroy 5 raiders
+Pays: 500 credits
+---
+Hit them before they hit us. Five hulls, and do not be gentle about it.
+
+# Retrieve the Cache (retrieve)
+---
+Tier: 2
+Goal: recover 3 tech
+Pays: 520 credits
+---
+Something we want is scattered in the drift. Retrieve three components - discreetly.
+
+# Search and Rescue (rescue)
+---
+Tier: 2
+Goal: scan 1 derelict
+Pays: 460 credits
+---
+A ship went dark out here. Find the wreck, recover what survives, and bring it home.
+
+# Strike Package (strike)
+---
+Tier: 3
+Goal: destroy 8 raiders
+Pays: 760 credits
+---
+We are done waiting. Take the fight to them - eight hulls, and break their nerve.
+
+# Chase the Whisper (mystery)
+---
+Tier: 3
+Goal: scan 3 derelicts
+Pays: 720 credits
+---
+The signs are out there for those who would read them. Scan the wrecks. Tell no
+one what you see.

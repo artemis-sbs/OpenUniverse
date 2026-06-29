@@ -162,6 +162,10 @@ def universe_amd_data(text):
             data["makeup"] = _f_makeup(value)
         elif label == "display":
             data["display"] = value
+        elif label in ("file", "files"):
+            # A section may pull its entries from one or more files: repeat `File:`
+            # lines, or a comma list (`Files: a.amd, b.amd`). Accumulated into a list.
+            data.setdefault("file", []).extend(_f_list(value))
         elif label == "tier":
             data["tier"] = _f_num(value)
         elif label in ("scope", "state"):

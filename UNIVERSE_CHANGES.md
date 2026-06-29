@@ -1032,6 +1032,14 @@ system composition; POI-activation standby. Remaining are **tuning + spikes**:
     `# [Display](key)`. Gated behind `allow_bare_headings` (sbs_utils, default off)
     so document/help AMD that uses bare `#` as rendered markdown content is
     unaffected; OU opts in.
+  - DONE: **section includes** - a section's fence may carry one or more
+    `File: path.amd` (repeat the line or a comma `Files:` list); the loader reads
+    each and splices its top-level entries into the section, in order. So
+    `universe.amd` stays a slim table of contents and a growing section fans out
+    into files (e.g. `dialogue/ashfang.amd`, `dialogue/verdant.amd` - one per clan).
+    One level (included files are entries, not further includes).
+    `universe_includes` / `universe_splice`; the mast reads via
+    `media_read_relative_file` (subfolders resolve).
   - DONE (first cut): the **movie-script dialogue flavor** - a `## Dialogue`
     section authors clan conversations as scenes (`Speaker` = a clan; `When: comms`
     = the hail entry; `%` lines; choices = markdown links with optional

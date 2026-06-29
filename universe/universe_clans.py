@@ -144,6 +144,38 @@ def universe_section(doc, key):
     return None
 
 
+# --- Section includes (split a large universe across files) ------------------
+# A section heading may carry `File: path.amd` in its fence; the loader reads that
+# file, parses it, and splices its top-level entries into the section - so the main
+# universe.amd stays a slim table of contents and big sections (dialogue, jobs) live
+# in their own files. One level: an included file holds entries, not further File:s.
+def universe_includes(doc):
+    """One (section key, file) per file to splice in - a section may name several
+    (repeat `File:` or a comma `Files:` list), spliced in order. The mast reads each
+    file and calls universe_splice."""
+    root = universe_root_node(doc)
+    out = []
+    if root is not None:
+        for sec in root.get("children", []):
+            files = (sec.get("data") or {}).get("file") or []
+            if isinstance(files, str):
+                files = [files]
+            for f in files:
+                out.append(MastDataObject({"key": sec.get("key"), "file": f}))
+    return out
+
+
+def universe_splice(doc, section_key, included_doc):
+    """Append an included file's top-level entries as children of the named section."""
+    root = universe_root_node(doc)
+    if root is None or included_doc is None:
+        return
+    for sec in root.get("children", []):
+        if sec.get("key") == section_key:
+            sec.get("children").extend(included_doc.get("children", []))
+            return
+
+
 def universe_reputation_cfg(doc):
     """The universe root's `reputation:` config block (axes + standing tuning), or
     None when absent (-> the built-in defaults). Fed to reputation_configure."""

@@ -1,0 +1,45 @@
+// Ashfang Raiders dialogue - spliced into default.amd's `## Dialogue` section via
+// `File: dialogue/ashfang.amd`. A scene's Speaker is the clan (face/name/color);
+// When: comms makes it the scene a station hail opens. Body lines are % variants;
+// choices link to the next scene with optional `if <guard>` and `; <outcomes>`.
+
+# Ashfang Hail (ashfang_hail)
+---
+Speaker: ashfang
+When: comms
+---
+% You're a long way from friends, captain.
+% Brave or stupid, flying in here. Hard to tell which.
+
+- [Apologize and back off](ashfang_backoff)
+- [Threaten them](ashfang_standoff) if fearsome > 20
+- [Offer a cut of your cargo](ashfang_deal) if credits >= 200
+
+# The Deal (ashfang_deal)
+---
+Speaker: ashfang
+---
+% Hah. Maybe you're smarter than you look. Leave the crates and go.
+
+- [Hand it over](ashfang_done) ; costs 200 credits, earns ashfang selfish 5, signal ashfang_paid
+
+# Standoff (ashfang_standoff)
+---
+Speaker: ashfang
+---
+% Bold. We respect bold... right up until we don't.
+
+- [Hold your ground](ashfang_done) ; earns ashfang fearsome 10
+- [Think better of it](ashfang_backoff) ; earns ashfang cowardly 5
+
+# Back Off (ashfang_backoff)
+---
+Speaker: ashfang
+---
+% Smart. Run along, little ship.
+
+# Done (ashfang_done)
+---
+Speaker: ashfang
+---
+% We're done here. For now.

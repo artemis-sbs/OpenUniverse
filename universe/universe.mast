@@ -62,6 +62,10 @@ GameCode:
     # clans/jobs/narrative are sections of it. Legacy split-file universes have no
     # sections, so jobs fall back to a standalone clan_quests.amd.
     shared UNIVERSE_DOC = universe_doc(media_read_relative_file(universe_file(UNIVERSE_SELECT)))
+    # Section includes: a section with `File: x.amd` in its fence pulls its entries
+    # from that file (so the main universe.amd stays a table of contents). One level.
+    for _inc in universe_includes(UNIVERSE_DOC):
+        universe_splice(UNIVERSE_DOC, _inc.key, universe_doc(media_read_relative_file(_inc.file)))
     # Reputation axes + standing tuning from the universe's root `reputation:` block
     # (resets to the built-in 7 axes + defaults when absent). Must run before any
     # rep read/write below.
