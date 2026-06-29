@@ -1018,6 +1018,28 @@ system composition; POI-activation standby. Remaining are **tuning + spikes**:
     (name/color/history/auto-dismiss). [explore] promote a `comms_info_card`
     helper into sbs_utils (see Epic G note).
 
+- **Authoring format (Epic I capstone) - DONE:**
+  - DONE: **one `universe.amd`** merged file (clans + jobs + narrative + dialogue
+    sections), legacy split-file fallback; reputation axes + tuning authored in the
+    root `reputation:` block (`reputation_configure`).
+  - DONE: **friendly fact-sheet syntax** - `Label: value` fact lines instead of
+    YAML inside the `---` fence (comma lists, `name N` weights, `N% Race` makeup,
+    `a / b` pole pairs, English quest triggers). `universe_amd.py` translates a
+    fence to the internal data dict; a fence using YAML flow delegates to YAML, so
+    legacy/LM files are unchanged. Enabled by a `data_parser` hook on
+    `document_get_amd_file` (sbs_utils, default = YAML).
+  - DONE: **simplified headings** - `# Display` / `# Display (key)` instead of
+    `# [Display](key)`. Gated behind `allow_bare_headings` (sbs_utils, default off)
+    so document/help AMD that uses bare `#` as rendered markdown content is
+    unaffected; OU opts in.
+  - DONE (first cut): the **movie-script dialogue flavor** - a `## Dialogue`
+    section authors clan conversations as scenes (`Speaker` = a clan; `When: comms`
+    = the hail entry; `%` lines; choices = markdown links with optional
+    `if <guard>` and `; <outcomes>`). Driven at runtime by `universe_dialogue.py`
+    (parse + guard eval + outcome apply) and the `//comms/dialogue` scene loop; a
+    station Hail opens it. Declarative only (no loops/vars), per the "writer's room"
+    rule. Parsing + guards unit-tested; interactive comms flow wants a GUI pass.
+
 > Fixed: universe_jump_to's console loops crashed (`'int' object has no
 > attribute 'client_id'`) when role("console") yielded a raw client id instead
 > of a console object (seen on rapid headless jumps). Now normalized:

@@ -172,6 +172,9 @@ def universe_amd_data(text):
                 data[trig[0]] = trig[1]
             if label == "goal":
                 data["objective"] = value[:1].upper() + value[1:]
+            elif label == "when" and trig is None:
+                # Not a quest trigger verb (e.g. dialogue `When: comms`) -> keep raw.
+                data["when"] = value
         elif label == "then":
             toks = value.split()
             if len(toks) >= 2 and toks[0].lower() in ("reveal", "signal"):

@@ -22,6 +22,10 @@ default shared universe_sectors = {}
 default shared MAP_REVEAL = "Fog of War"
 default shared UNIVERSE_SELECT = "Default"
 default shared universe_diplomacy = {}
+# Active dialogue scene + speaker clan (set when a player hails; see the dialogue
+# routes near the station comms).
+default shared DLG_SCENE = None
+default shared DLG_CLAN = None
 # Engine-network culling: park terrain beyond this radius from all players.
 default shared UNIVERSE_CULL = True
 default shared UNIVERSE_CULL_RADIUS = 25000
@@ -71,6 +75,9 @@ GameCode:
         UNIVERSE_CLAN_QUESTS = universe_parse_clan_quests(media_read_relative_file("clan_quests.amd"))
     # Shared narrative arcs (the `narrative` section, may be None); granted below.
     shared UNIVERSE_NARRATIVE = universe_section(UNIVERSE_DOC, "narrative")
+    # Dialogue scenes (the `dialogue` section): key -> scene node, driven by the
+    # //comms/dialogue route when a player hails a clan station.
+    shared UNIVERSE_DIALOGUE = dialogue_scenes(UNIVERSE_DOC)
     for _clan in UNIVERSE_CLANS:
         await prefab_spawn(prefab_side_generic, {"key": _clan.key, "name": _clan.name, "desc": _clan.desc, "color": _clan.color, "enemies": _clan.enemies})
     shared universe_terrain_value = terrain_to_value(TERRAIN_SELECT)
@@ -256,6 +263,12 @@ GameCode:
 # completes the quest (on_reach) and pays out. Persists on the player ship.
 //comms if UNIVERSE_ACTIVE and has_role(COMMS_SELECTED_ID, "station")
     ship_id = COMMS_ORIGIN_ID
+    # Hail: if the station's clan has a dialogue scene (Speaker=clan, When=comms),
+    # open the conversation (universe_dialogue.py + the //comms/dialogue route).
+    hail_clan = get_side(COMMS_SELECTED_ID)
+    hail_entry = dialogue_clan_entry(UNIVERSE_DIALOGUE, hail_clan)
+    if hail_entry is not None:
+        + "Hail {clan_name(UNIVERSE_CLANS, hail_clan)}" universe_dialogue_start {"clan": hail_clan, "scene": hail_entry}
     + "Accept Cargo Run" if universe_delivery_available(ship_id, universe_i, universe_j):
         universe_grant_delivery(ship_id, universe_seed, universe_i, universe_j)
         universe_save_players()
@@ -304,6 +317,51 @@ GameCode:
     universe_save_players()
     comms_broadcast(ship_id, "Job accepted - check your quest log.", "#0cf")
     ->END
+
+
+# Dialogue (the movie-script flavor): authored scenes in universe.amd's `## Dialogue`
+# section, driven at runtime by universe_dialogue.py. A Hail opens a clan's entry
+# scene; each scene shows the speaker's line (as a clan comms card) and the choices
+# whose guards pass; picking one applies its outcomes and advances to the next
+# scene. A scene with no choices is the end.
+
+# Start a conversation from the station's Hail button.
+=== universe_dialogue_start
+    DLG_CLAN = clan
+    DLG_SCENE = scene
+    jump universe_dialogue_enter
+
+# Show the current scene's spoken line, then render its choices (//comms/dialogue).
+# Reached on hail and after every choice, so each line is delivered exactly once.
+=== universe_dialogue_enter
+    dlg_node = dialogue_get(UNIVERSE_DIALOGUE, DLG_SCENE)
+    dlg_clan = clan_get(UNIVERSE_CLANS, DLG_CLAN)
+    if dlg_node is not None:
+        universe_chatter_card(dlg_clan, dialogue_pick_line(dialogue_parse(dlg_node), COMMS_ORIGIN_ID, dlg_clan))
+    comms_navigate("//comms/dialogue")
+    ->END
+
+# Apply a chosen line's outcomes (credits/reputation/signal) and advance. If a cost
+# can't be afforded the pick is refused and the scene re-renders.
+=== universe_dialogue_choose
+    dlg_clan = clan_get(UNIVERSE_CLANS, DLG_CLAN)
+    if dialogue_apply(COMMS_ORIGIN_ID, dlg_clan, outcomes):
+        universe_save_players()
+        DLG_SCENE = to
+        jump universe_dialogue_enter
+    comms_broadcast(COMMS_ORIGIN_ID, "You cannot afford that.", "#f80")
+    comms_navigate("//comms/dialogue")
+    ->END
+
+# The dialogue page: one button per eligible choice, plus Leave. The spoken line was
+# already delivered by universe_dialogue_enter.
+//comms/dialogue if UNIVERSE_ACTIVE and DLG_SCENE is not None
+    dlg_node = dialogue_get(UNIVERSE_DIALOGUE, DLG_SCENE)
+    if dlg_node is not None:
+        dlg_scene = dialogue_parse(dlg_node)
+        for dlg_ch in dialogue_choices(dlg_scene, COMMS_ORIGIN_ID, clan_get(UNIVERSE_CLANS, DLG_CLAN)):
+            + "{dlg_ch.label}" universe_dialogue_choose {"to": dlg_ch.target, "outcomes": dlg_ch.outcomes}
+    + !0 "Leave" //comms
 
 
 #
