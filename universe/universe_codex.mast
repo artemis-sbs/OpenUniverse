@@ -1,0 +1,20 @@
+# Codex: a readable in-game library of this universe's lore. Reuses the
+# LegendaryMissions documents addon's document_screen renderer (already loaded);
+# the content is universe/lore.amd - a classic documents AMD (markdown, with bare
+# `#`/`##` headings rendered as content, since this file is parsed with the default
+# parser, not the friendly universe reader). Per-universe: a different universe can
+# ship its own lore.amd.
+
+# Register the Codex tab (top bar). Runs once at load.
+gui_tab_add_top("codex")
+
+
+//gui/tab/codex if UNIVERSE_ACTIVE
+    default CONSOLE_SELECT = ""
+    document_content = media_read_relative_file("lore.amd")
+    document_root = document_get_amd_file(None, "Codex", content=document_content)
+    document = document_flatten(document_root)
+    document_type = "Codex"
+    document_topic = CONSOLE_SELECT.lower()
+    document_back_tab = CONSOLE_SELECT
+    jump document_screen

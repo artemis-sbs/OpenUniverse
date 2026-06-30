@@ -1114,6 +1114,14 @@ system composition; POI-activation standby. Remaining are **tuning + spikes**:
   raiders, ports everywhere). Verified: within-region distribution shifts as
   authored; headless PASS. Follow-up: region coloring on the galaxy map.
 
+- **Lore / Codex - DONE.** A readable in-game **Codex** tab renders the universe's
+  lore. `universe_codex.mast` registers the tab and reuses the LegendaryMissions
+  documents addon's `document_screen` renderer; the content is `universe/lore.amd` -
+  a classic documents AMD (markdown, bare `#`/`##` headings rendered as content,
+  parsed by the default reader not the friendly one). Per-universe (a universe can
+  ship its own lore.amd). Sample lore: intro, the clans, reputation/diplomacy, the
+  regions. Parse + tab load verified headless; the rendered tab wants a GUI pass.
+
 > Fixed: universe_jump_to's console loops crashed (`'int' object has no
 > attribute 'client_id'`) when role("console") yielded a raw client id instead
 > of a console object (seen on rapid headless jumps). Now normalized:
