@@ -154,6 +154,10 @@ def universe_amd_data(text):
             data["diplomacy"] = value
         elif label in ("home", "homes", "roams"):
             data["homes"] = [c for c in (_f_coords(p) for p in value.split(";")) if len(c) == 2]
+        elif label in ("deliver to", "deliver_to", "destination"):
+            data["deliver_to"] = _f_coords(value)
+        elif label == "pickup":
+            data["pickup"] = _f_coords(value)
         elif label == "values":
             data["leans"] = _f_weighted(value)
         elif label == "offers":

@@ -26,3 +26,22 @@ Speaker: frontier_command
 Speaker: frontier_command
 ---
 % Frontier Command out. Stay sharp, captain.
+
+// Passenger Doctor Sela Voss's voice (Speaker = her lifeform key), hailable while
+// she's aboard.
+# Doctor Sela Voss (sela_hail)
+---
+Speaker: sela_voss
+When: comms
+---
+% Thank you for the passage, captain. The Verdant worlds are a long way out.
+% Mind the Ashfang lanes - I'd rather arrive in one piece.
+
+- [Reassure her](sela_done)
+- [Say nothing](sela_done)
+
+# Settled In (sela_done)
+---
+Speaker: sela_voss
+---
+% I'll be in the observation lounge if you need me.

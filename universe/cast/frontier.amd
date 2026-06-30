@@ -11,3 +11,18 @@ Scene: frontier_hail
 Color: #4cf
 ---
 Distant TSN fleet command, keeping a thin watch over the frontier.
+
+// An authored named passenger (delivery B): a lifeform with a Pickup + Deliver to
+// + Pays. Offered for transport at her pickup station; boards your ship on accept
+// and disembarks (with the fare) on reaching her destination. She has a voice too.
+# Doctor Sela Voss (sela_voss)
+---
+Face: female
+Roles: civilian
+Pickup: 0, 0
+Deliver to: -5, 3
+Pays: 500 credits
+Scene: sela_hail
+Color: #6cf
+---
+A xenobiologist needing passage from the home base to the Verdant worlds.

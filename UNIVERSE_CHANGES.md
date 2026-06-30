@@ -1067,10 +1067,16 @@ system composition; POI-activation standby. Remaining are **tuning + spikes**:
     `Scene` through the dialogue driver - so a comms character's voice IS a dialogue
     scene. `dialogue_speaker` now resolves a captain, a cast lifeform, or a clan.
     Done (slice 1): host-less galaxy comms NPCs (sample Frontier Command), parse +
-    speaker + face unit-tested, headless PASS. Next: delivery (a passenger you
-    `lifeform_transfer` to a destination), then the grid side (saboteur / boarding /
-    hero grid items). Then fold captains onto the lifeform substrate (a captain = a
-    lifeform that also carries reputation + a `Rival when:` guard).
+    speaker + face unit-tested, headless PASS.
+    Done (slice 2): **passenger delivery**. A passenger is a lifeform you transport -
+    pick up at a station, it boards your ship (`lifeform_spawn` host=ship), and
+    disembarks on reaching its destination system (the cargo-run `on_reach` quest
+    pays the fare). B = authored named passengers (a cast lifeform with Pickup +
+    Deliver to + Pays + a voice, e.g. Doctor Sela Voss home -> Verdant); A = a generic
+    traveler the station offers to the deterministic cargo destination. Reuses the
+    lifeform substrate + `universe_helpers.universe_delivery_target`. Parse/lookup
+    unit-tested; headless PASS. Next: the grid side (saboteur / boarding / hero grid
+    items - needs morph-to-grid). Then fold captains onto the lifeform substrate.
 
 > Fixed: universe_jump_to's console loops crashed (`'int' object has no
 > attribute 'client_id'`) when role("console") yielded a raw client id instead

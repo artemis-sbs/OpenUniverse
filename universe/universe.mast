@@ -90,7 +90,7 @@ GameCode:
     # bridges to the dialogue driver (//comms/universe_cast).
     shared UNIVERSE_LIFEFORMS = universe_parse_lifeforms(UNIVERSE_DOC)
     for _lf in UNIVERSE_LIFEFORMS:
-        if _lf.host is None:
+        if _lf.host is None and _lf.deliver_to is None:
             universe_spawn_lifeform(_lf, None)
     for _clan in UNIVERSE_CLANS:
         await prefab_spawn(prefab_side_generic, {"key": _clan.key, "name": _clan.name, "desc": _clan.desc, "color": _clan.color, "enemies": _clan.enemies})
@@ -292,6 +292,20 @@ GameCode:
         universe_grant_delivery(ship_id, universe_seed, universe_i, universe_j)
         universe_save_players()
         >> "Cargo loaded. The destination is marked on your galaxy map."
+    # Passenger transport: authored named passengers waiting here (B), plus a
+    # generic traveler to the deterministic destination (A). Accepting boards the
+    # passenger lifeform; reaching the destination pays the fare + disembarks them.
+    for pax in universe_passengers_at(UNIVERSE_LIFEFORMS, universe_i, universe_j):
+        pax_label = f"Transport {pax.name} to ({pax.deliver_to[0]}, {pax.deliver_to[1]})  ({pax.pays} cr)"
+        + "{pax_label}" if quest_get_state(ship_id, "passenger_" + pax.key) == QuestState.IDLE:
+            universe_grant_passenger(ship_id, pax)
+            universe_save_players()
+            >> "{pax.name} is aboard. Destination marked on your galaxy map."
+    pax_tij = universe_delivery_target(universe_seed, universe_i, universe_j)
+    + "Transport a passenger to ({pax_tij[0]}, {pax_tij[1]})" if quest_get_state(ship_id, "passenger_traveler_" + str(universe_i) + "_" + str(universe_j)) == QuestState.IDLE:
+        universe_grant_passenger(ship_id, universe_generic_passenger(universe_i, universe_j, pax_tij[0], pax_tij[1]))
+        universe_save_players()
+        >> "Passenger aboard. Safe travels."
     + "Accept Patrol Mission" if quest_get_state(ship_id, "story_patrol") == 0:
         quest_grant_amd(ship_id, BRIDGE_STORY_DOC)
         universe_save_players()
@@ -573,6 +587,10 @@ GameCode:
 #
 === universe_enter_system
     key = universe_system_key(universe_seed, universe_i, universe_j)
+    # Passenger delivery: any aboard passenger bound for this system disembarks
+    # (the on_reach quest pays the fare separately). Reuses the lifeform substrate.
+    for _pax_id in universe_passengers_destined(universe_i, universe_j):
+        comms_broadcast(role("__player__"), universe_deliver_passenger(_pax_id) + " delivered safely.", "#0f0")
     # Base kind (clan-agnostic) + clan overlay: a clan home -> that clan + a
     # station; a keyed enemy system -> a foe clan. Map and spawn use the same
     # helper so they agree.
