@@ -191,16 +191,23 @@ Center: 8, -5
 Radius: 4
 Skybox: sky-neb2-rvb
 Music: Artemis2
+Enemy mix: 45%
+Station mix: 5%
+Mine chance: 80%
 ---
-Ashfang raider country - red skies and worse intentions.
+Ashfang raider country - red skies and worse intentions. A warzone: enemy systems
+crowd the lanes and mines lace the dark.
 
 ### The Verdant Belt (verdant_belt)
 ---
 Center: -5, 3
 Radius: 4
 Skybox: sky-delight
+Enemy mix: 0%
+Station mix: 30%
 ---
-The green-world trade lanes of the Verdant Pact - calm, open, prosperous.
+The green-world trade lanes of the Verdant Pact - calm, open, prosperous. A haven:
+no raiders, ports everywhere.
 
 ## Captains
 ---

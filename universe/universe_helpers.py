@@ -417,6 +417,10 @@ _GEN_DEFAULTS = {
     "loot_max": 2, "derelict": 0.4, "derelict_nebula": 0.7, "outpost": 0.4, "mines": 0.5,
 }
 _GEN = dict(_GEN_DEFAULTS)
+# Regions with local generation overrides (set at load by regions_configure), so a
+# region can be its own warzone/haven. universe_system_kind merges a cell's region
+# config over the global, keeping the map and the spawn agreeing.
+_REGIONS = []
 # Danger scales enemy density relative to the authored base (Quiet = base). Default
 # base enemy 0.15 -> Balanced 0.25, Dangerous 0.40 (the old per-Danger enemy rates).
 _DANGER_ENEMY = {"Quiet": 1.0, "Balanced": 1.67, "Dangerous": 2.67}
@@ -433,9 +437,31 @@ def generation_configure(cfg):
                 _GEN[k] = v
 
 
-def universe_generation(name):
-    """A generation knob's current value (the POI deck reads weights via this)."""
-    return _GEN.get(name, _GEN_DEFAULTS.get(name))
+def regions_configure(regions):
+    """Register the regions whose local `generation:` overrides reshape the system
+    mix within their bounds (universe_system_kind reads them)."""
+    global _REGIONS
+    _REGIONS = regions or []
+
+
+def _gen_for_cell(i, j):
+    """The generation config in effect at (i, j): a region's overrides merged over
+    the global, or just the global. region_for_system is from universe_regions.py."""
+    if _REGIONS:
+        rgn = region_for_system(_REGIONS, i, j)
+        if rgn is not None and rgn.get("generation"):
+            merged = dict(_GEN)
+            merged.update(rgn.get("generation"))
+            return merged
+    return _GEN
+
+
+def universe_generation(name, i=None, j=None):
+    """A generation knob's current value. With (i, j), returns the value in effect at
+    that cell (a region's override merged over the global) so the deck is region-
+    aware too; without, the global value."""
+    g = _gen_for_cell(i, j) if i is not None else _GEN
+    return g.get(name, _GEN_DEFAULTS.get(name))
 
 
 def universe_generation_cfg(doc):
@@ -459,10 +485,11 @@ def universe_system_kind(seed, i, j, danger="Quiet"):
     if i == 0 and j == 0:
         return "home"
     roll = scatter.cell_roll(seed, 1, i, j, 7)
-    t_station = _GEN["station"]
-    t_enemy = _GEN["enemy"] * _DANGER_ENEMY.get(danger, 1.0)
-    t_nebula = _GEN["nebula"]
-    t_anomaly = _GEN["anomaly"]
+    g = _gen_for_cell(i, j)
+    t_station = g["station"]
+    t_enemy = g["enemy"] * _DANGER_ENEMY.get(danger, 1.0)
+    t_nebula = g["nebula"]
+    t_anomaly = g["anomaly"]
     if roll < t_station:
         return "station"
     if roll < t_station + t_enemy:

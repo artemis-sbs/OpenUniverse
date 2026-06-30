@@ -1104,8 +1104,15 @@ system composition; POI-activation standby. Remaining are **tuning + spikes**:
   skybox/music gap); cells no region claims keep the default. `universe_regions.py`
   (parse + region_for_system point-in-region lookup); samples The Ashen Reach
   (Ashfang) + The Verdant Belt (Verdant). Lookup unit-tested; headless PASS (the
-  visual change wants a GUI pass). Follow-up: per-region generation overrides (a
-  region as its own warzone/haven) + region coloring on the galaxy map.
+  visual change wants a GUI pass).
+- **Per-region generation overrides - DONE.** A region's fence may carry the same
+  generation knobs (Station/Enemy/Nebula/Anomaly mix, deck chances) - they override
+  the global within the region's bounds, so a region is its own warzone or haven.
+  `regions_configure` registers them; `universe_system_kind` (map + spawn, via
+  `_gen_for_cell`) and `universe_system_deck` (i,j-aware) both apply the merge. The
+  Ashen Reach is now a warzone (enemy-dense, mined), the Verdant Belt a haven (no
+  raiders, ports everywhere). Verified: within-region distribution shifts as
+  authored; headless PASS. Follow-up: region coloring on the galaxy map.
 
 > Fixed: universe_jump_to's console loops crashed (`'int' object has no
 > attribute 'client_id'`) when role("console") yielded a raw client id instead

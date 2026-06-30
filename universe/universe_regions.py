@@ -27,6 +27,9 @@ def universe_parse_regions(doc):
                 "radius": int(data.get("radius") or 0),
                 "skybox": data.get("skybox"),
                 "music": data.get("music"),
+                # Local generation overrides (same friendly knobs as the root
+                # `generation:` block) - the system-kind mix inside this region.
+                "generation": data.get("generation"),
             }))
     return out
 

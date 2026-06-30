@@ -36,7 +36,7 @@ def _ring_pos(r, rmin, rmax):
     return (math.cos(ang) * dist, r.uniform(-300.0, 300.0), math.sin(ang) * dist)
 
 
-def universe_system_deck(key, kind, owner, archetype=None, foe=False, difficulty=5):
+def universe_system_deck(key, kind, owner, archetype=None, foe=False, difficulty=5, i=None, j=None):
     """POI descriptors for a system, drawn deterministically from its key.
 
     key       int system key (universe_system_key)
@@ -58,7 +58,7 @@ def universe_system_deck(key, kind, owner, archetype=None, foe=False, difficulty
 
     # Loot caches - trade-good pickups, denser in nebula/anomaly. Weights are
     # author-exposed via the universe's `generation:` block (universe_generation()).
-    n_loot = r.randint(0, int(universe_generation("loot_max")))
+    n_loot = r.randint(0, int(universe_generation("loot_max", i, j)))
     if kind == "nebula" or kind == "anomaly":
         n_loot += 2
     for _ in range(n_loot):
@@ -67,7 +67,7 @@ def universe_system_deck(key, kind, owner, archetype=None, foe=False, difficulty
             "type": "loot", "item_key": r.choice(_LOOT_KEYS), "x": x, "y": y, "z": z}))
 
     # Derelict - a scannable wreck POI. Hidden wrecks are likelier in nebulae.
-    p_der = universe_generation("derelict_nebula") if kind == "nebula" else universe_generation("derelict")
+    p_der = universe_generation("derelict_nebula", i, j) if kind == "nebula" else universe_generation("derelict", i, j)
     if r.random() < p_der:
         x, y, z = _ring_pos(r, 10000, 35000)
         pois.append(MastDataObject({"type": "derelict", "x": x, "y": y, "z": z}))
@@ -75,14 +75,14 @@ def universe_system_deck(key, kind, owner, archetype=None, foe=False, difficulty
     # Secondary outpost - clan systems sometimes have a second, smaller holding
     # (extra clan-work giver / capture-adjacent flavor). Clan systems only, so the
     # side is always a real registered side.
-    if owner is not None and r.random() < universe_generation("outpost"):
+    if owner is not None and r.random() < universe_generation("outpost", i, j):
         arts = _OUTPOST_ART.get(archetype, _OUTPOST_ART_DEFAULT)
         x, y, z = _ring_pos(r, 12000, 30000)
         pois.append(MastDataObject({
             "type": "outpost", "side": owner, "art": r.choice(arts), "x": x, "y": y, "z": z}))
 
     # Mine field - foe territory seeds lethal terrain to clear or avoid.
-    if foe and r.random() < universe_generation("mines"):
+    if foe and r.random() < universe_generation("mines", i, j):
         x, y, z = _ring_pos(r, 6000, 18000)
         pois.append(MastDataObject({
             "type": "mines", "count": 3 + int(difficulty) // 3, "x": x, "y": y, "z": z}))

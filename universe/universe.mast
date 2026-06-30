@@ -96,8 +96,10 @@ GameCode:
         if _lf.host is None and _lf.deliver_to is None:
             universe_spawn_lifeform(_lf, None)
     # Regions (the `regions` section): named map areas that set the sky + music on
-    # arrival (universe_enter_system). Cells no region claims keep the default.
+    # arrival (universe_enter_system), and whose local generation overrides reshape
+    # the system mix within their bounds (regions_configure -> universe_system_kind).
     shared UNIVERSE_REGIONS = universe_parse_regions(UNIVERSE_DOC)
+    regions_configure(UNIVERSE_REGIONS)
     for _clan in UNIVERSE_CLANS:
         await prefab_spawn(prefab_side_generic, {"key": _clan.key, "name": _clan.name, "desc": _clan.desc, "color": _clan.color, "enemies": _clan.enemies})
     shared universe_terrain_value = terrain_to_value(TERRAIN_SELECT)
@@ -742,7 +744,7 @@ GameCode:
     # territory seeds mine fields. Decided here in Python, spawned here in MAST.
     owner_foe = owner is not None and side_are_enemies(owner, "tsn")
     owner_arch = clan_archetype(UNIVERSE_CLANS, owner)
-    for poi in universe_system_deck(key, kind, owner, owner_arch, owner_foe, DIFFICULTY):
+    for poi in universe_system_deck(key, kind, owner, owner_arch, owner_foe, DIFFICULTY, universe_i, universe_j):
         match poi.type:
             case "loot":
                 item_spawn(poi.item_key, poi.x, poi.y, poi.z)
