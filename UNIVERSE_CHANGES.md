@@ -1122,6 +1122,34 @@ system composition; POI-activation standby. Remaining are **tuning + spikes**:
   ship its own lore.amd). Sample lore: intro, the clans, reputation/diplomacy, the
   regions. Parse + tab load verified headless; the rendered tab wants a GUI pass.
 
+- **Landmarks - DONE.** A `## Landmarks` section pins named stations/wrecks to a
+  system (the legendary places, layered over the procedural content). Each has an At
+  (coords) + Kind (station / derelict); a station may name a Side and Art.
+  `universe_landmarks.py` (parse + `universe_landmarks_in_system` +
+  deterministic-per-landmark position); spawned on arrival in `universe_enter_system`.
+  Samples: the Drifting Cathedral (Choir wreck), Tycho Station (TSN post). Headless
+  PASS. (Note: a landmark naming a Side that no clan spawns logs a harmless
+  `Side not found` - Tycho's `tsn`.)
+- **Goods - DONE.** A `## Goods` section authors the loot pool (good keys + Weight);
+  the POI deck scatters loot drawn from this weighted pool. `universe_goods.py`
+  (`universe_parse_goods`, `goods_configure` reset-first, `universe_loot_pick`);
+  defaults reproduce the built-in five. Good keys must be registered items (the LM
+  items mastlib). Weighted distribution + headless PASS.
+- **Goals / win-lose - DONE (first cut).** A `## Goals` section authors the
+  campaign's end conditions: a goal is a shared quest (Scope/State/When like a
+  narrative step) flagged `Win` or `Lose`. On completion, `//signal/quest_finished`
+  announces the end on the info panel (optional `Citation` = its text) and broadcasts
+  `universe_victory` / `universe_defeat` for an end screen to hook (the screen itself
+  is the GUI follow-up). Omit the section for an open-ended sandbox. Granted at start
+  via `quest_grant_amd` (like narrative). Sample: break the Ashfang (kill 20 -> Win).
+  Parse + headless PASS.
+- **Region map coloring - DONE.** A region's optional `Color` washes its cells on the
+  Navigation galaxy map (forced low alpha so clan/quest/current/selected colors still
+  override), so a region's geography reads at a glance; shown even in fog (geography,
+  not intel). `region_map_color` + `_region_faint` in `universe_regions.py`; applied
+  in the map repaint below clan ownership. This closes the Regions follow-up. Tint
+  helper unit-tested; headless PASS (the visual wants a GUI pass).
+
 > Fixed: universe_jump_to's console loops crashed (`'int' object has no
 > attribute 'client_id'`) when role("console") yielded a raw client id instead
 > of a console object (seen on rapid headless jumps). Now normalized:
