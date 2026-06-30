@@ -182,6 +182,8 @@ def universe_amd_data(text):
             data["deliver_to"] = _f_coords(value)
         elif label == "pickup":
             data["pickup"] = _f_coords(value)
+        elif label == "center":
+            data["center"] = _f_coords(value)
         elif label == "sabotage":
             data["sabotage"] = _f_list(value)
         elif label in _GEN_PCT:

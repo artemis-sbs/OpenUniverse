@@ -95,6 +95,9 @@ GameCode:
     for _lf in UNIVERSE_LIFEFORMS:
         if _lf.host is None and _lf.deliver_to is None:
             universe_spawn_lifeform(_lf, None)
+    # Regions (the `regions` section): named map areas that set the sky + music on
+    # arrival (universe_enter_system). Cells no region claims keep the default.
+    shared UNIVERSE_REGIONS = universe_parse_regions(UNIVERSE_DOC)
     for _clan in UNIVERSE_CLANS:
         await prefab_spawn(prefab_side_generic, {"key": _clan.key, "name": _clan.name, "desc": _clan.desc, "color": _clan.color, "enemies": _clan.enemies})
     shared universe_terrain_value = terrain_to_value(TERRAIN_SELECT)
@@ -649,6 +652,15 @@ GameCode:
             universe_chatter_card(arrival_clan, arrival_chatter)
     # Remember we've been here (drives the galaxy-map fog of war).
     universe_sectors = universe_set_system_flag(universe_sectors, universe_i, universe_j, "visited")
+
+    # Region identity: a named area (regions section) sets the sky + music; cells no
+    # region claims keep whatever's current (basic_random_skybox's default).
+    arrival_region = region_for_system(UNIVERSE_REGIONS, universe_i, universe_j)
+    if arrival_region is not None:
+        if arrival_region.skybox is not None:
+            skybox_schedule(arrival_region.skybox)
+        if arrival_region.music is not None:
+            music_schedule(arrival_region.music)
 
     # Terrain (denser in nebula sectors)
     tv = universe_terrain_value

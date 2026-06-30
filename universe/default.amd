@@ -178,6 +178,30 @@ Earns: iron honest 20, iron fearsome 10
 ---
 Return to a Concord starbase to seal the accord.
 
+## Regions
+
+Named areas of the galaxy with their own identity. A region is a Center + Radius
+(a square in system coordinates) with a Skybox and Music; on arrival the system's
+region sets the sky + music (cells no region claims keep the default). Author
+smaller regions first so they win over larger ones. Driven by universe_regions.py.
+
+### The Ashen Reach (ashen_reach)
+---
+Center: 8, -5
+Radius: 4
+Skybox: sky-neb2-rvb
+Music: Artemis2
+---
+Ashfang raider country - red skies and worse intentions.
+
+### The Verdant Belt (verdant_belt)
+---
+Center: -5, 3
+Radius: 4
+Skybox: sky-delight
+---
+The green-world trade lanes of the Verdant Pact - calm, open, prosperous.
+
 ## Captains
 ---
 File: captains/ashfang.amd

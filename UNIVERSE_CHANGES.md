@@ -1098,6 +1098,15 @@ system composition; POI-activation standby. Remaining are **tuning + spikes**:
   (parse + distribution retuning: warzone floods enemy systems, peaceful zeroes
   them) + headless PASS.
 
+- **Regions (per-area identity) - DONE (first cut).** A `## Regions` section authors
+  named map areas - a Center + Radius (a Chebyshev square in i,j) with a Skybox and
+  Music. On arrival the system's region sets the sky + music (the global
+  skybox/music gap); cells no region claims keep the default. `universe_regions.py`
+  (parse + region_for_system point-in-region lookup); samples The Ashen Reach
+  (Ashfang) + The Verdant Belt (Verdant). Lookup unit-tested; headless PASS (the
+  visual change wants a GUI pass). Follow-up: per-region generation overrides (a
+  region as its own warzone/haven) + region coloring on the galaxy map.
+
 > Fixed: universe_jump_to's console loops crashed (`'int' object has no
 > attribute 'client_id'`) when role("console") yielded a raw client id instead
 > of a console object (seen on rapid headless jumps). Now normalized:
