@@ -532,6 +532,11 @@ GameCode:
                 cell_bg = clan_color(UNIVERSE_CLANS, home_owner)
             elif cell_owner is not None and cell_revealed:
                 cell_bg = clan_color(UNIVERSE_CLANS, cell_owner)
+            else:
+                # Region wash (geography backdrop): only where no clan colors the cell.
+                region_bg = region_map_color(UNIVERSE_REGIONS, ci, cj)
+                if region_bg is not None:
+                    cell_bg = region_bg
             if (ci, cj) in quest_targets:
                 cell_bg = "#a60"
             cell_mark = ""

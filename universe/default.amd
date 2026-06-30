@@ -202,8 +202,10 @@ galaxy - to win the frontier its peace.
 
 Named areas of the galaxy with their own identity. A region is a Center + Radius
 (a square in system coordinates) with a Skybox and Music; on arrival the system's
-region sets the sky + music (cells no region claims keep the default). Author
-smaller regions first so they win over larger ones. Driven by universe_regions.py.
+region sets the sky + music (cells no region claims keep the default). An optional
+Color washes the region's cells on the Navigation map (faint, so clan and quest
+colors still show through) - the region's geography at a glance. Author smaller
+regions first so they win over larger ones. Driven by universe_regions.py.
 
 ### The Ashen Reach (ashen_reach)
 ---
@@ -211,6 +213,7 @@ Center: 8, -5
 Radius: 4
 Skybox: sky-neb2-rvb
 Music: Artemis2
+Color: #ee3333
 Enemy mix: 45%
 Station mix: 5%
 Mine chance: 80%
@@ -223,6 +226,7 @@ crowd the lanes and mines lace the dark.
 Center: -5, 3
 Radius: 4
 Skybox: sky-delight
+Color: #44cc88
 Enemy mix: 0%
 Station mix: 30%
 ---

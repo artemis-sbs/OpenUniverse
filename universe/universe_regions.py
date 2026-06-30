@@ -27,6 +27,9 @@ def universe_parse_regions(doc):
                 "radius": int(data.get("radius") or 0),
                 "skybox": data.get("skybox"),
                 "music": data.get("music"),
+                # Optional map tint (a #RGB / #RRGGBB color) - washes the region's
+                # cells on the galaxy map so its geography reads at a glance.
+                "color": data.get("color"),
                 # Local generation overrides (same friendly knobs as the root
                 # `generation:` block) - the system-kind mix inside this region.
                 "generation": data.get("generation"),
@@ -43,3 +46,28 @@ def region_for_system(regions, i, j):
         if c and abs(int(i) - int(c[0])) <= r and abs(int(j) - int(c[1])) <= r:
             return rgn
     return None
+
+
+def _region_faint(col):
+    """An authored region color forced to a low alpha, so it reads as a subtle map
+    wash that clan/quest colors still override. #RGB -> #RGBA, #RRGGBB -> #RRGGBBAA."""
+    s = str(col).strip()
+    if s.startswith("#"):
+        hexd = s[1:]
+        if len(hexd) == 3:
+            return "#" + hexd + "3"
+        if len(hexd) == 6:
+            return "#" + hexd + "33"
+    return s
+
+
+def region_map_color(regions, i, j):
+    """The faint map tint for cell (i, j) from its region's Color, or None (no
+    region, or the region set no Color). Geography, not intel - shown even unexplored."""
+    rgn = region_for_system(regions, i, j)
+    if rgn is None:
+        return None
+    col = rgn.get("color")
+    if not col:
+        return None
+    return _region_faint(col)
