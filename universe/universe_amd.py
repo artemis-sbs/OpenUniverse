@@ -188,6 +188,9 @@ def universe_amd_data(text):
             data["at"] = _f_coords(value)
         elif label == "sabotage":
             data["sabotage"] = _f_list(value)
+        elif label in ("win", "lose"):
+            # A campaign goal's outcome: completing it wins/loses the campaign.
+            data[label] = str(value).strip().lower() in ("true", "yes", "1", "")
         elif label in _GEN_PCT:
             data.setdefault("generation", {})[_GEN_PCT[label]] = _f_pct(value)
         elif label == "loot max":

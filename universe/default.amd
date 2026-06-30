@@ -178,6 +178,26 @@ Earns: iron honest 20, iron fearsome 10
 ---
 Return to a Concord starbase to seal the accord.
 
+## Goals
+
+The campaign's win/lose conditions - the long game on top of the sandbox. A goal is
+a shared quest (like a narrative step: a Scope, a State, a When trigger), but one
+flagged `Win` or `Lose` ends the campaign when it completes. The end is announced on
+the info panel (the optional Citation is its text) and broadcast as a signal
+(universe_victory / universe_defeat) for an end screen to hook. Omit this section
+for an open-ended sandbox with no end. Granted at start via quest_grant_amd.
+
+### Break the Ashfang (goal_break_ashfang)
+---
+Scope: shared
+State: active
+When: destroy 20 ashfang
+Win: true
+Citation: The Ashfang raiders are broken and the lanes run clear. The frontier remembers the captain who freed it.
+---
+Shatter the Ashfang Raiders for good - destroy twenty of their ships across the
+galaxy - to win the frontier its peace.
+
 ## Regions
 
 Named areas of the galaxy with their own identity. A region is a Center + Radius

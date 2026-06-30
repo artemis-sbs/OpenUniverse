@@ -82,6 +82,10 @@ GameCode:
         UNIVERSE_CLAN_QUESTS = universe_parse_clan_quests(media_read_relative_file("clan_quests.amd"))
     # Shared narrative arcs (the `narrative` section, may be None); granted below.
     shared UNIVERSE_NARRATIVE = universe_section(UNIVERSE_DOC, "narrative")
+    # Campaign goals (the `goals` section, may be None): shared quests like narrative,
+    # but a goal flagged Win/Lose ends the campaign when it completes (handled in
+    # //signal/quest_finished). Granted game-wide below alongside the narrative.
+    shared UNIVERSE_GOALS = universe_section(UNIVERSE_DOC, "goals")
     # Dialogue scenes (the `dialogue` section): key -> scene node, driven by the
     # //comms/dialogue route when a player hails a clan station.
     shared UNIVERSE_DIALOGUE = dialogue_scenes(UNIVERSE_DOC)
@@ -130,6 +134,9 @@ GameCode:
     # state: active steps go live now, secret steps wait for their reveal. Idempotent
     # (skips already-granted steps), and a no-op when the universe has no narrative.
     quest_grant_amd(universe_shared_id(), UNIVERSE_NARRATIVE)
+    # Grant the campaign goals the same way (shared, game-wide). A goal completing
+    # is what triggers the Win/Lose end (in //signal/quest_finished).
+    quest_grant_amd(universe_shared_id(), UNIVERSE_GOALS)
 
     await task_schedule(universe_enter_system)
     await task_schedule(spawn_players)
@@ -260,6 +267,15 @@ GameCode:
     # On-change chatter: clans note a shift in your standing.
     if DATA.get("rep") is not None:
         universe_info_card("Word of your deeds spreads among the clans.", title="Comms Chatter")
+    # A campaign goal carrying Win/Lose ends the campaign when it completes. The end
+    # is announced on the info panel and broadcast as a signal so an end screen (or
+    # any addon) can hook it; the goal's own prose is the citation.
+    if DATA.get("win"):
+        universe_info_card(DATA.get("citation", "The frontier is yours."), title="VICTORY")
+        signal_emit("universe_victory", DATA)
+    if DATA.get("lose"):
+        universe_info_card(DATA.get("citation", "The frontier is lost."), title="DEFEAT")
+        signal_emit("universe_defeat", DATA)
     ->END
 
 
