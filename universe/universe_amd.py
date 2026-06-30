@@ -158,6 +158,8 @@ def universe_amd_data(text):
             data["deliver_to"] = _f_coords(value)
         elif label == "pickup":
             data["pickup"] = _f_coords(value)
+        elif label == "sabotage":
+            data["sabotage"] = _f_list(value)
         elif label == "values":
             data["leans"] = _f_weighted(value)
         elif label == "offers":

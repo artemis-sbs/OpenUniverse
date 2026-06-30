@@ -300,6 +300,9 @@ GameCode:
         + "{pax_label}" if quest_get_state(ship_id, "passenger_" + pax.key) == QuestState.IDLE:
             universe_grant_passenger(ship_id, pax)
             universe_save_players()
+            # A saboteur passenger starts sabotaging once aboard (slice 3).
+            if pax.sabotage is not None:
+                task_schedule(universe_saboteur_run, {"SAB_SHIP": ship_id, "SAB_SYSTEMS": pax.sabotage})
             >> "{pax.name} is aboard. Destination marked on your galaxy map."
     pax_tij = universe_delivery_target(universe_seed, universe_i, universe_j)
     + "Transport a passenger to ({pax_tij[0]}, {pax_tij[1]})" if quest_get_state(ship_id, "passenger_traveler_" + str(universe_i) + "_" + str(universe_j)) == QuestState.IDLE:
@@ -411,6 +414,37 @@ GameCode:
         DLG_SCENE = cast_scene
         jump universe_dialogue_enter
     + !0 "Back" //comms/comms_badge
+
+
+# Saboteur (slice 3, HTBM-style): while a saboteur lifeform is aboard, damage the
+# authored ship systems one at a time with crew alerts, until detained. Data:
+# SAB_SHIP, SAB_SYSTEMS (system names). Declarative - the author lists the systems
+# (Sabotage:); this loop is the engine-room part. grid_damage_system + sbs.SHPSYS
+# are the same primitives HereThereBeMonsters' saboteur uses.
+=== universe_saboteur_run
+    for sab_sys in SAB_SYSTEMS:
+        await delay_sim(45)
+        break if not UNIVERSE_ACTIVE
+        break if len(role("saboteur")) == 0
+        if sab_sys == "sensors":
+            grid_damage_system(SAB_SHIP, sbs.SHPSYS.SENSORS)
+        elif sab_sys == "weapons":
+            grid_damage_system(SAB_SHIP, sbs.SHPSYS.WEAPONS)
+        elif sab_sys == "engines":
+            grid_damage_system(SAB_SHIP, sbs.SHPSYS.ENGINES)
+        elif sab_sys == "shields":
+            grid_damage_system(SAB_SHIP, sbs.SHPSYS.SHIELDS)
+        comms_broadcast(SAB_SHIP, "ALERT: the " + sab_sys + " just took unexplained damage - someone aboard is sabotaging us!", "#f40")
+    ->END
+
+# Detain: a Detain choice in a saboteur's dialogue emits this signal. It ends the
+# sabotage (removes the role -> the task breaks) and puts them off the ship.
+//signal/detain_saboteur if UNIVERSE_ACTIVE
+    for sab_id in role("saboteur"):
+        remove_role(sab_id, "saboteur")
+        lifeform_transfer(sab_id, None)
+    comms_broadcast(role("__player__"), "Saboteur detained. The sabotage stops.", "#0f0")
+    ->END
 
 
 #

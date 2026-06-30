@@ -1075,8 +1075,18 @@ system composition; POI-activation standby. Remaining are **tuning + spikes**:
     Deliver to + Pays + a voice, e.g. Doctor Sela Voss home -> Verdant); A = a generic
     traveler the station offers to the deterministic cargo destination. Reuses the
     lifeform substrate + `universe_helpers.universe_delivery_target`. Parse/lookup
-    unit-tested; headless PASS. Next: the grid side (saboteur / boarding / hero grid
-    items - needs morph-to-grid). Then fold captains onto the lifeform substrate.
+    unit-tested; headless PASS.
+    Done (slice 3): **saboteur** (HTBM script-driven pattern, tied to delivery - the
+    passenger you carry can be the saboteur). A lifeform with a `Sabotage:` list of
+    ship systems is a hidden saboteur (tagged `saboteur` on board); while one is
+    aboard, `universe_saboteur_run` damages those systems one at a time
+    (`grid_damage_system` + `sbs.SHPSYS`, the HTBM primitives) with crew alerts, until
+    a Detain choice in his dialogue emits `detain_saboteur` (removes the role -> the
+    task breaks -> off the ship). Sample: A Nervous Courier (Iron home -> home base,
+    pays suspiciously well). Declarative (author lists the systems); the loop is
+    engine-room. Parse + compile unit-tested; headless PASS. The interactive
+    sabotage/detain wants a GUI pass. Richer follow-up: grid-walking boarders / hero
+    grid items via morph-to-grid + a grid brain. Then fold captains onto lifeforms.
 
 > Fixed: universe_jump_to's console loops crashed (`'int' object has no
 > attribute 'client_id'`) when role("console") yielded a raw client id instead

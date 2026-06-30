@@ -45,3 +45,28 @@ When: comms
 Speaker: sela_voss
 ---
 % I'll be in the observation lounge if you need me.
+
+// The saboteur courier's voice. Hail him once the crew report sabotage, then Detain
+// (the choice emits `detain_saboteur`, which stops the sabotage and puts him off).
+# A Nervous Courier (courier_hail)
+---
+Speaker: courier
+When: comms
+---
+% I paid for passage, not an interrogation. Eyes forward, captain.
+% ...is something wrong? You're looking at me strangely.
+
+- [Let it go](courier_done)
+- [Detain him](courier_caught) ; signal detain_saboteur
+
+# Caught (courier_caught)
+---
+Speaker: courier
+---
+% You don't know what you've just stopped, captain. They'll send another.
+
+# Move Along (courier_done)
+---
+Speaker: courier
+---
+% Smart. Mind your own business and we'll get along fine.

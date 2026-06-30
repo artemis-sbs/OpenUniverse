@@ -48,6 +48,8 @@ def universe_parse_lifeforms(doc):
                 "pickup": data.get("pickup"),
                 "deliver_to": data.get("deliver_to"),
                 "pays": (data.get("reward") or {}).get("credits"),
+                # Saboteur: ship systems this lifeform sabotages once aboard (slice 3).
+                "sabotage": data.get("sabotage"),
             }))
     return out
 
@@ -135,6 +137,10 @@ def universe_grant_passenger(ship_id, passenger):
               data={"on_reach": {"sector": [int(dest[0]), int(dest[1])]}, "reward": {"credits": int(pays)}})
     roles = passenger.get("roles") or ""
     roles = (roles + ", passenger") if roles else "passenger"
+    # A passenger with a Sabotage list is a hidden saboteur (slice 3): tag the role
+    # so the sabotage task runs while one is aboard and a Detain can end it.
+    if passenger.get("sabotage"):
+        roles = roles + ", saboteur"
     agent = lifeform_spawn(passenger.get("name"), lifeform_face(passenger), roles, ship_id,
                            path="//comms/universe_cast", title_color=passenger.get("color") or "green")
     set_inventory_value(agent, "scene", passenger.get("scene"))
