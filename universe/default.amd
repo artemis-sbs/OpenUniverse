@@ -209,6 +209,29 @@ Station mix: 30%
 The green-world trade lanes of the Verdant Pact - calm, open, prosperous. A haven:
 no raiders, ports everywhere.
 
+## Landmarks
+
+Named, hand-placed stations and wrecks pinned to a system (like clan homes) - the
+legendary places of this galaxy, layered on top of the procedural content. Each
+has an At (system coords) and a Kind (station / derelict); a station may name a
+Side and Art. Driven by universe_landmarks.py.
+
+### The Drifting Cathedral (cathedral)
+---
+At: -4, 6
+Kind: derelict
+---
+A vast Hollow Choir wreck adrift in the deep dark, said to hold forbidden charts.
+
+### Tycho Station (tycho)
+---
+At: 3, 3
+Kind: station
+Side: tsn
+Art: starbase_science
+---
+An old TSN research post, still broadcasting on a forgotten frequency.
+
 ## Captains
 ---
 File: captains/ashfang.amd
