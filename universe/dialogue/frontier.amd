@@ -1,0 +1,28 @@
+// Frontier Command's voice - the dialogue scenes for the cast lifeform
+// `frontier_command` (Speaker = his key). Spliced into the `## Dialogue` section.
+
+# Frontier Command (frontier_hail)
+---
+Speaker: frontier_command
+When: comms
+---
+% Frontier Command here, captain. You're a long way from home.
+% Report when able. We read what the clans make of you out there.
+
+- [Report in](frontier_done)
+- [Request guidance](frontier_advice)
+
+# Guidance (frontier_advice)
+---
+Speaker: frontier_command
+---
+% Keep your standing clean with the neutral clans; the foe systems will test you.
+% Watch the Ashfang lanes - their captains hold grudges.
+
+- [Understood](frontier_done)
+
+# Out (frontier_done)
+---
+Speaker: frontier_command
+---
+% Frontier Command out. Stay sharp, captain.

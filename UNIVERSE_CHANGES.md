@@ -1059,6 +1059,18 @@ system composition; POI-activation standby. Remaining are **tuning + spikes**:
     `universe_captains.py`; sample Vex Karr (Ashfang). Parse + rival guard + speaker
     resolution unit-tested; headless PASS. **Follow-up:** the rival actually
     spawning as a ship that hunts you across systems (spawn integration + GUI).
+  - IN PROGRESS: **the cast (lifeforms)** on the library substrate
+    (`sbs_utils.procedural.lifeform`: a named Agent with a face, roles, a host, and
+    a comms `path` = its voice). A `## Lifeforms` section authors characters
+    (per-clan/per-file); the driver spawns each via `lifeform_spawn` and points its
+    `path` at one bridge route (`//comms/universe_cast`) that plays the lifeform's
+    `Scene` through the dialogue driver - so a comms character's voice IS a dialogue
+    scene. `dialogue_speaker` now resolves a captain, a cast lifeform, or a clan.
+    Done (slice 1): host-less galaxy comms NPCs (sample Frontier Command), parse +
+    speaker + face unit-tested, headless PASS. Next: delivery (a passenger you
+    `lifeform_transfer` to a destination), then the grid side (saboteur / boarding /
+    hero grid items). Then fold captains onto the lifeform substrate (a captain = a
+    lifeform that also carries reputation + a `Rival when:` guard).
 
 > Fixed: universe_jump_to's console loops crashed (`'int' object has no
 > attribute 'client_id'`) when role("console") yielded a raw client id instead

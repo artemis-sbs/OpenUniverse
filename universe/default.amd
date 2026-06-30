@@ -177,10 +177,21 @@ to a clan, roams a system (hailable at its station), embodies reputation poles
 standing with him. He speaks via dialogue scenes (Speaker = his key). Driven by
 universe_captains.py.
 
+## Lifeforms
+---
+File: cast/frontier.amd
+---
+
+The cast - hosted comms characters built on the engine lifeform (a named Agent with
+a face, roles, a host, and a comms voice). A host-less lifeform is a galaxy-wide
+comms NPC (hailable with no target). Its `Scene` is its voice, played through the
+dialogue driver. Driven by universe_lifeforms.py.
+
 ## Dialogue
 ---
 File: dialogue/ashfang.amd
 File: dialogue/verdant.amd
+File: dialogue/frontier.amd
 ---
 
 Clan conversations (movie-script scenes) live in dialogue/<clan>.amd, one file per

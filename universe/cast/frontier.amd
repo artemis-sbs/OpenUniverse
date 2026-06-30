@@ -1,0 +1,13 @@
+// The frontier cast - spliced into default.amd's `## Lifeforms` section. A lifeform
+// with no Host is a galaxy-wide comms NPC (hailable with no target selected). Face
+// is a keyword (terran / male / female) or a literal face string; Scene names the
+// dialogue scene that is this character's voice.
+
+# Frontier Command (frontier_command)
+---
+Face: terran
+Roles: tsn, command
+Scene: frontier_hail
+Color: #4cf
+---
+Distant TSN fleet command, keeping a thin watch over the frontier.

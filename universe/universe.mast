@@ -85,6 +85,13 @@ GameCode:
     # Named NPC captains (the `captains` section): people with a personal reputation
     # who can be hailed where they roam and turn rival per their `Rival when:` guard.
     shared UNIVERSE_CAPTAINS = universe_parse_captains(UNIVERSE_DOC)
+    # The cast (the `lifeforms` section): hosted comms characters built on the engine
+    # lifeform. Host-less ones are galaxy comms NPCs spawned now; their `path`
+    # bridges to the dialogue driver (//comms/universe_cast).
+    shared UNIVERSE_LIFEFORMS = universe_parse_lifeforms(UNIVERSE_DOC)
+    for _lf in UNIVERSE_LIFEFORMS:
+        if _lf.host is None:
+            universe_spawn_lifeform(_lf, None)
     for _clan in UNIVERSE_CLANS:
         await prefab_spawn(prefab_side_generic, {"key": _clan.key, "name": _clan.name, "desc": _clan.desc, "color": _clan.color, "enemies": _clan.enemies})
     shared universe_terrain_value = terrain_to_value(TERRAIN_SELECT)
@@ -351,7 +358,7 @@ GameCode:
     dlg_node = dialogue_get(UNIVERSE_DIALOGUE, DLG_SCENE)
     if dlg_node is not None:
         dlg_scene = dialogue_parse(dlg_node)
-        dlg_spk = dialogue_speaker(UNIVERSE_CLANS, UNIVERSE_CAPTAINS, dlg_scene.get("speaker"))
+        dlg_spk = dialogue_speaker(UNIVERSE_CLANS, UNIVERSE_CAPTAINS, UNIVERSE_LIFEFORMS, dlg_scene.get("speaker"))
         universe_chatter_card(dlg_spk, dialogue_pick_line(dlg_scene, COMMS_ORIGIN_ID, dlg_spk))
     comms_navigate("//comms/dialogue")
     ->END
@@ -360,7 +367,7 @@ GameCode:
 # can't be afforded the pick is refused and the scene re-renders.
 === universe_dialogue_choose
     dlg_node = dialogue_get(UNIVERSE_DIALOGUE, DLG_SCENE)
-    dlg_spk = dialogue_speaker(UNIVERSE_CLANS, UNIVERSE_CAPTAINS, dialogue_parse(dlg_node).get("speaker"))
+    dlg_spk = dialogue_speaker(UNIVERSE_CLANS, UNIVERSE_CAPTAINS, UNIVERSE_LIFEFORMS, dialogue_parse(dlg_node).get("speaker"))
     if dialogue_apply(COMMS_ORIGIN_ID, dlg_spk, outcomes):
         universe_save_players()
         DLG_SCENE = to
@@ -375,10 +382,21 @@ GameCode:
     dlg_node = dialogue_get(UNIVERSE_DIALOGUE, DLG_SCENE)
     if dlg_node is not None:
         dlg_scene = dialogue_parse(dlg_node)
-        dlg_spk = dialogue_speaker(UNIVERSE_CLANS, UNIVERSE_CAPTAINS, dlg_scene.get("speaker"))
+        dlg_spk = dialogue_speaker(UNIVERSE_CLANS, UNIVERSE_CAPTAINS, UNIVERSE_LIFEFORMS, dlg_scene.get("speaker"))
         for dlg_ch in dialogue_choices(dlg_scene, COMMS_ORIGIN_ID, dlg_spk):
             + "{dlg_ch.label}" universe_dialogue_choose {"to": dlg_ch.target, "outcomes": dlg_ch.outcomes}
     + !0 "Leave" //comms
+
+
+# Cast bridge: a hailed lifeform's `path` is this route. It reads the selected
+# lifeform's authored Scene and plays it through the dialogue driver - so a comms
+# character's voice is just a dialogue scene. (lifeforms set path here at spawn.)
+//comms/universe_cast if COMMS_LIFEFORM_ID is not None
+    cast_scene = get_inventory_value(COMMS_LIFEFORM_ID, "scene", None)
+    if cast_scene is not None:
+        DLG_SCENE = cast_scene
+        jump universe_dialogue_enter
+    + !0 "Back" //comms/comms_badge
 
 
 #

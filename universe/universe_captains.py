@@ -74,10 +74,12 @@ def captain_is_rival(agent_id, captain):
     return dialogue_guard_ok(guard, agent_id, captain)
 
 
-def dialogue_speaker(clans, captains, key):
-    """Resolve a scene's Speaker key to a voice record (key/name/color/face/leans)
-    used by the dialogue driver for the card AND as the reputation context. A
-    captain (his personal-rep key, his clan's color) or a clan; None if unknown."""
+def dialogue_speaker(clans, captains, lifeforms, key):
+    """Resolve a scene's Speaker key to a voice record (key/name/color/leans) used by
+    the dialogue driver for the card AND as the reputation context. Checks, in order:
+    a captain (his personal-rep key, his clan's color), a cast lifeform (a comms NPC,
+    no rep), then a clan. None if unknown. lifeform_speaker comes from
+    universe_lifeforms.py (shared namespace)."""
     if key is None:
         return None
     cap = captain_get(captains, key)
@@ -90,4 +92,7 @@ def dialogue_speaker(clans, captains, key):
             "face": cap.get("face") or (clan.get("face") if clan is not None else None),
             "leans": cap.get("leans") or {},
         })
+    lf = lifeform_speaker(lifeforms, key)
+    if lf is not None:
+        return lf
     return clan_get(clans, key)
