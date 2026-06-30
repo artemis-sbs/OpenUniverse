@@ -232,6 +232,42 @@ Art: starbase_science
 ---
 An old TSN research post, still broadcasting on a forgotten frequency.
 
+## Goods
+
+The trade goods of this galaxy and how common each is as loot. Each heading key is
+a registered trade item; Weight sets how often it scatters. Drop goods or reweight
+them for a different economy. Driven by universe_goods.py.
+
+### Provisions (provisions)
+---
+Weight: 30
+---
+Foodstuffs and stores - common cargo on the frontier lanes.
+
+### Ore (ore)
+---
+Weight: 25
+---
+Raw mineral ore, hauled from the asteroid drifts.
+
+### Gas (gas)
+---
+Weight: 25
+---
+Refined gases siphoned from the nebulae.
+
+### Tech Components (tech)
+---
+Weight: 15
+---
+Salvaged and manufactured components - worth more, found less.
+
+### Contraband (contraband)
+---
+Weight: 6
+---
+Quiet cargo, quiet questions. Rare, and not strictly legal.
+
 ## Captains
 ---
 File: captains/ashfang.amd

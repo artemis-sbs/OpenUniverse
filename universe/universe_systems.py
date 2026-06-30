@@ -64,7 +64,7 @@ def universe_system_deck(key, kind, owner, archetype=None, foe=False, difficulty
     for _ in range(n_loot):
         x, y, z = _ring_pos(r, 8000, 40000)
         pois.append(MastDataObject({
-            "type": "loot", "item_key": r.choice(_LOOT_KEYS), "x": x, "y": y, "z": z}))
+            "type": "loot", "item_key": universe_loot_pick(r), "x": x, "y": y, "z": z}))
 
     # Derelict - a scannable wreck POI. Hidden wrecks are likelier in nebulae.
     p_der = universe_generation("derelict_nebula", i, j) if kind == "nebula" else universe_generation("derelict", i, j)

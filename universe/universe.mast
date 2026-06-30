@@ -103,6 +103,8 @@ GameCode:
     # Landmarks (the `landmarks` section): named hand-placed stations/wrecks pinned
     # to a system, spawned on arrival (universe_enter_system).
     shared UNIVERSE_LANDMARKS = universe_parse_landmarks(UNIVERSE_DOC)
+    # Goods (the `goods` section): the authored loot pool the POI deck scatters.
+    goods_configure(universe_parse_goods(UNIVERSE_DOC))
     for _clan in UNIVERSE_CLANS:
         await prefab_spawn(prefab_side_generic, {"key": _clan.key, "name": _clan.name, "desc": _clan.desc, "color": _clan.color, "enemies": _clan.enemies})
     shared universe_terrain_value = terrain_to_value(TERRAIN_SELECT)
