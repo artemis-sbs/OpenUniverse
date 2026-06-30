@@ -408,8 +408,13 @@ GameCode:
 # Cast bridge: a hailed lifeform's `path` is this route. It reads the selected
 # lifeform's authored Scene and plays it through the dialogue driver - so a comms
 # character's voice is just a dialogue scene. (lifeforms set path here at spawn.)
-//comms/universe_cast if COMMS_LIFEFORM_ID is not None
-    cast_scene = get_inventory_value(COMMS_LIFEFORM_ID, "scene", None)
+//comms/universe_cast if has_role(COMMS_ORIGIN_ID, "__player__")
+    # COMMS_LIFEFORM_ID is only set once a lifeform badge is selected (this route is
+    # its path) - guard it so the first menu eval, before any selection, is safe.
+    default COMMS_LIFEFORM_ID = None
+    cast_scene = None
+    if COMMS_LIFEFORM_ID is not None:
+        cast_scene = get_inventory_value(COMMS_LIFEFORM_ID, "scene", None)
     if cast_scene is not None:
         DLG_SCENE = cast_scene
         jump universe_dialogue_enter
