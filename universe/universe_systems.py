@@ -56,8 +56,9 @@ def universe_system_deck(key, kind, owner, archetype=None, foe=False, difficulty
     r.seed(key + 101)
     pois = []
 
-    # Loot caches - trade-good pickups, denser in nebula/anomaly.
-    n_loot = r.randint(0, 2)
+    # Loot caches - trade-good pickups, denser in nebula/anomaly. Weights are
+    # author-exposed via the universe's `generation:` block (universe_generation()).
+    n_loot = r.randint(0, int(universe_generation("loot_max")))
     if kind == "nebula" or kind == "anomaly":
         n_loot += 2
     for _ in range(n_loot):
@@ -66,7 +67,7 @@ def universe_system_deck(key, kind, owner, archetype=None, foe=False, difficulty
             "type": "loot", "item_key": r.choice(_LOOT_KEYS), "x": x, "y": y, "z": z}))
 
     # Derelict - a scannable wreck POI. Hidden wrecks are likelier in nebulae.
-    p_der = 0.7 if kind == "nebula" else 0.4
+    p_der = universe_generation("derelict_nebula") if kind == "nebula" else universe_generation("derelict")
     if r.random() < p_der:
         x, y, z = _ring_pos(r, 10000, 35000)
         pois.append(MastDataObject({"type": "derelict", "x": x, "y": y, "z": z}))
@@ -74,14 +75,14 @@ def universe_system_deck(key, kind, owner, archetype=None, foe=False, difficulty
     # Secondary outpost - clan systems sometimes have a second, smaller holding
     # (extra clan-work giver / capture-adjacent flavor). Clan systems only, so the
     # side is always a real registered side.
-    if owner is not None and r.random() < 0.4:
+    if owner is not None and r.random() < universe_generation("outpost"):
         arts = _OUTPOST_ART.get(archetype, _OUTPOST_ART_DEFAULT)
         x, y, z = _ring_pos(r, 12000, 30000)
         pois.append(MastDataObject({
             "type": "outpost", "side": owner, "art": r.choice(arts), "x": x, "y": y, "z": z}))
 
     # Mine field - foe territory seeds lethal terrain to clear or avoid.
-    if foe and r.random() < 0.5:
+    if foe and r.random() < universe_generation("mines"):
         x, y, z = _ring_pos(r, 6000, 18000)
         pois.append(MastDataObject({
             "type": "mines", "count": 3 + int(difficulty) // 3, "x": x, "y": y, "z": z}))

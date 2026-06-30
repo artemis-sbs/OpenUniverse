@@ -28,6 +28,18 @@ Max reward: 2.0
 Ceasefire free at: 30
 Ceasefire per point: 20
 Alliance at: 60
+// Generation knobs - the galaxy's shape. System mix = the chance a (non-home) cell
+// is each kind (the rest is empty space); Danger scales enemy density on top. Deck
+// = how often a system gets each POI. Omit any line to keep the default. Tune these
+// for a peaceful trade galaxy vs. a brutal warzone - all content, no code.
+Station mix: 15%
+Enemy mix: 15%
+Nebula mix: 12%
+Anomaly mix: 8%
+Loot max: 2
+Derelict chance: 40%
+Outpost chance: 40%
+Mine chance: 50%
 ---
 A living frontier of clans, trade, reputation, and contestable space docks. The
 galaxy reacts to who you are, not to a scripted hero.

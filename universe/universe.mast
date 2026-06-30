@@ -70,6 +70,9 @@ GameCode:
     # (resets to the built-in 7 axes + defaults when absent). Must run before any
     # rep read/write below.
     reputation_configure(universe_reputation_cfg(UNIVERSE_DOC))
+    # Generation knobs (the root `generation:` block): system-kind mix + POI-deck
+    # weights. Must run before universe_enter_system / the galaxy map use them.
+    generation_configure(universe_generation_cfg(UNIVERSE_DOC))
     # Clans -> spawned as sides below. The player side (tsn) already exists from the
     # server-start create_sides signal, so foe clans' enemies:"tsn" relation resolves.
     shared UNIVERSE_CLANS = universe_clans_from_doc(UNIVERSE_DOC)

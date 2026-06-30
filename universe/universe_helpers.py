@@ -405,23 +405,64 @@ def universe_system_name(i, j):
     return ""
 
 
+# --- Generation knobs (author-exposed; see the universe.amd `generation:` block) --
+# The galaxy's shape: system-kind mix + POI-deck weights. Defaults reproduce the
+# built-in generator; a universe overrides any subset via generation_configure.
+# (The deck reads these via universe_generation(); the system-kind mix reads _GEN
+# directly here, the hot map-render path.)
+_GEN_DEFAULTS = {
+    # system-kind base chances (Quiet profile); the rest of the cell is "empty".
+    "station": 0.15, "enemy": 0.15, "nebula": 0.12, "anomaly": 0.08,
+    # POI-deck weights (universe_systems.universe_system_deck).
+    "loot_max": 2, "derelict": 0.4, "derelict_nebula": 0.7, "outpost": 0.4, "mines": 0.5,
+}
+_GEN = dict(_GEN_DEFAULTS)
+# Danger scales enemy density relative to the authored base (Quiet = base). Default
+# base enemy 0.15 -> Balanced 0.25, Dangerous 0.40 (the old per-Danger enemy rates).
+_DANGER_ENEMY = {"Quiet": 1.0, "Balanced": 1.67, "Dangerous": 2.67}
+
+
+def generation_configure(cfg):
+    """Apply a universe's `generation:` block (system mix + deck weights). Resets to
+    the built-in defaults first; cfg None or missing keys -> the defaults stand."""
+    global _GEN
+    _GEN = dict(_GEN_DEFAULTS)
+    if isinstance(cfg, dict):
+        for k, v in cfg.items():
+            if k in _GEN_DEFAULTS:
+                _GEN[k] = v
+
+
+def universe_generation(name):
+    """A generation knob's current value (the POI deck reads weights via this)."""
+    return _GEN.get(name, _GEN_DEFAULTS.get(name))
+
+
+def universe_generation_cfg(doc):
+    """The universe root's `generation:` config block, or None (-> defaults). Fed to
+    generation_configure. universe_root_node comes from universe_clans.py."""
+    root = universe_root_node(doc)
+    data = (root.get("data") if root is not None else None) or {}
+    return data.get("generation")
+
+
 def universe_system_kind(seed, i, j, danger="Quiet"):
     """The deterministic kind of any sector (pure - does not spawn anything).
 
-    (0,0) is always home; otherwise a keyed roll against the Danger thresholds.
-    Both the generator and the galaxy map call this, so what you see on the map is
-    exactly what spawns. Clan ownership/naming is layered on top in universe.mast.
+    (0,0) is always home; otherwise a keyed roll against the authored system mix,
+    with Danger scaling enemy density. Both the generator and the galaxy map call
+    this, so what you see on the map is exactly what spawns. Clan ownership/naming
+    is layered on top in universe.mast.
     """
     i = int(i)
     j = int(j)
     if i == 0 and j == 0:
         return "home"
     roll = scatter.cell_roll(seed, 1, i, j, 7)
-    t_station, t_enemy, t_nebula, t_anomaly = 0.15, 0.15, 0.12, 0.08
-    if danger == "Balanced":
-        t_station, t_enemy, t_nebula, t_anomaly = 0.20, 0.25, 0.15, 0.10
-    elif danger == "Dangerous":
-        t_station, t_enemy, t_nebula, t_anomaly = 0.15, 0.40, 0.15, 0.10
+    t_station = _GEN["station"]
+    t_enemy = _GEN["enemy"] * _DANGER_ENEMY.get(danger, 1.0)
+    t_nebula = _GEN["nebula"]
+    t_anomaly = _GEN["anomaly"]
     if roll < t_station:
         return "station"
     if roll < t_station + t_enemy:

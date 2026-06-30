@@ -1088,6 +1088,16 @@ system composition; POI-activation standby. Remaining are **tuning + spikes**:
     sabotage/detain wants a GUI pass. Richer follow-up: grid-walking boarders / hero
     grid items via morph-to-grid + a grid brain. Then fold captains onto lifeforms.
 
+- **Generation knobs (capstone gap) - DONE.** The galaxy's shape is now authored in
+  the universe root `generation:` block (friendly % fields): system-kind mix
+  (Station/Enemy/Nebula/Anomaly), with Danger scaling enemy density on top, and
+  POI-deck weights (Loot max, Derelict/Outpost/Mine chance). `generation_configure`
+  applies them (defaults reproduce the built-in generator); `universe_system_kind`
+  (the mix + Danger) and `universe_system_deck` (the deck) read the config. So "a
+  peaceful trade galaxy vs. a brutal warzone" is a content edit - unit-verified
+  (parse + distribution retuning: warzone floods enemy systems, peaceful zeroes
+  them) + headless PASS.
+
 > Fixed: universe_jump_to's console loops crashed (`'int' object has no
 > attribute 'client_id'`) when role("console") yielded a raw client id instead
 > of a console object (seen on rapid headless jumps). Now normalized:

@@ -41,6 +41,30 @@ def _f_num(s):
             return s
 
 
+def _f_pct(s):
+    """'40%' -> 0.4; '0.4' -> 0.4; a bare number -> float. Used by generation knobs."""
+    s = str(s).strip()
+    if s.endswith("%"):
+        s = s[:-1].strip()
+        try:
+            return float(s) / 100.0
+        except ValueError:
+            return s
+    try:
+        return float(s)
+    except ValueError:
+        return s
+
+
+# Generation knobs (the `generation:` block): friendly label -> internal key. Values
+# are percentages; grouped under data["generation"] for generation_configure.
+_GEN_PCT = {
+    "station mix": "station", "enemy mix": "enemy", "nebula mix": "nebula",
+    "anomaly mix": "anomaly", "derelict chance": "derelict",
+    "outpost chance": "outpost", "mine chance": "mines",
+}
+
+
 def _f_list(s):
     return [x.strip() for x in str(s).split(",") if x.strip()]
 
@@ -160,6 +184,10 @@ def universe_amd_data(text):
             data["pickup"] = _f_coords(value)
         elif label == "sabotage":
             data["sabotage"] = _f_list(value)
+        elif label in _GEN_PCT:
+            data.setdefault("generation", {})[_GEN_PCT[label]] = _f_pct(value)
+        elif label == "loot max":
+            data.setdefault("generation", {})["loot_max"] = _f_num(value)
         elif label == "values":
             data["leans"] = _f_weighted(value)
         elif label == "offers":
