@@ -74,9 +74,14 @@ This mission is **content** that stands on two sibling repos:
 | **LegendaryMissions** | Reusable addons (mastlibs) the universe loads: prefabs, fleets, docking, commerce, consoles, comms, AI, damage, science scans, hangar, **quests**, documents, and more. |
 
 The actual universe — the map, clans, quests, systems, reputation, and economy —
-lives in the local **`universe/`** addon. Clans and clan jobs are **authored as
-data** in `universe/clans.amd` and `universe/clan_quests.amd`, so you can reshape
-the galaxy's character without touching code.
+lives in the local **`universe/`** addon. The galaxy itself is **authored as
+data** in `universe/default.amd` (clans, jobs, story, regions, captains, cast,
+and dialogue in one plain-text file), so a writer can reshape — or replace —
+the galaxy without touching code.
+
+**Want to write your own universe?** See the writer's walkthrough in
+[`mkdocs/docs/writing/`](mkdocs/docs/writing/index.md) — it builds a complete
+example universe from a blank page, no programming required.
 
 If you change a *LegendaryMissions* addon, rebuild its mastlibs so this mission
 picks them up:

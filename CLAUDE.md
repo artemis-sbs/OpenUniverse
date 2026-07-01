@@ -61,19 +61,31 @@ OpenUniverse/
 ├── description.yaml     # mission-browser entry
 ├── __lib__.json         # {"version": "v1.4.0"} (packaging tag)
 ├── UNIVERSE_CHANGES.md  # roadmap + status (the plan)
+├── mkdocs/              # docs site (writer's walkthrough + AMD label reference)
+│   └── docs/writing/        # "Build a Universe" walkthrough for non-programmer authors
 └── universe/            # the mission's local addon (auto-loaded like any addon)
     ├── __init__.mast        # imports the files below, in order
     ├── universe.mast        # @map/universe + comms/science/damage routes + Navigation console + system generation
     ├── universe_helpers.py  # generation, delta save + migration, quest-target sectors
-    ├── universe_clans.py    # clans (clans.amd) + chatter cards + race "makeup"
+    ├── universe_clans.py    # clans + chatter cards + race "makeup"
     ├── universe_reputation.py    # per-captain reputation + clan standing/tier/ceasefire
-    ├── universe_clan_quests.py   # clan quest pools (clan_quests.amd)
+    ├── universe_clan_quests.py   # clan quest pools (jobs)
     ├── universe_systems.py  # keyed POI deck (loot/derelict/outpost/mines)
     ├── universe_standby.py  # engine-network culling (terrain/NPC/POI/fleet)
+    ├── universe_regions.py / _landmarks.py / _goods.py  # regions, landmarks, trade goods
+    ├── universe_captains.py / _lifeforms.py / _dialogue.py  # named NPCs, cast, dialogue scenes
+    ├── universe_amd.py      # the "friendly fact sheet" AMD reader (data_parser)
     ├── universes.mast       # universe registry (start-screen dropdown)
-    ├── clans.amd            # authored clans
-    └── clan_quests.amd      # authored generic clan jobs (by pool type)
+    ├── universe_codex.mast  # Codex tab (lore.amd document viewer)
+    ├── default.amd          # THE authored universe (capstone: clans/jobs/story/regions/...)
+    ├── jobs.amd / lore.amd  # spliced sections: generic jobs, codex lore
+    ├── captains/ cast/ dialogue/  # per-clan captains, cast, dialogue scenes (spliced via File:)
+    └── clans.amd, clan_quests.amd # LEGACY split files (superseded by default.amd; loader fallback)
 ```
+
+Writer-facing docs live in `mkdocs/` (same structure as LegendaryMissions' docs;
+wire into the main site later with an `!import` line in sbs_utils/mkdocs/mkdocs.yml).
+Keep the walkthrough + reference in sync with any AMD label changes.
 
 `universe/__init__.mast` import order matters: helpers/clans/reputation/clan_quests/
 systems/standby, then `universes.mast`, then `universe.mast` last.

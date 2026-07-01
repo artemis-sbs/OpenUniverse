@@ -1,0 +1,49 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "serve",
+      "type": "shell",
+      "options": {
+        "shell": {
+          "executable": "cmd.exe",
+          "args": [
+            "/C"
+          ]
+        },
+        "cwd": "${workspaceFolder}/mkdocs",
+        "env": {
+          "PATH": "C:\\Program Files\\Git\\bin;${env:PATH}"
+        }
+      },
+      "command": "mkdocs serve",
+      "problemMatcher": [],
+      "group": {
+        "kind": "mkdocs",
+        "isDefault": false
+      }
+    },
+    {
+      "label": "pub docs",
+      "type": "shell",
+      "options": {
+        "shell": {
+          "executable": "cmd.exe",
+          "args": [
+            "/C"
+          ]
+        },
+        "cwd": "${workspaceFolder}/mkdocs",
+        "env": {
+          "PATH": "C:\\Program Files\\Git\\bin;${env:PATH}"
+        }
+      },
+      "command": "mkdocs gh-deploy --force",
+      "problemMatcher": [],
+      "group": {
+        "kind": "mkdocs",
+        "isDefault": false
+      }
+    }
+  ]
+}
