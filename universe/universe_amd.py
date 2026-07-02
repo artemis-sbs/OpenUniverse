@@ -233,6 +233,12 @@ def universe_amd_data(text):
             data.setdefault("admiralty", {})["requisition_budget"] = _f_reward(value)["credits"]
         elif label == "skirmish pressure":
             data.setdefault("admiralty", {})["skirmish_pressure"] = value
+        elif label in ("skirmish interval", "mia timer"):
+            # Slice 4 pacing: seconds between border raids / the MIA rescue window.
+            data.setdefault("admiralty", {})[_f_norm(label)] = _f_num(value)
+        elif label == "relay rate":
+            # Relay Gate remote income, a fraction ('50%' or '0.5').
+            data.setdefault("admiralty", {})["relay_rate"] = _f_pct(value)
         elif label == "research pace":
             data.setdefault("admiralty", {})["research_pace"] = value
         elif label == "values":

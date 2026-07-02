@@ -31,6 +31,28 @@ default shared UNIVERSE_CULL = True
 default shared UNIVERSE_CULL_RADIUS = 25000
 
 
+# The player-side agents. LM's server start fires signal_emit("create_sides")
+# BEFORE player ships spawn and before any map runs; the route that answers it
+# lived in LegendaryMissions/maps (watch_for_end.mast) and did not travel when
+# the universe moved to its own mission. Without it there is no tsn side AGENT,
+# and everything that lives on it (credits, the Admiralty pools) reads 0.
+# Synchronous on purpose (no await): server_console relies on the sides
+# existing when signal_emit returns.
+//shared/signal/create_sides
+    prefab_spawn(prefab_side_generic, data={"key":"tsn"})
+    side_set_display_name("tsn", "TSN")
+    side_set_description("tsn", "The Terran Stellar Navy")
+    side_set_icon_color("tsn", "#07F")
+    prefab_spawn(prefab_side_generic, data={"key":"raider", "name": "Raider", "color": "#F00", "desc":"Hostile Aliens"})
+    prefab_spawn(prefab_side_generic, data={"key":"civ", "name": "Civ", "color": "white", "desc":"Civilians."})
+    side_set_relations("tsn", "raider", sbs.DIPLOMACY.HOSTILE)
+    side_set_relations("raider", "civ", sbs.DIPLOMACY.HOSTILE)
+    side_set_relations("civ", "tsn", sbs.DIPLOMACY.NEUTRAL)
+    sim.set_diplomacy_color(sbs.DIPLOMACY.HOSTILE, "#F00")
+    sim.set_diplomacy_color(sbs.DIPLOMACY.NEUTRAL, "#077")
+    ->END
+
+
 @map/universe "Open Universe"
 " Explore an endless, procedurally generated universe. Engage the jump drive on
 " the Navigation console to travel between sectors - the same seed always
@@ -126,8 +148,10 @@ GameCode:
     # and start the extraction economy + the fleet order loop (admiral.mast).
     if admiralty_active():
         admiralty_seed_pools("tsn")
+        skirmish_reset()
         task_schedule(admiralty_economy_tick)
         task_schedule(admiralty_fleet_loop)
+        task_schedule(admiralty_skirmish_loop)
     shared universe_terrain_value = terrain_to_value(TERRAIN_SELECT)
     # Continue loads the saved universe (seed + position + deltas); New Game
     # starts fresh from the Seed property (0 = random) and overwrites the save.
@@ -157,7 +181,9 @@ GameCode:
 
     await task_schedule(universe_enter_system)
     await task_schedule(spawn_players)
-    universe_load_players()
+    # Continue restores the saved campaign; a New Game initializes fresh and
+    # must NOT inherit the old save's credits/items/admiralty (restore=False).
+    universe_load_players(START_MODE == "Continue")
     # The load just restored adm_fleets (a Continue) - enter_system ran before
     # it, so bring the saved navy back now. Idempotent: no-op on a New Game.
     if admiralty_active():
@@ -186,6 +212,18 @@ GameCode:
 # Capture: hold a foe clan station's space clear of its ships to take it. Once
 # the garrison is gone and the area stays clear long enough, the station morphs
 # to the player's side (persisted). Ends if you leave or it is destroyed.
+# The antimatter veil's teeth: while the current system is veiled, every
+# player ship heats across all engineering systems (the heat damage channel).
+# Started by enter_system on arrival in a veiled cell; ends itself after a
+# jump out (region_veil_tick returns False when the system is clear).
+=== universe_veil_loop
+--- veil_loop
+    await delay_sim(3)
+    ->END if not UNIVERSE_ACTIVE
+    ->END if not region_veil_tick(UNIVERSE_REGIONS, universe_i, universe_j, 3)
+    jump veil_loop
+
+
 === universe_capture_watch
     default cap_station = None
     default cap_clan = None
@@ -615,6 +653,10 @@ GameCode:
     """ $text:Type: {info_kind}"""
     gui_row("row-height:1.3em;")
     """ $text:Jumps away: {sel_dist}"""
+    # The veil is geography, not intel - warn even for unexplored cells.
+    if region_is_veiled(UNIVERSE_REGIONS, SEL_I, SEL_J):
+        gui_row("row-height:1.3em;")
+        """ $text:ANTIMATTER VEIL - unsurvivable to linger;color:#f80"""
 
     # Known locations: pick one to select + center the map on it. The listbox's
     # own title shows the label, so it uses the whole section.
@@ -713,6 +755,18 @@ GameCode:
             skybox_schedule(arrival_region.skybox)
         if arrival_region.music is not None:
             music_schedule(arrival_region.music)
+
+    # The antimatter veil (slice 4): a Kind: antimatter region is survivable
+    # only briefly - tinted nebula volume for the eye, continuous heat/system
+    # damage for the teeth (universe_regions.region_veil_tick). The chart's
+    # amber wash is the wall; this is what ignoring it costs.
+    if region_is_veiled(UNIVERSE_REGIONS, universe_i, universe_j):
+        random.seed(key + 11)
+        for _v in range(5):
+            vpos = Vec3.rand_in_sphere(6000, 28000, False, True)
+            terrain_spawn_nebula_sphere(vpos.x, 0, vpos.z, radius=8000, density_scale=2.5, density=2, height=24000, cluster_color="red", selectable=False)
+        task_schedule(universe_veil_loop)
+        universe_info_card("ANTIMATTER VEIL - continuous hull heating in every section. Do not linger.", "Science Advisory", "#f80")
 
     # Terrain (denser in nebula sectors)
     tv = universe_terrain_value

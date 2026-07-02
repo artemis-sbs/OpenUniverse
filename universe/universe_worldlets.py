@@ -33,6 +33,9 @@ _ADM_DEFAULTS = {
     "command_points": 3, "fleet_gas_burn": 2,
     "requisition_budget": 800,
     "skirmish_pressure": "border",
+    "skirmish_interval": 240,   # seconds between border raids (pressure-scaled)
+    "mia_timer": 300,           # the MIA rescue window (seconds)
+    "relay_rate": 0.5,          # Relay Gate remote income fraction
     "research_pace": "campaign",
 }
 
@@ -333,6 +336,54 @@ def admiralty_extraction_tick(side, dt_seconds):
             wobj.set_inventory_value("worldlet_reserve", max(0, reserve))
 
 
+def admiralty_income_snapshot(side):
+    """This system's extraction income per minute ({res: rate}) - what the
+    extractors here would pull at full reserve. Stored in the sectors delta
+    each econ tick so a Relay Gate can keep the system contributing after the
+    flag jumps away (admiralty_relay_tick). Dry worldlets contribute nothing."""
+    out = {}
+    mult = float(research_extraction_mult(side))
+    for plat in to_object_list(role("admiral_extractor")):
+        if not has_role(plat.id, side):
+            continue
+        wid = plat.get_inventory_value("worldlet_id")
+        wobj = to_object(wid) if wid is not None else None
+        if wobj is None:
+            continue
+        reserve = wobj.get_inventory_value("worldlet_reserve")
+        if reserve is not None and reserve <= 0:
+            continue
+        wmult = mult
+        if admiralty_platform_at(wobj, "refinery") is not None:
+            wmult *= REFINERY_EXTRACT_MULT
+        for res, per_min in (wobj.get_inventory_value("worldlet_yields", {}) or {}).items():
+            out[res] = out.get(res, 0.0) + float(per_min) * wmult
+    return out
+
+
+def admiralty_relay_tick(side, sectors, cur_i, cur_j, dt_seconds):
+    """Remote income (slice 4): every OTHER system whose sectors delta shows a
+    Relay Gate feeds its last-known income into the pools at the Relay rate.
+    Depletion is not simulated remotely - a gated system's income freezes at
+    what it produced on the last visit (carried gap, revisits refresh it)."""
+    if not _ADM_ACTIVE or not isinstance(sectors, dict):
+        return
+    rate = float(admiralty_tuning("relay_rate", 0.5))
+    if rate <= 0:
+        return
+    scale = float(dt_seconds) / 60.0 * rate
+    here = f"{cur_i},{cur_j}"
+    for skey, sval in sectors.items():
+        if skey == here or not isinstance(sval, dict):
+            continue
+        plats = sval.get("admiral_platforms")
+        if not isinstance(plats, list) or not any(
+                isinstance(p, dict) and p.get("k") == "relay" for p in plats):
+            continue
+        for res, per_min in (sval.get("adm_income") or {}).items():
+            _pool_add_f(side, res, float(per_min) * scale)
+
+
 def _pool_add_f(side, res, amount):
     """Fractional accumulation: pools are ints, so carry the remainder."""
     sid = to_side_id(side)
@@ -360,6 +411,16 @@ ADM_PLATFORMS = {
     # Academy: trains the officer roster (universe_fleets.py).
     "academy": {"name": "Academy", "cost": {"ore": 120, "crew": 10},
                 "build_time": 35, "art": "starbase_command", "per_worldlet": False},
+    # Bastion (slice 4): the static border answer - an armed fort at a
+    # worldlet. Skirmish raids hit the Bastion first (universe_skirmish.py),
+    # so the fight happens at the fort instead of the extractors.
+    "bastion": {"name": "Bastion", "cost": {"ore": 220, "crew": 12},
+                "build_time": 40, "art": "starbase_command", "per_worldlet": True},
+    # Relay Gate (slice 4, OU): inter-system supply. A gated system keeps
+    # feeding the pools while the flag is elsewhere (admiralty_relay_tick),
+    # at the Relay rate. One per system (the live-object check's scope).
+    "relay": {"name": "Relay Gate", "cost": {"ore": 400, "gas": 120, "crew": 20},
+              "build_time": 60, "art": "starbase_science", "per_worldlet": False},
 }
 
 REFINERY_EXTRACT_MULT = 1.5   # a Refinery speeds its own worldlet's extraction
@@ -480,6 +541,10 @@ def universe_platform_spawn(kind, side, worldlet_obj):
     name = (worldlet_obj.name + " " + pdef["name"]) if worldlet_obj.name else pdef["name"]
     roles = side + ", station, admiral_platform, admiral_" + kind
     co = npc_spawn(pos.x + off, pos.y, pos.z, name, roles, pdef["art"], "behav_station")
+    if kind == "bastion":
+        # Legible-over-pretty (section 9): the fort reads bigger than the works.
+        for ax in ("x", "y", "z"):
+            co.data_set.set("local_scale_" + ax + "_coeff", 1.5)
     py = co.py_object
     py.set_inventory_value("worldlet_id", worldlet_obj.id)
     py.set_inventory_value("admiral_kind", kind)

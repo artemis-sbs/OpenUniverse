@@ -619,11 +619,42 @@ Admiral-only overlays (yields popup, supply radii, border hatching).
    the ticker is live. **UI pattern settled (user): every repeating
    list is a scrollable gui_list_box + a context/detail panel acting
    on the selection** - Map, Research, Fleets, Requisition all use it.
-6. Slice 4 next: Bastion + border skirmishes, MIA/rescue captains,
-   antimatter veil, (OU) Relay Gate. Carried gaps: fleets are
-   per-session and per-system (jump clears NPCs; not persisted);
-   worldlet reserve depletion not persisted; subsidy pending; officer
-   faces/dialogue scenes not yet wired (chatter is text broadcasts).
+6. ~~Consolidation pass.~~ **DONE + verified in the browser + committed
+   (2026-07-02, 2ae8540):** officer chatter rides info-panel cards with
+   cached faces (comms_info_card); fleets persist (adm_fleets side
+   inventory + fleets_respawn on every arrival/Continue - the navy
+   travels with the flag); per-system worldlet depletion + platforms
+   snapshot into the sectors delta each econ tick and re-apply on
+   arrival; baseline save at map start; pool seeding retried until the
+   side agent exists.
+7. ~~Slice 4.~~ **BUILT (2026-07-02), verified headless + 46-check
+   in-process; browser check pending:**
+   - **Bastion** - per-worldlet armed fort (1.5x scale for legibility);
+     skirmish raids prefer it, so the fight happens at the fort.
+   - **Border skirmishes** (universe_skirmish.py) - pressure = foe-owned
+     cells in the Chebyshev ring (2 for the cell itself); raids on the
+     side's platforms once the FIRST fleet exists (economy peace before
+     that); countdown runs faster under pressure; `Skirmish pressure:
+     off` disables; negotiated ceasefire lifts the pressure. Alert is an
+     Admiralty Operations info card.
+   - **MIA captains** - a destroyed fleet drops its officer in an escape
+     pod at the loss site; a player ship within 1500 rescues them before
+     the `MIA timer:` lapses, else they are lost for the campaign. Fates
+     persist (adm_officers). Roster shows MISSING/lost; MIA officers
+     can't take fleets. Carried: OU foe-clan capture/ransom.
+   - **Antimatter veil** - a region with `Kind: antimatter` is
+     survivable only briefly: continuous system_cur_heat + system_damage
+     across all engineering systems (region_veil_tick); tinted red
+     nebula volume on arrival; hard amber wash on the chart (geography,
+     shown unexplored) + a warning line in the nav info panel. Optional
+     `Heat:` / `Damage:` per-second overrides. default.amd ships one at
+     (0,7) r1. Carried: NPC/fleet veil avoidance.
+   - **Relay Gate** - one per system; a gated system feeds its
+     last-known income (adm_income in the sectors delta) into the pools
+     at `Relay rate:` while the flag is elsewhere. Carried: remote
+     depletion not simulated (income freezes at last visit).
+   Remaining gaps: subsidy (commerce hooks); officer dialogue scenes;
+   HQ/shipyard uniqueness is per-system, not per-campaign.
 
 ---
 

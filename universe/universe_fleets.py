@@ -19,12 +19,16 @@ saved by universe_helpers) on every form/order/tick change, and
 fleets_respawn re-instantiates surviving hulls on arrival in a system or
 when a saved campaign continues (the navy travels with the flag).
 
+Captains are not immortal (slice 4): a destroyed fleet puts its officer MIA
+in an escape pod - a rescue objective the bridge crews fly before the beacon
+lapses (officer_mia_tick; fates persist via adm_officers).
+
 Shared-namespace notes: universe_section from universe_clans.py; admiralty_*
 pool/tuning from universe_worldlets.py.
 """
 import math
 from sbs_utils.mast.mast_node import MastDataObject
-from sbs_utils.procedural.spawn import npc_spawn
+from sbs_utils.procedural.spawn import npc_spawn, terrain_spawn
 from sbs_utils.procedural.inventory import get_inventory_value, set_inventory_value
 from sbs_utils.procedural.sides import to_side_id
 from sbs_utils.procedural.roles import role, all_roles
@@ -46,6 +50,7 @@ FLEET_ORDERS = ["escort", "patrol", "strike", "hold", "salvage", "withdraw"]
 
 _OFFICERS = {}       # key -> authored record
 _OFFICER_FACES = {}  # key -> resolved face string (stable per session)
+_OFFICER_STATE = {}  # key -> {"status": active|mia|lost, "mia_left": seconds}
 _FLEETS = {}         # fleet key ("f1"...) -> live state (MastDataObject)
 _NEXT_FLEET = [1]
 
@@ -75,9 +80,10 @@ def universe_parse_officers(doc):
 
 
 def officers_configure(officers):
-    global _OFFICERS, _OFFICER_FACES, _FLEETS, _NEXT_FLEET
+    global _OFFICERS, _OFFICER_FACES, _OFFICER_STATE, _FLEETS, _NEXT_FLEET
     _OFFICERS = {o.get("key"): o for o in (officers or [])}
     _OFFICER_FACES = {}
+    _OFFICER_STATE = {}
     _FLEETS = {}
     _NEXT_FLEET = [1]
 
@@ -136,6 +142,87 @@ def officer_bonus(key, kind):
     return 1.0
 
 
+# --- MIA captains (slice 4) -------------------------------------------------------
+# A destroyed fleet does not kill its officer: the captain ejects into a pod
+# that becomes a rescue objective the bridge crews can fly (decision 13.3 -
+# Admiral drama becomes bridge content). Reach the pod inside the MIA timer
+# and the officer returns to the roster; let the beacon lapse and they are
+# lost for the campaign. Jumping away abandons the pod (the timer keeps
+# running). Carried gap: OU foe-clan capture/ransom - lapse reads as claimed.
+MIA_RESCUE_RANGE = 1500.0
+
+
+def officer_status(key):
+    st = _OFFICER_STATE.get(key)
+    return st.get("status", "active") if isinstance(st, dict) else "active"
+
+
+def _officers_sync(side):
+    """Mirror officer fates into side inventory (adm_officers) - persisted by
+    the universe save beside pools/research/fleets."""
+    set_inventory_value(to_side_id(side), "adm_officers",
+                        {k: dict(v) for k, v in _OFFICER_STATE.items()})
+
+
+def _officers_restore(side):
+    """Rebuild officer fates from side inventory when the live registry is
+    empty (a fresh session continuing a saved campaign)."""
+    if _OFFICER_STATE:
+        return
+    saved = get_inventory_value(to_side_id(side), "adm_officers", {}) or {}
+    for k, v in saved.items():
+        if isinstance(v, dict) and k in _OFFICERS:
+            _OFFICER_STATE[k] = dict(v)
+
+
+def _officer_mia_begin(side, key, x, z):
+    """The flag is gone: the officer goes MIA and the pod drops where the
+    fleet died. The pod is a small friendly wreck the crews can reach."""
+    _OFFICER_STATE[key] = {"status": "mia",
+                           "mia_left": float(admiralty_tuning("mia_timer", 300))}
+    _officers_sync(side)
+    o = _OFFICERS.get(key)
+    pname = (str(o.get("name")) if o is not None else "Officer") + " - Escape Pod"
+    co = terrain_spawn(x + 300.0, 0.0, z + 300.0, pname,
+                       side + ", mia_pod, mia_pod_" + str(key), "wreck", "behav_wreck")
+    for ax in ("x", "y", "z"):
+        co.data_set.set("local_scale_" + ax + "_coeff", 0.35)
+
+
+def officer_mia_tick(side, dt_seconds):
+    """One rescue step for every MIA officer. A player ship within reach of
+    the pod recovers them; a lapsed beacon loses them. Returns a list of
+    events - officer-keyed lines speak as the officer, officer=None lines are
+    Admiralty operations traffic."""
+    evts = []
+    for key, st in _OFFICER_STATE.items():
+        if not isinstance(st, dict) or st.get("status") != "mia":
+            continue
+        pods = to_object_list(role("mia_pod_" + str(key)))
+        pod = pods[0] if pods else None
+        if pod is not None:
+            rescuer = closest_object(pod, role("__player__"), max_dist=MIA_RESCUE_RANGE)
+            if rescuer is not None:
+                delete_object(pod.id)
+                st["status"] = "active"
+                st["mia_left"] = 0.0
+                _officers_sync(side)
+                evts.append(_evt(key, "Aboard and breathing, thanks to the " +
+                                 str(rescuer.name) + ". Put me back to work, Admiral."))
+                continue
+        st["mia_left"] = float(st.get("mia_left", 0.0)) - float(dt_seconds)
+        if st["mia_left"] <= 0:
+            if pod is not None:
+                delete_object(pod.id)
+            st["status"] = "lost"
+            _officers_sync(side)
+            o = _OFFICERS.get(key)
+            oname = str(o.get("name")) if o is not None else "An officer"
+            evts.append(_evt(None, oname + "'s beacon has gone dark. " +
+                             oname + " is not coming home."))
+    return evts
+
+
 # --- Fleets ---------------------------------------------------------------------
 def fleet_list():
     return list(_FLEETS.values())
@@ -181,6 +268,11 @@ def fleet_try_form(side, officer_key):
     o = _OFFICERS.get(officer_key)
     if o is None:
         return "No such officer."
+    o_status = officer_status(officer_key)
+    if o_status == "mia":
+        return o.get("name") + " is missing in action - the pod beacon is still live."
+    if o_status == "lost":
+        return o.get("name") + " was lost in action."
     if officer_fleet(officer_key) is not None:
         return o.get("name") + " already commands a fleet."
     if len(to_object_list(role("admiral_academy") & role(side))) == 0:
@@ -209,6 +301,7 @@ def fleets_respawn(side):
     point. Rebuilds the live registry from side inventory when empty (fresh
     session with a saved campaign)."""
     global _FLEETS
+    _officers_restore(side)
     if not _FLEETS:
         recs = get_inventory_value(to_side_id(side), "adm_fleets", []) or []
         for rec in recs:
@@ -269,10 +362,17 @@ def fleet_tick(fleet_key, dt_seconds):
     if len(ships) == 0:
         del _FLEETS[fleet_key]
         _fleets_sync(side)
-        return _evt(okey, "We've lost the fleet. I'm sorry, Admiral.")
+        # The officer ejects where the fleet died: MIA, pod beacon live -
+        # a rescue objective for the bridge crews (officer_mia_tick).
+        _officer_mia_begin(side, okey, float(f.get("lx", 0.0)), float(f.get("lz", 0.0)))
+        return _evt(okey, "Flag hull's gone... pod away. The beacon is live - come get me, Admiral.")
     if len(ships) != int(f.get("alive", 0)):
         setattr(f, "alive", len(ships))
         _fleets_sync(side)
+    # Last known position - where the pod drops if the fleet dies.
+    lead0 = ships[0]
+    setattr(f, "lx", lead0.pos.x)
+    setattr(f, "lz", lead0.pos.z)
     order = f.get("order", "hold")
 
     # Gas: every non-hold order burns fuel (per minute, officer-scaled).
@@ -374,9 +474,16 @@ def officer_list_title():
 
 
 def officer_list_template(item):
-    f = officer_fleet(item.get("key"))
-    status = ("commanding " + f.get("key").upper() + " (" + f.get("order") + ")"
-              if f is not None else "available")
+    okey = item.get("key")
+    o_state = officer_status(okey)
+    if o_state == "mia":
+        status = "MISSING - pod beacon active"
+    elif o_state == "lost":
+        status = "lost in action"
+    else:
+        f = officer_fleet(okey)
+        status = ("commanding " + f.get("key").upper() + " (" + f.get("order") + ")"
+                  if f is not None else "available")
     line = str(item.get("name")) + ", " + str(item.get("title")) + "  -  " + status
     gui_row("row-height: 2.2em;")
     gui_text("$text:" + line + ";font:gui-1")

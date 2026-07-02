@@ -208,6 +208,17 @@ Station mix: 30%
 The green-world trade lanes of the Verdant Pact - calm, open, prosperous. A haven:
 no raiders, ports everywhere.
 
+### The Antimatter Veil (antimatter_veil)
+---
+Center: 0, 7
+Radius: 1
+Kind: antimatter
+Skybox: sky-neb2-rvb
+---
+A curtain of raw antimatter shear across the northern lanes. Lovely to look at,
+lethal to linger in - hulls cook from the inside within minutes. Whatever the
+Reach beyond it hides, it stays hidden for a reason.
+
 ## Landmarks
 
 Named, hand-placed stations and wrecks pinned to a system (like clan homes) - the
@@ -311,6 +322,9 @@ Command points: 3
 Fleet gas burn: 2
 Requisition budget: 800 credits
 Skirmish pressure: border
+Skirmish interval: 240
+MIA timer: 300
+Relay rate: 50%
 Research pace: campaign
 ---
 The war effort behind the player fleet - dials for the Admiral console.

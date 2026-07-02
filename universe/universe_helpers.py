@@ -245,18 +245,22 @@ def universe_save_players():
                           for r in ("ore", "gas", "crew")},
                 "research": list(get_inventory_value(sid, "adm_research", []) or []),
                 "fleets": list(get_inventory_value(sid, "adm_fleets", []) or []),
+                "officers": dict(get_inventory_value(sid, "adm_officers", {}) or {}),
             }
     data["side_admiralty"] = side_adm
     data["shared_quests"] = _serialize_quests(Agent.SHARED_ID)
     universe_save_state(data)
 
 
-def universe_load_players():
+def universe_load_players(restore=True):
     """Restore per-ship items/installs + per-side credits; re-apply installs.
 
     New universes (no save) start each player side at UNIVERSE_START_CREDITS.
-    """
-    data = universe_load() or {}
+    restore=False (a New Game with an old save on disk) initializes the same
+    way but ignores the saved campaign - without it, the previous campaign's
+    credits/items/admiralty would leak into the fresh one. The caller's
+    baseline universe_save_players then overwrites the stale sections."""
+    data = (universe_load() or {}) if restore else {}
     players = data.get("players", {})
     side_credits = data.get("side_credits", {})
     seen_sides = set()
@@ -277,8 +281,9 @@ def universe_load_players():
                     set_inventory_value(sid, "adm_" + r, int(v))
                 set_inventory_value(sid, "adm_research", list(adm.get("research") or []))
                 # Fleets rebuild from this on the first enter_system
-                # (universe_fleets.fleets_respawn).
+                # (universe_fleets.fleets_respawn); officer fates ride along.
                 set_inventory_value(sid, "adm_fleets", list(adm.get("fleets") or []))
+                set_inventory_value(sid, "adm_officers", dict(adm.get("officers") or {}))
             seen_sides.add(side)
         pdata = players.get(ship.name)
         if not pdata:

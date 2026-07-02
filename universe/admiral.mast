@@ -24,10 +24,15 @@ shared ADM_BUILDS = []
     if admiralty_seed_pools("tsn"):
         universe_save_players()
     admiralty_extraction_tick("tsn", 6)
+    # Relay Gates (slice 4): every OTHER gated system feeds its last-known
+    # income into the pools at the Relay rate - empire income while away.
+    admiralty_relay_tick("tsn", universe_sectors, universe_i, universe_j, 6)
     # Keep this system's persistence delta fresh (worldlet depletion + the
-    # platforms built here) so jumps and saves carry the infrastructure.
+    # platforms built here + what this system earns per minute) so jumps and
+    # saves carry the infrastructure and the relay knows what to pay.
     universe_sectors = universe_set_system_value(universe_sectors, universe_i, universe_j, "worldlet_reserves", worldlets_snapshot_reserves())
     universe_sectors = universe_set_system_value(universe_sectors, universe_i, universe_j, "admiral_platforms", admiralty_snapshot_platforms("tsn"))
+    universe_sectors = universe_set_system_value(universe_sectors, universe_i, universe_j, "adm_income", admiralty_income_snapshot("tsn"))
     jump econ_loop
 
 
@@ -43,7 +48,30 @@ shared ADM_BUILDS = []
         fleet_evt = fleet_tick(_fl.key, 3)
         if fleet_evt is not None:
             officer_card(fleet_evt.officer, fleet_evt.text)
+    # MIA captains (slice 4): pod rescues and lapsed beacons. Rescued officers
+    # speak for themselves; a loss is Admiralty operations traffic.
+    for mia_evt in officer_mia_tick("tsn", 3):
+        if mia_evt.officer is None:
+            universe_info_card(mia_evt.text, "Admiralty Operations", "#f66")
+        else:
+            officer_card(mia_evt.officer, mia_evt.text)
     jump fleet_loop
+
+
+# Border skirmishes (slice 4): pressure from foe territory adjacency draws
+# periodic raids on the side's platforms - but only once the navy exists
+# (universe_skirmish.py decides; this loop spawns and alerts). Raids prefer
+# a standing Bastion, so the fort is where the fight happens.
+=== admiralty_skirmish_loop
+--- skirmish_loop
+    await delay_sim(10)
+    ->END if not UNIVERSE_ACTIVE
+    raid = skirmish_tick("tsn", UNIVERSE_CLANS, universe_seed, universe_i, universe_j, DANGER, 10)
+    if raid is not None:
+        raid_clan = clan_get(UNIVERSE_CLANS, raid.clan)
+        prefab_spawn(prefab_fleet_raider, {"race": clan_pick_race(raid_clan), "fleet_difficulty": raid.difficulty, "ship_roles": raid.clan + ", raider, skirmish", "START_X": raid.x, "START_Y": raid.y, "START_Z": raid.z})
+        universe_info_card("ALERT - " + clan_name(UNIVERSE_CLANS, raid.clan) + " skirmish raid inbound on " + raid.target + ".", "Admiralty Operations", "#f66")
+    jump skirmish_loop
 
 
 # One platform build: cost was already paid (admiralty_try_build); wait out
@@ -151,6 +179,18 @@ shared ADM_BUILDS = []
             b_aca = gui_button(aca_label)
             on gui_message(b_aca):
                 BUILD_PICK = "academy"
+                jump admiral_build
+            gui_row("row-height: 2em;")
+            bas_label = "Build Bastion  (" + admiralty_cost_text("bastion") + ")"
+            b_bas = gui_button(bas_label)
+            on gui_message(b_bas):
+                BUILD_PICK = "bastion"
+                jump admiral_build
+            gui_row("row-height: 2em;")
+            rel_label = "Build Relay Gate  (" + admiralty_cost_text("relay") + ")"
+            b_rel = gui_button(rel_label)
+            on gui_message(b_rel):
+                BUILD_PICK = "relay"
                 jump admiral_build
         if ADM_MSG != "":
             gui_row("row-height: 2em;")
