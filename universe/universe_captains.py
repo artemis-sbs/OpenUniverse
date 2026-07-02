@@ -78,8 +78,9 @@ def dialogue_speaker(clans, captains, lifeforms, key):
     """Resolve a scene's Speaker key to a voice record (key/name/color/leans) used by
     the dialogue driver for the card AND as the reputation context. Checks, in order:
     a captain (his personal-rep key, his clan's color), a cast lifeform (a comms NPC,
-    no rep), then a clan. None if unknown. lifeform_speaker comes from
-    universe_lifeforms.py (shared namespace)."""
+    no rep), an Academy officer (the Admiral's navy - personal rep via their Values),
+    then a clan. None if unknown. lifeform_speaker comes from universe_lifeforms.py,
+    officer_speaker from universe_fleets.py (shared namespace)."""
     if key is None:
         return None
     cap = captain_get(captains, key)
@@ -95,4 +96,10 @@ def dialogue_speaker(clans, captains, lifeforms, key):
     lf = lifeform_speaker(lifeforms, key)
     if lf is not None:
         return lf
+    try:
+        off = officer_speaker(key)
+    except NameError:
+        off = None
+    if off is not None:
+        return off
     return clan_get(clans, key)

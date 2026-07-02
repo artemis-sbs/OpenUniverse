@@ -37,7 +37,10 @@ default shared UNIVERSE_CULL_RADIUS = 25000
 # the universe moved to its own mission. Without it there is no tsn side AGENT,
 # and everything that lives on it (credits, the Admiralty pools) reads 0.
 # Synchronous on purpose (no await): server_console relies on the sides
-# existing when signal_emit returns.
+# existing when signal_emit returns. NO ->END here: the route executes
+# inline in the server-start task, and ending "the task" would end (and
+# error) the caller - it ends implicitly at the next label, like the LM
+# original.
 //shared/signal/create_sides
     prefab_spawn(prefab_side_generic, data={"key":"tsn"})
     side_set_display_name("tsn", "TSN")
@@ -50,7 +53,6 @@ default shared UNIVERSE_CULL_RADIUS = 25000
     side_set_relations("civ", "tsn", sbs.DIPLOMACY.NEUTRAL)
     sim.set_diplomacy_color(sbs.DIPLOMACY.HOSTILE, "#F00")
     sim.set_diplomacy_color(sbs.DIPLOMACY.NEUTRAL, "#077")
-    ->END
 
 
 @map/universe "Open Universe"

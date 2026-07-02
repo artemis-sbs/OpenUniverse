@@ -33,11 +33,12 @@ from sbs_utils.procedural.spawn import npc_spawn, terrain_spawn
 from sbs_utils.procedural.inventory import get_inventory_value, set_inventory_value
 from sbs_utils.procedural.sides import to_side_id
 from sbs_utils.procedural.roles import role, all_roles
-from sbs_utils.procedural.query import to_object_list, to_object
+from sbs_utils.procedural.query import to_object_list, to_object, to_id
 from sbs_utils.procedural.space_objects import (closest_object, target, target_pos,
                                                 delete_object)
 from sbs_utils.procedural.gui import gui_row, gui_text
 from sbs_utils.procedural.comms import comms_info_card
+from sbs_utils.procedural.lifeform import lifeform_spawn, lifeform_transfer, lifeform_set_path
 
 # The commissionable hull roster (data - difficulty/length tuning later).
 FLEET_ROSTER = [
@@ -51,7 +52,8 @@ FLEET_ORDERS = ["escort", "patrol", "strike", "hold", "salvage", "withdraw"]
 
 _OFFICERS = {}       # key -> authored record
 _OFFICER_FACES = {}  # key -> resolved face string (stable per session)
-_OFFICER_STATE = {}  # key -> {"status": active|mia|lost, "mia_left": seconds}
+_OFFICER_STATE = {}  # key -> {"status": active|mia|lost|captured, ...}
+_OFFICER_CAST = {}   # key -> hailable lifeform agent id (officers with a Scene)
 _FLEETS = {}         # fleet key ("f1"...) -> live state (MastDataObject)
 _NEXT_FLEET = [1]
 
@@ -76,15 +78,20 @@ def universe_parse_officers(doc):
                 "desc": (n.get("description") or "").strip(),
                 "leans": data.get("leans") or {},
                 "face": data.get("face"),
+                # Scene: the officer's dialogue entry (like a cast lifeform's) -
+                # with one, the officer rides the flag hull as a hailable
+                # character whose voice is that scene.
+                "scene": data.get("scene"),
             }))
     return out
 
 
 def officers_configure(officers):
-    global _OFFICERS, _OFFICER_FACES, _OFFICER_STATE, _FLEETS, _NEXT_FLEET
+    global _OFFICERS, _OFFICER_FACES, _OFFICER_STATE, _OFFICER_CAST, _FLEETS, _NEXT_FLEET
     _OFFICERS = {o.get("key"): o for o in (officers or [])}
     _OFFICER_FACES = {}
     _OFFICER_STATE = {}
+    _OFFICER_CAST = {}
     _FLEETS = {}
     _NEXT_FLEET = [1]
 
@@ -110,6 +117,59 @@ def officer_card(key, line, time=12):
     title = (str(o.get("name")) + ", " + str(o.get("title"))) if o is not None else "Fleet Command"
     comms_info_card(all_roles("console, comms"), line, title=title,
                     color="#8cf", face=officer_face(key), time=time)
+
+
+# --- Officer voices (dialogue cast) ------------------------------------------------
+# An officer with an authored Scene: rides their flag hull as a hailable cast
+# character (the same lifeform + //comms/universe_cast substrate as passengers
+# and comms NPCs) - select the flag, hail the officer, and their voice is a
+# dialogue scene. The lifeform follows the flag (CQ's bail mechanic: the flag
+# dies, the officer appears on the next hull) and parks - unhailable - while
+# the officer is podside, captured, or between fleets.
+def officer_speaker(key):
+    """A dialogue voice record for an Academy officer, so a scene's
+    `Speaker: <officer key>` resolves to their card (Admiral-navy blue).
+    Officers carry their Values as leans - crews build personal reputation
+    with the captains they fly with, free from the reputation engine."""
+    o = _OFFICERS.get(key)
+    if o is None:
+        return None
+    return MastDataObject({"key": key, "name": str(o.get("name")),
+                           "color": "#8cf", "leans": o.get("leans") or {}})
+
+
+def _officer_cast_host(key, ship_id):
+    """Put the officer's cast lifeform aboard a hull (spawning it on first
+    use). Officers with no authored Scene have no cast presence - no-op."""
+    o = _OFFICERS.get(key)
+    if o is None or not o.get("scene") or ship_id is None:
+        return
+    agent_id = _OFFICER_CAST.get(key)
+    if agent_id is None:
+        agent = lifeform_spawn(str(o.get("name")), officer_face(key), "officer_cast",
+                               ship_id, path="//comms/universe_cast", title_color="#8cf")
+        set_inventory_value(agent, "scene", o.get("scene"))
+        set_inventory_value(agent, "lf_key", key)
+        _OFFICER_CAST[key] = agent.id
+        return
+    lifeform_set_path(agent_id, "//comms/universe_cast")
+    if get_inventory_value(agent_id, "host", 0) != to_id(ship_id):
+        lifeform_transfer(agent_id, ship_id)
+
+
+def _officer_cast_park(key):
+    """Take the officer's cast lifeform off the board (fleet lost, MIA,
+    captured, or between commands): no host, no comms badge - and no
+    ultra_beam role (a host-less transfer adds it; a parked officer must not
+    read as a beamable pickup)."""
+    agent_id = _OFFICER_CAST.get(key)
+    if agent_id is None:
+        return
+    lifeform_set_path(agent_id, None)
+    lifeform_transfer(agent_id, None)
+    parked = to_object(agent_id)
+    if parked is not None:
+        parked.remove_role("ultra_beam")
 
 
 def officer_def(key):
@@ -221,6 +281,7 @@ def _officer_mia_begin(side, key, x, z):
     fleet died. The pod is a small friendly wreck the crews can reach."""
     _OFFICER_STATE[key] = {"status": "mia",
                            "mia_left": float(admiralty_tuning("mia_timer", 300))}
+    _officer_cast_park(key)
     _officers_sync(side)
     o = _OFFICERS.get(key)
     pname = (str(o.get("name")) if o is not None else "Officer") + " - Escape Pod"
@@ -346,6 +407,10 @@ def fleet_try_form(side, officer_key):
         "key": fkey, "side": side, "officer": officer_key,
         "order": "hold", "alive": len(FLEET_ROSTER), "gas_starved": False})
     _fleets_sync(side)
+    # The officer takes the flag: hailable there when they have a voice.
+    flag_ships = fleet_ships(fkey)
+    if flag_ships:
+        _officer_cast_host(officer_key, flag_ships[0].id)
     return None
 
 
@@ -375,6 +440,10 @@ def fleets_respawn(side):
             ang = n * 1.3
             _fleet_spawn_ships(side, f.get("key"),
                                4200 * math.cos(ang), 4200 * math.sin(ang), alive)
+        # The officer rides the flag through the jump too.
+        rs_ships = fleet_ships(f.get("key"))
+        if rs_ships:
+            _officer_cast_host(f.get("officer"), rs_ships[0].id)
     _fleets_sync(side)
 
 
@@ -423,10 +492,13 @@ def fleet_tick(fleet_key, dt_seconds):
     if len(ships) != int(f.get("alive", 0)):
         setattr(f, "alive", len(ships))
         _fleets_sync(side)
-    # Last known position - where the pod drops if the fleet dies.
+    # Last known position - where the pod drops if the fleet dies - and the
+    # bail mechanic: the officer's cast lifeform follows the lead hull, so a
+    # dead flag puts them on the next ship, still hailable.
     lead0 = ships[0]
     setattr(f, "lx", lead0.pos.x)
     setattr(f, "lz", lead0.pos.z)
+    _officer_cast_host(okey, lead0.id)
     order = f.get("order", "hold")
 
     # Gas: every non-hold order burns fuel (per minute, officer-scaled).

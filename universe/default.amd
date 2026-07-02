@@ -342,6 +342,7 @@ richer, fearsome engages farther. Driven by universe_fleets.py.
 Title: the Quartermaster
 Values: by-the-book 40, honest 30, kind 10
 Face: male
+Scene: off_vale_hail
 ---
 Ran the academy's logistics course for a decade and the lanes know it.
 Fleets under Vale come home fueled, patched, and on schedule.
@@ -351,6 +352,7 @@ Fleets under Vale come home fueled, patched, and on schedule.
 Title: Old Thunder
 Values: fearsome 40, violent 20, generous 10
 Face: female
+Scene: off_kade_hail
 ---
 Leads from the front and shoots first. Kade's fleets hit harder and
 scare easier prey off the board before a shot is fired.
@@ -360,6 +362,7 @@ scare easier prey off the board before a shot is fired.
 Title: the Magpie
 Values: resourceful 40, intellectual 20, selfish 10
 Face: female
+Scene: off_ashwell_hail
 ---
 Never met a wreck she could not strip or a sensor shadow she could not
 slip through. Ashwell's fleets salvage more and die less.
@@ -430,6 +433,7 @@ dialogue driver. Driven by universe_lifeforms.py.
 File: dialogue/ashfang.amd
 File: dialogue/verdant.amd
 File: dialogue/frontier.amd
+File: dialogue/officers.amd
 ---
 
 Clan conversations (movie-script scenes) live in dialogue/<clan>.amd, one file per

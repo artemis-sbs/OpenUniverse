@@ -666,6 +666,19 @@ Admiral-only overlays (yields popup, supply radii, border hatching).
    fleets. Also: the HQ is now campaign-unique (admiralty_try_build checks
    the sectors delta, names the system that has it); Shipyard/Academy/Relay
    stay per-system by design.
+9. Officer voices (2026-07-02, test-verified; browser check pending): an
+   officer with an authored `Scene:` rides their flag hull as a hailable
+   cast character - the same lifeform + //comms/universe_cast substrate as
+   passengers/comms NPCs; select the flag, hail the officer, and their
+   voice is a dialogue scene (dialogue/officers.amd: Vale/Kade/Ashwell each
+   have one). The lifeform follows the lead hull (CQ's bail mechanic: dead
+   flag -> officer answers from the next ship) and parks - unhailable, not
+   beamable - while podside/captured/between fleets. dialogue_speaker now
+   resolves officer keys (officer_speaker; their Values are the leans, so
+   crews build PERSONAL reputation with the captains they fly with - free
+   depth from the reputation engine, as section 6 predicted). Remaining:
+   subsidy (commerce hooks); event lines (acks/distress) still canned -
+   scenes cover conversations only.
 
 ---
 
