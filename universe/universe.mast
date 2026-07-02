@@ -660,7 +660,7 @@ GameCode:
             cell_bg = "#0006"
             home_owner = clan_home_owner(UNIVERSE_CLANS, ci, cj)
             cell_owner = universe_system_clan(UNIVERSE_CLANS, universe_seed, ci, cj, universe_system_kind(universe_seed, ci, cj, DANGER))[0]
-            cell_revealed = MAP_REVEAL == "Full Chart" or universe_system_flag(universe_sectors, ci, cj, "visited")
+            cell_revealed = universe_cell_known(universe_sectors, ci, cj, MAP_REVEAL)
             if home_owner is not None:
                 txt = clan_name(UNIVERSE_CLANS, home_owner)
                 cell_bg = clan_color(UNIVERSE_CLANS, home_owner)
@@ -710,7 +710,7 @@ GameCode:
     sel_res = universe_system_clan(UNIVERSE_CLANS, universe_seed, SEL_I, SEL_J, universe_system_kind(universe_seed, SEL_I, SEL_J, DANGER))
     sel_owner = sel_res[0]
     sel_kind = sel_res[1]
-    sel_known = universe_system_flag(universe_sectors, SEL_I, SEL_J, "visited") or MAP_REVEAL == "Full Chart"
+    sel_known = universe_cell_known(universe_sectors, SEL_I, SEL_J, MAP_REVEAL)
     info_owner = (clan_name(UNIVERSE_CLANS, sel_owner) if sel_owner is not None else "Unclaimed") if sel_known else "Unknown"
     info_kind = sel_kind if sel_known else "Unknown"
     sel_dist = abs(SEL_I - universe_i) + abs(SEL_J - universe_j)

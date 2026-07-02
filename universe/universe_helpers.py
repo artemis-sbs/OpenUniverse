@@ -566,15 +566,33 @@ def universe_system_kind(seed, i, j, danger="Quiet"):
     return "empty"
 
 
+def universe_cell_known(sectors, i, j, reveal):
+    """A galaxy-map cell's contents are known if the chart is full, the crew has
+    visited it, or a Sensor Relay has sensed it (universe_reveal_neighbors)."""
+    return (reveal == "Full Chart"
+            or universe_system_flag(sectors, i, j, "visited")
+            or universe_system_flag(sectors, i, j, "sensed"))
+
+
+def universe_reveal_neighbors(sectors, i, j):
+    """Mark a system and its 8 neighbours 'sensed' in the sectors delta - the
+    intel a Sensor Relay built here provides (galaxy-map contents shown without a
+    visit). Returns the (possibly new) sectors dict."""
+    for di in (-1, 0, 1):
+        for dj in (-1, 0, 1):
+            sectors = universe_set_system_flag(sectors, i + di, j + dj, "sensed")
+    return sectors
+
+
 def universe_map_cell_text(seed, i, j, danger, sectors, reveal):
     """Short label for a galaxy-map cell.
 
-    Named POIs always show; otherwise unvisited sectors read '?' under fog of
-    war ("Full Chart" reveals everything, since it's all deterministic).
+    Named POIs always show; otherwise cells that aren't known (visited, sensed,
+    or Full Chart) read '?' under fog of war.
     """
     name = universe_system_name(i, j)
     if name:
         return name
-    if reveal != "Full Chart" and not universe_system_flag(sectors, i, j, "visited"):
+    if not universe_cell_known(sectors, i, j, reveal):
         return "?"
     return _KIND_ABBR.get(universe_system_kind(seed, i, j, danger), ".")

@@ -91,7 +91,14 @@ shared ADM_BUILDS = []
     ADM_BUILDS.append(build_label)
     await delay_sim(pdef.get("build_time"))
     ADM_BUILDS.remove(build_label)
-    admiralty_build_done(build_kind, "tsn", build_worldlet_id)
+    built_plat = admiralty_build_done(build_kind, "tsn", build_worldlet_id)
+    # A finished Sensor Relay senses this system's neighbourhood - the galaxy map
+    # reveals those cells' contents without a visit (fog of war, the relay's
+    # second CQ role). Persist the intel.
+    if build_kind == "sensor" and built_plat is not None:
+        universe_sectors = universe_reveal_neighbors(universe_sectors, universe_i, universe_j)
+        universe_save(universe_seed, universe_i, universe_j, universe_sectors)
+        universe_info_card("Sensor Relay online - the neighbouring systems are on the chart.", "Admiralty", "#0cf")
     ->END
 
 

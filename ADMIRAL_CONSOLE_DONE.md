@@ -139,6 +139,18 @@ state reads the list. Legacy single-key saves coerce to a list (in-progress
 research is session-only anyway; only the done set persists). The Research tab
 shows "Research slots: used/total". Slots into the dynamic build menu with no UI.
 
+## Fog of war - Sensor Relay reveal (2026-07-02; browser check pending)
+The Sensor Relay's second CQ role (it already did command points). Finishing a
+Sensor Relay marks its system + the 8 neighbours 'sensed' in the sectors delta
+(universe_reveal_neighbors), persistently. The galaxy map + the nav info panel
+now treat a cell as known if it's visited OR sensed OR Full Chart
+(universe_cell_known, one helper wired into the cell text, the cell background,
+and sel_known) - so a sensor network reveals nearby systems' contents (kind,
+owner) without a visit. Build sensors along the frontier to grow the strategic
+map. Persisted (universe_save on build). This is the galaxy-scale intel slice of
+the fog-of-war decision; a full sensor-coverage / in-system reveal remains a
+carried gap, as does a visual mark distinguishing sensed intel from a real visit.
+
 ## Officer veterancy (2026-07-02; browser check pending)
 "Captains the crews fly with get better" (design section 6). An officer
 commanding a fleet on an active (non-hold) order accrues service time each
