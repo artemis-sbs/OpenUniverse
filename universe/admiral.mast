@@ -181,6 +181,9 @@ shared ADM_BUILDS = []
                 RESEARCH_SEL = sel_res.key
             jump admiral_console_gui
         gui_section(style="area: 60, 18, 98, 82;")
+        research_slot_line = "Research slots: " + str(len(research_current_list("tsn"))) + "/" + str(research_slots("tsn")) + "   (build a Lab for more)"
+        gui_row("row-height: 1.6em;")
+        """$text:{research_slot_line};font:gui-1;color:#8cf"""
         if RESEARCH_SEL is None:
             """Select a milestone to inspect it."""
         else:

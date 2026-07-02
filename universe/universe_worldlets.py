@@ -530,6 +530,10 @@ ADM_PLATFORMS = {
     # other CQ Sensor Tower role - is a carried gap.)
     "sensor": {"name": "Sensor Relay", "cost": {"ore": 200, "crew": 20},
                "build_time": 40, "art": "starbase_science", "per_worldlet": True},
+    # Lab (phase-2): each Lab adds a concurrent research slot, so tech advances
+    # in parallel (universe_research.research_slots). One per worldlet, stackable.
+    "lab": {"name": "Lab", "cost": {"ore": 180, "crew": 20},
+            "build_time": 40, "art": "starbase_science", "per_worldlet": True},
 }
 
 REFINERY_EXTRACT_MULT = 1.5   # a Refinery speeds its own worldlet's extraction

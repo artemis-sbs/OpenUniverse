@@ -129,6 +129,16 @@ anti-snowball rail (upkeep competes with fleets/builds/research; discount capped
 sells never subsidised). Persists in side_admiralty. Closes the Admiral bridge
 set; the LM items.py change is generic (any mission can set a side subsidy).
 
+## Lab - concurrent research (2026-07-02; browser check pending)
+Phase-2 platform. Research was single-slot (adm_researching held one key). It is
+now a list, and the side researches up to `research_slots(side)` = 1 + each Lab
+milestones at once - so tech advances in parallel through infrastructure. Each
+Lab (per-worldlet, stackable) adds a slot. research_try_start gates on the slot
+count (was "already researching X"); research_complete frees a slot; research_
+state reads the list. Legacy single-key saves coerce to a list (in-progress
+research is session-only anyway; only the done set persists). The Research tab
+shows "Research slots: used/total". Slots into the dynamic build menu with no UI.
+
 ## Officer veterancy (2026-07-02; browser check pending)
 "Captains the crews fly with get better" (design section 6). An officer
 commanding a fleet on an active (non-hold) order accrues service time each

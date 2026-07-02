@@ -86,6 +86,7 @@ dedicated model set per platform is a nice-to-have, not a blocker.
 | Relay Gate | `starbase_science` | A jump-gate ring, reads as inter-system infrastructure |
 | Depot | `starbase_industry` | A supply depot with fuel tanks / tenders - a fleet resupply anchor |
 | Sensor Relay | `starbase_science` | A sensor/comms tower with dishes - reads as command + detection |
+| Lab | `starbase_science` | A research lab / observatory - distinct from the Shipyard's science hull |
 
 Art keys are the `art:` values in `ADM_PLATFORMS` (universe_worldlets.py) - an
 `## Platforms` AMD chapter could move them to data later. HQ and Bastion share

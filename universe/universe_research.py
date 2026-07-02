@@ -72,8 +72,30 @@ def research_has(side, key):
     return key in research_done(side)
 
 
+# Concurrent research: the side researches up to research_slots() milestones at
+# once - one base slot plus one per Lab platform. adm_researching holds the live
+# list (session-only; not persisted - the done list is what saves). Tolerates a
+# legacy single-key string.
+RESEARCH_SLOTS_BASE = 1
+
+
+def research_slots(side):
+    """How many milestones the side can research at once: base + each Lab."""
+    return RESEARCH_SLOTS_BASE + len(to_object_list(role("admiral_lab") & role(side)))
+
+
+def research_current_list(side):
+    """The milestones currently in progress (a list; [] when idle)."""
+    v = get_inventory_value(to_side_id(side), "adm_researching", None)
+    if not v:
+        return []
+    return [v] if isinstance(v, str) else list(v)
+
+
 def research_current(side):
-    return get_inventory_value(to_side_id(side), "adm_researching", None)
+    """Back-compat: the first in-progress milestone, or None."""
+    cur = research_current_list(side)
+    return cur[0] if cur else None
 
 
 def research_state(side, key):
@@ -83,7 +105,7 @@ def research_state(side, key):
         return "locked"
     if research_has(side, key):
         return "done"
-    if research_current(side) == key:
+    if key in research_current_list(side):
         return "researching"
     req = r.get("requires")
     if req and not research_has(side, req):
@@ -99,10 +121,11 @@ def research_try_start(side, key):
         return "Unknown research."
     if research_has(side, key):
         return "Already researched."
-    cur = research_current(side)
-    if cur:
-        cdef = _RESEARCH.get(cur)
-        return "Already researching " + (cdef.get("name") if cdef else cur) + "."
+    cur = research_current_list(side)
+    if key in cur:
+        return "Already researching that."
+    if len(cur) >= research_slots(side):
+        return "All research slots are busy (build a Lab for more)."
     req = r.get("requires")
     if req and not research_has(side, req):
         rdef = _RESEARCH.get(req)
@@ -111,15 +134,19 @@ def research_try_start(side, key):
         return "Requires a Shipyard."
     if not admiralty_spend(side, r.get("costs")):
         return "Not enough resources (" + research_costs_text(key) + ")."
-    set_inventory_value(to_side_id(side), "adm_researching", key)
+    cur.append(key)
+    set_inventory_value(to_side_id(side), "adm_researching", cur)
     return None
 
 
 def research_complete(side, key):
-    """Finish a milestone: record it (effects apply lazily from the set)."""
+    """Finish a milestone: clear its slot and record it (effects apply lazily
+    from the done set)."""
     sid = to_side_id(side)
-    if get_inventory_value(sid, "adm_researching", None) == key:
-        set_inventory_value(sid, "adm_researching", None)
+    cur = research_current_list(side)
+    if key in cur:
+        cur.remove(key)
+        set_inventory_value(sid, "adm_researching", cur)
     done = research_done(side)
     if key not in done:
         done.append(key)
