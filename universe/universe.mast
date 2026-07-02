@@ -387,31 +387,37 @@ GameCode:
         cap_entry = dialogue_clan_entry(UNIVERSE_DIALOGUE, hail_cap.key)
         if cap_entry is not None:
             + "Hail {captain_full_name(hail_cap)}" universe_dialogue_start {"scene": cap_entry}
-    + "Accept Cargo Run" if universe_delivery_available(ship_id, universe_i, universe_j):
-        universe_grant_delivery(ship_id, universe_seed, universe_i, universe_j)
-        universe_save_players()
-        >> "Cargo loaded. The destination is marked on your galaxy map."
+    # ENGINE RULE (found running in the real engine): `+` button CONDITIONS
+    # are re-evaluated by the comms system outside this route's task, where
+    # loop/task variables and shared-python names (pax, ship_id, QuestState)
+    # do not exist -> NameError spam. Gate buttons with plain `if` STATEMENTS
+    # (these run only here, in this task) and keep buttons condition-free.
+    if universe_delivery_available(ship_id, universe_i, universe_j):
+        + "Accept Cargo Run":
+            universe_grant_delivery(ship_id, universe_seed, universe_i, universe_j)
+            universe_save_players()
+            >> "Cargo loaded. The destination is marked on your galaxy map."
     # Passenger transport: authored named passengers waiting here (B), plus a
     # generic traveler to the deterministic destination (A). Accepting boards the
     # passenger lifeform; reaching the destination pays the fare + disembarks them.
+    # Handler label + data (not an inline block): the block would run on click
+    # with the loop's LAST pax, not the clicked one.
     for pax in universe_passengers_at(UNIVERSE_LIFEFORMS, universe_i, universe_j):
-        pax_label = f"Transport {pax.name} to ({pax.deliver_to[0]}, {pax.deliver_to[1]})  ({pax.pays} cr)"
-        + "{pax_label}" if quest_get_state(ship_id, "passenger_" + pax.key) == QuestState.IDLE:
-            universe_grant_passenger(ship_id, pax)
-            universe_save_players()
-            # A saboteur passenger starts sabotaging once aboard (slice 3).
-            if pax.sabotage is not None:
-                task_schedule(universe_saboteur_run, {"SAB_SHIP": ship_id, "SAB_SYSTEMS": pax.sabotage})
-            >> "{pax.name} is aboard. Destination marked on your galaxy map."
+        if quest_get_state(ship_id, "passenger_" + pax.key) == QuestState.IDLE:
+            pax_label = f"Transport {pax.name} to ({pax.deliver_to[0]}, {pax.deliver_to[1]})  ({pax.pays} cr)"
+            + "{pax_label}" universe_accept_passenger {"pax": pax}
     pax_tij = universe_delivery_target(universe_seed, universe_i, universe_j)
-    + "Transport a passenger to ({pax_tij[0]}, {pax_tij[1]})" if quest_get_state(ship_id, "passenger_traveler_" + str(universe_i) + "_" + str(universe_j)) == QuestState.IDLE:
-        universe_grant_passenger(ship_id, universe_generic_passenger(universe_i, universe_j, pax_tij[0], pax_tij[1]))
-        universe_save_players()
-        >> "Passenger aboard. Safe travels."
-    + "Accept Patrol Mission" if quest_get_state(ship_id, "story_patrol") == 0:
-        quest_grant_amd(ship_id, BRIDGE_STORY_DOC)
-        universe_save_players()
-        >> "Patrol orders uploaded. Check your quest log - scan this starbase to begin."
+    if quest_get_state(ship_id, "passenger_traveler_" + str(universe_i) + "_" + str(universe_j)) == QuestState.IDLE:
+        traveler_label = f"Transport a passenger to ({pax_tij[0]}, {pax_tij[1]})"
+        + "{traveler_label}":
+            universe_grant_passenger(ship_id, universe_generic_passenger(universe_i, universe_j, pax_tij[0], pax_tij[1]))
+            universe_save_players()
+            >> "Passenger aboard. Safe travels."
+    if quest_get_state(ship_id, "story_patrol") == 0:
+        + "Accept Patrol Mission":
+            quest_grant_amd(ship_id, BRIDGE_STORY_DOC)
+            universe_save_players()
+            >> "Patrol orders uploaded. Check your quest log - scan this starbase to begin."
     # Clan work: if this station belongs to a clan that will deal with you, offer
     # jobs from its pool (gated + reward-scaled by your standing). One button per
     # offer; the data dict captures which job for the accept handler.
@@ -431,17 +437,21 @@ GameCode:
         dip_side_id = to_side_id(my_side)
         dip_credits = get_inventory_value(dip_side_id, "credits", 0)
         ceasefire_cost = clan_ceasefire_cost(dip_standing)
-        + "Negotiate Ceasefire" if dip_rel == sbs.DIPLOMACY.HOSTILE and dip_credits >= ceasefire_cost:
-            set_inventory_value(dip_side_id, "credits", dip_credits - ceasefire_cost)
-            side_set_relations(my_side, dip_clan, sbs.DIPLOMACY.NEUTRAL)
-            universe_diplomacy = universe_set_dip(universe_diplomacy, my_side, dip_clan, sbs.DIPLOMACY.NEUTRAL)
-            universe_save_diplomacy(universe_diplomacy)
-            >> "We have an understanding. Hostilities are suspended (tribute: {ceasefire_cost} cr)."
-        + "Propose Alliance" if dip_rel == sbs.DIPLOMACY.NEUTRAL and dip_standing >= clan_alliance_standing():
-            side_set_relations(my_side, dip_clan, sbs.DIPLOMACY.ALLIED)
-            universe_diplomacy = universe_set_dip(universe_diplomacy, my_side, dip_clan, sbs.DIPLOMACY.ALLIED)
-            universe_save_diplomacy(universe_diplomacy)
-            >> "Then we stand together. The clan is honored to call you ally."
+        # Statement-gated (see the engine rule above): dip_rel/dip_credits are
+        # task variables and must not appear in a button condition.
+        if dip_rel == sbs.DIPLOMACY.HOSTILE and dip_credits >= ceasefire_cost:
+            + "Negotiate Ceasefire":
+                set_inventory_value(dip_side_id, "credits", dip_credits - ceasefire_cost)
+                side_set_relations(my_side, dip_clan, sbs.DIPLOMACY.NEUTRAL)
+                universe_diplomacy = universe_set_dip(universe_diplomacy, my_side, dip_clan, sbs.DIPLOMACY.NEUTRAL)
+                universe_save_diplomacy(universe_diplomacy)
+                >> "We have an understanding. Hostilities are suspended (tribute: {ceasefire_cost} cr)."
+        if dip_rel == sbs.DIPLOMACY.NEUTRAL and dip_standing >= clan_alliance_standing():
+            + "Propose Alliance":
+                side_set_relations(my_side, dip_clan, sbs.DIPLOMACY.ALLIED)
+                universe_diplomacy = universe_set_dip(universe_diplomacy, my_side, dip_clan, sbs.DIPLOMACY.ALLIED)
+                universe_save_diplomacy(universe_diplomacy)
+                >> "Then we stand together. The clan is honored to call you ally."
         # Ransom: this clan holds captured Admiralty officers (a lapsed MIA
         # pod they claimed - universe_fleets). Buying them back is priced by
         # standing (clan_ransom_cost): friends sell prisoners back cheap.
@@ -455,6 +465,22 @@ GameCode:
                 else:
                     + "{_ransom_label} - insufficient credits":
                         >> "Come back when you can pay. The prisoner keeps."
+
+
+# Board a named passenger (from the station comms above). data: pax (the
+# authored passenger record) - a handler label so each button carries ITS
+# passenger, not the loop's last.
+=== universe_accept_passenger
+    default pax = None
+    ->END if pax is None
+    ship_id = COMMS_ORIGIN_ID
+    universe_grant_passenger(ship_id, pax)
+    universe_save_players()
+    # A saboteur passenger starts sabotaging once aboard (slice 3).
+    if pax.sabotage is not None:
+        task_schedule(universe_saboteur_run, {"SAB_SHIP": ship_id, "SAB_SYSTEMS": pax.sabotage})
+    comms_transmit(f"{pax.name} is aboard. Destination marked on your galaxy map.")
+    ->END
 
 
 # Pay a clan's ransom for a captured Admiralty officer (from the station comms
