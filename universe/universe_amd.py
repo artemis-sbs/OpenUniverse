@@ -215,6 +215,16 @@ def universe_amd_data(text):
         elif label in ("start ore", "start gas", "start crew"):
             # Admiralty starting stockpiles.
             data.setdefault("admiralty", {})[_f_norm(label)] = _f_num(value)
+        elif label == "storage":
+            data.setdefault("admiralty", {})["storage"] = _f_num(value)
+        elif label == "costs":
+            # Research milestone cost: 'ore 120, gas 40' -> {ore: 120, gas: 40}.
+            data["costs"] = _f_weighted(value)
+        elif label == "unlocks":
+            # Research effects, plain English phrases interpreted by
+            # universe_research.py: 'storage 500', 'extraction 25%',
+            # 'requisition tauron_focuser' (comma-separated).
+            data["unlocks"] = _f_list(value)
         elif label == "command points":
             data.setdefault("admiralty", {})["command_points"] = _f_num(value)
         elif label == "fleet gas burn":

@@ -38,6 +38,23 @@ shared ADM_BUILDS = []
     ->END
 
 
+# One research run: cost was already paid (research_try_start); wait out the
+# Time, then record the milestone (effects apply from the completed set) and
+# persist the campaign.
+=== admiralty_research_task
+    default research_key = None
+    rdef = research_def(research_key)
+    ->END if rdef is None
+    research_label = "Research - " + rdef.get("name")
+    ADM_BUILDS.append(research_label)
+    await delay_sim(rdef.get("time"))
+    ADM_BUILDS.remove(research_label)
+    research_complete("tsn", research_key)
+    universe_save_players()
+    comms_broadcast(role("__player__"), "Admiralty research complete: " + rdef.get("name") + ".", "#0cf")
+    ->END
+
+
 @console/admiral !0 ^10 "Admiral" if UNIVERSE_ACTIVE and admiralty_active()
     " The war effort behind the fleet - worldlets, extraction, and stockpiles.
     default SEL_WORLDLET = None
@@ -52,7 +69,7 @@ shared ADM_BUILDS = []
 
     # Resource bar (CQ's resource bar, reborn).
     gui_section(style="area: 2, 2, 98, 9; background:#1578;")
-    """justify:center; font:gui-4; $text:{ticker}"""
+    """$text:{ticker};justify:center;font:gui-4"""
 
     # Tab strip - Map is live; the rest arrive in later slices.
     gui_section(style="area: 2, 10, 98, 17;")
@@ -78,23 +95,75 @@ shared ADM_BUILDS = []
             """Select a worldlet to inspect it and build."""
         else:
             sel_text = worldlet_sel_text(SEL_WORLDLET, "tsn")
-            """justify:left; $text:{sel_text}"""
+            """$text:{sel_text}"""
             gui_row("row-height: 2em;")
             hq_label = "Build HQ  (" + admiralty_cost_text("hq") + ")"
             b_hq = gui_button(hq_label)
             on gui_message(b_hq):
-                jump admiral_build_hq
+                BUILD_PICK = "hq"
+                jump admiral_build
             gui_row("row-height: 2em;")
             ext_label = "Build Extractor  (" + admiralty_cost_text("extractor") + ")"
             b_ext = gui_button(ext_label)
             on gui_message(b_ext):
-                jump admiral_build_extractor
+                BUILD_PICK = "extractor"
+                jump admiral_build
+            gui_row("row-height: 2em;")
+            ref_label = "Build Refinery  (" + admiralty_cost_text("refinery") + ")"
+            b_ref = gui_button(ref_label)
+            on gui_message(b_ref):
+                BUILD_PICK = "refinery"
+                jump admiral_build
+            gui_row("row-height: 2em;")
+            yard_label = "Build Shipyard  (" + admiralty_cost_text("shipyard") + ")"
+            b_yard = gui_button(yard_label)
+            on gui_message(b_yard):
+                BUILD_PICK = "shipyard"
+                jump admiral_build
         if ADM_MSG != "":
-            gui_row("row-height: 1.5em;")
-            """justify:left; color:#fa4; $text:{ADM_MSG}"""
+            gui_row("row-height: 2em;")
+            """$text:{ADM_MSG};color:#fa4"""
+    elif ADMIRAL_TAB == "research":
+        # The tech ladder (## Research). One research at a time, at a Shipyard.
+        gui_section(style="area: 2, 18, 98, 82;")
+        for rrec in research_list():
+            r_state = research_state("tsn", rrec.key)
+            r_line = rrec.name + "  [" + rrec.branch + "]  " + research_costs_text(rrec.key) + "  " + str(rrec.time) + "s  -  " + r_state
+            r_desc = rrec.desc
+            gui_row("row-height: 2.4em; padding: 8px, 0, 0, 0;")
+            """$text:{r_line};font:gui-2"""
+            gui_row("row-height: 2.2em;")
+            """$text:{r_desc};font:gui-1"""
+            if r_state == "available":
+                gui_row("row-height: 2.2em;")
+                b_res = gui_button("Start research", data={"pick_research": rrec.key})
+                on gui_message(b_res):
+                    RESEARCH_PICK = pick_research
+                    jump admiral_research_start
+        if ADM_MSG != "":
+            gui_row("row-height: 2em;")
+            """$text:{ADM_MSG};color:#fa4"""
+    elif ADMIRAL_TAB == "requisition":
+        # Resources -> a real item delivered beside the player ships. The
+        # catalog starts with the classic upgrades; research adds to it.
+        gui_section(style="area: 2, 18, 98, 82;")
+        gui_row("row-height: 2em;")
+        """Requisitions are delivered beside the player ships - fly over to collect."""
+        for req in requisition_catalog("tsn"):
+            req_line = req[1] + "   (" + requisition_costs_text("tsn", req[0]) + ")"
+            gui_row("row-height: 2.4em; padding: 8px, 0, 0, 0;")
+            """$text:{req_line};font:gui-2"""
+            gui_row("row-height: 2.2em;")
+            b_req = gui_button("Deliver", data={"pick_req": req[0]})
+            on gui_message(b_req):
+                REQ_PICK = pick_req
+                jump admiral_requisition
+        if ADM_MSG != "":
+            gui_row("row-height: 2em;")
+            """$text:{ADM_MSG};color:#fa4"""
     else:
         gui_section(style="area: 2, 20, 98, 60;")
-        """This tab arrives in a later slice. The Map tab is live now."""
+        """This tab arrives in a later slice. Map, Research and Requisition are live."""
 
     # Build queue line (the mock's bottom bar).
     if len(ADM_BUILDS) > 0:
@@ -120,21 +189,43 @@ shared ADM_BUILDS = []
     jump admiral_console_gui
 
 
-=== admiral_build_hq
+=== admiral_build
+    default BUILD_PICK = None
     ADM_MSG = ""
-    fail = admiralty_try_build("hq", "tsn", SEL_WORLDLET)
+    fail = admiralty_try_build(BUILD_PICK, "tsn", SEL_WORLDLET)
     if fail is None:
-        task_schedule(admiralty_build_task, {"build_kind": "hq", "build_worldlet_id": SEL_WORLDLET})
+        task_schedule(admiralty_build_task, {"build_kind": BUILD_PICK, "build_worldlet_id": SEL_WORLDLET})
     else:
         ADM_MSG = fail
     jump admiral_console_gui
 
 
-=== admiral_build_extractor
+=== admiral_research_start
+    default RESEARCH_PICK = None
     ADM_MSG = ""
-    fail = admiralty_try_build("extractor", "tsn", SEL_WORLDLET)
+    fail = research_try_start("tsn", RESEARCH_PICK)
     if fail is None:
-        task_schedule(admiralty_build_task, {"build_kind": "extractor", "build_worldlet_id": SEL_WORLDLET})
+        task_schedule(admiralty_research_task, {"research_key": RESEARCH_PICK})
+    else:
+        ADM_MSG = fail
+    jump admiral_console_gui
+
+
+=== admiral_requisition
+    default REQ_PICK = None
+    ADM_MSG = ""
+    fail = requisition_try_deliver("tsn", REQ_PICK)
+    if fail is None:
+        # Deliver the item beside the first player ship and tell the crews.
+        req_entry = requisition_entry("tsn", REQ_PICK)
+        deliver_players = to_object_list(role("__player__"))
+        if len(deliver_players) > 0:
+            dpos = deliver_players[0].pos
+            item_spawn(REQ_PICK, dpos.x + 600, dpos.y, dpos.z + 400)
+            comms_broadcast(role("__player__"), "Admiralty requisition delivered: " + req_entry[1] + " - collect nearby.", "#0cf")
+            ADM_MSG = req_entry[1] + " delivered."
+        else:
+            ADM_MSG = "No player ship to deliver to."
     else:
         ADM_MSG = fail
     jump admiral_console_gui

@@ -593,11 +593,22 @@ Admiral-only overlays (yields popup, supply radii, border hatching).
    prereqs and build times, a build queue line, and the extraction
    tick feeding the ticker. Inert for universes with no Admiralty
    chapter (Silver Reach unchanged).
-4. Slice 2 next: Refinery + Shipyard platforms, milestone research
-   (one branch), requisition -> an upgrade item at a station, subsidy
-   toggle. Known slice-1 gaps to carry: worldlet reserve depletion is
-   not yet persisted across jumps/saves; CMD shows 0/N until fleets
-   exist (slice 3).
+4. ~~Slice 2.~~ **DONE + verified in the browser (2026-07-01):**
+   Refinery (boosts its worldlet 1.5x, +400 storage) + Shipyard (the
+   research site); stockpile caps (Storage tuning + refineries +
+   research); the Engineering ladder authored as a `## Research` AMD
+   chapter (Costs/Time/Requires/Unlocks in plain English - storage N /
+   extraction N% / requisition <item>), researched one-at-a-time at a
+   Shipyard, persisted in the campaign save with effects derived from
+   the completed set; and the Requisition tab - the three classic
+   upgrade items (+ two research-unlocked) bought with resources and
+   delivered as REAL items beside the player ships with a comms
+   notice. Subsidy deferred to slice 2.5 (needs commerce pricing
+   hooks). GUI style rule learned: $text first, justify:left never.
+5. Slice 3 next: fleets + captains (Academy, the six orders, gas burn,
+   command points live) + `## Officers` AMD. Carried gaps: worldlet
+   reserve depletion not persisted across jumps/saves; CMD shows 0/N
+   until fleets; subsidy pending.
 
 ---
 

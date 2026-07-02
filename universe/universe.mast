@@ -118,6 +118,7 @@ GameCode:
     # (zero worldlets, no Admiral game) unless the universe authors both.
     worldlets_configure(universe_parse_worldlets(UNIVERSE_DOC))
     admiralty_configure(universe_admiralty_cfg(UNIVERSE_DOC))
+    research_configure(universe_parse_research(UNIVERSE_DOC))
     for _clan in UNIVERSE_CLANS:
         await prefab_spawn(prefab_side_generic, {"key": _clan.key, "name": _clan.name, "desc": _clan.desc, "color": _clan.color, "enemies": _clan.enemies})
     # Seed the Admiral side's starting stockpiles (guarded - once per campaign)

@@ -306,6 +306,7 @@ Worldlet chance: 30%
 Start ore: 200
 Start gas: 100
 Start crew: 40
+Storage: 600
 Command points: 3
 Fleet gas burn: 2
 Requisition budget: 800 credits
@@ -314,6 +315,46 @@ Research pace: campaign
 ---
 The war effort behind the player fleet - dials for the Admiral console.
 Omit this chapter (and Worldlets) for a universe with no Admiral game.
+
+## Research
+
+The Admiralty's tech ladder (researched at a Shipyard). Each milestone names
+its branch, what it costs, how long it takes, the milestone it requires, and
+what it unlocks - in plain English: `storage N` raises the stockpile caps,
+`extraction N%` speeds all extractors, `requisition <item>` adds an item to
+the Requisition catalog. Driven by universe_research.py.
+
+### Expanded Silos (eng_silos)
+---
+Branch: engineering
+Costs: ore 120, gas 40
+Time: 40
+Unlocks: storage 500
+---
+Bigger tanks and deeper bunkers. The stockpiles can hold more before the
+quartermasters start turning shipments away.
+
+### Refined Extraction (eng_refining)
+---
+Branch: engineering
+Costs: ore 180, gas 90
+Time: 60
+Requires: eng_silos
+Unlocks: extraction 25%
+---
+Better drills, hotter crackers. Every extractor in the fleet's employ works
+a quarter again as fast.
+
+### Milspec Fittings (eng_fittings)
+---
+Branch: engineering
+Costs: ore 250, gas 120, crew 10
+Time: 80
+Requires: eng_refining
+Unlocks: requisition tauron_focuser, requisition haplix_overcharger
+---
+Weapons-grade componentry enters the catalog: the yards can now requisition
+serious hardware for the bridge crews.
 
 ## Captains
 ---

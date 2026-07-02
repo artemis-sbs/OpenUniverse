@@ -29,6 +29,7 @@ ADM_RESOURCES = ["ore", "gas", "crew"]
 # Built-in Admiralty tuning; a universe's ## Admiralty fence overrides any knob.
 _ADM_DEFAULTS = {
     "start_ore": 200, "start_gas": 100, "start_crew": 40,
+    "storage": 600,
     "command_points": 3, "fleet_gas_burn": 2,
     "requisition_budget": 800,
     "skirmish_pressure": "border",
@@ -202,8 +203,19 @@ def admiralty_pool_get(side, res):
     return int(get_inventory_value(to_side_id(side), "adm_" + res, 0))
 
 
+def admiralty_pool_cap(side, res):
+    """Stockpile cap: the Storage tuning + each Refinery's silos + research
+    ('storage N' unlocks; research_storage_bonus is a shared-namespace call
+    into universe_research.py)."""
+    cap = int(admiralty_tuning("storage", 600))
+    cap += REFINERY_STORAGE_BONUS * len(to_object_list(role("admiral_refinery") & role(side)))
+    cap += int(research_storage_bonus(side))
+    return cap
+
+
 def admiralty_pool_set(side, res, value):
-    set_inventory_value(to_side_id(side), "adm_" + res, max(0, int(value)))
+    capped = min(int(value), admiralty_pool_cap(side, res))
+    set_inventory_value(to_side_id(side), "adm_" + res, max(0, capped))
 
 
 def admiralty_pool_add(side, res, delta):
@@ -239,10 +251,12 @@ def admiralty_spend(side, cost):
 def admiralty_extraction_tick(side, dt_seconds):
     """One economy tick: every extractor platform pulls its worldlet's Yields
     (per-minute rates) into the side pools, draining a finite Reserve. A dry
-    worldlet stops producing (its extractors idle). Called from admiral.mast."""
+    worldlet stops producing (its extractors idle). A Refinery at the same
+    worldlet multiplies the pull; 'extraction N%' research speeds everything.
+    Called from admiral.mast."""
     if not _ADM_ACTIVE:
         return
-    scale = float(dt_seconds) / 60.0
+    scale = float(dt_seconds) / 60.0 * float(research_extraction_mult(side))
     for plat in to_object_list(role("admiral_extractor")):
         if not has_role(plat.id, side):
             continue
@@ -250,10 +264,13 @@ def admiralty_extraction_tick(side, dt_seconds):
         wobj = to_object(wid) if wid is not None else None
         if wobj is None:
             continue
+        wscale = scale
+        if admiralty_platform_at(wobj, "refinery") is not None:
+            wscale *= REFINERY_EXTRACT_MULT
         yields = wobj.get_inventory_value("worldlet_yields", {}) or {}
         reserve = wobj.get_inventory_value("worldlet_reserve")
         for res, per_min in yields.items():
-            amount = float(per_min) * scale
+            amount = float(per_min) * wscale
             if reserve is not None:
                 if reserve <= 0:
                     break
@@ -275,14 +292,23 @@ def _pool_add_f(side, res, amount):
 
 
 # --- Platforms -------------------------------------------------------------------
-# Slice-1 platform set: HQ + Extractor. Costs/build times are data here (an
-# `## Platforms` AMD chapter can take over later without changing callers).
+# Slice 1-2 platform set. Costs/build times are data here (an `## Platforms`
+# AMD chapter can take over later without changing callers).
 ADM_PLATFORMS = {
     "hq": {"name": "Headquarters", "cost": {"ore": 150, "crew": 15},
            "build_time": 30, "art": "starbase_command", "per_worldlet": False},
     "extractor": {"name": "Extractor", "cost": {"ore": 60, "crew": 5},
                   "build_time": 20, "art": "starbase_industry", "per_worldlet": True},
+    # Refinery: boosts ITS worldlet's extraction and adds storage (slice 2).
+    "refinery": {"name": "Refinery", "cost": {"ore": 100, "gas": 20},
+                 "build_time": 30, "art": "starbase_civil", "per_worldlet": True},
+    # Shipyard: the research site (universe_research.py); fleet hulls in slice 3.
+    "shipyard": {"name": "Shipyard", "cost": {"ore": 200, "crew": 20},
+                 "build_time": 45, "art": "starbase_science", "per_worldlet": False},
 }
+
+REFINERY_EXTRACT_MULT = 1.5   # a Refinery speeds its own worldlet's extraction
+REFINERY_STORAGE_BONUS = 400  # ...and adds silo capacity to the side
 
 
 def admiralty_platform_def(kind):
@@ -313,6 +339,8 @@ def admiralty_try_build(kind, side, worldlet_id):
         return "The " + pdef["name"] + " is already built."
     if kind != "hq" and len(to_object_list(role("admiral_hq") & role(side))) == 0:
         return "Requires a Headquarters."
+    if kind == "refinery" and admiralty_platform_at(wobj, "extractor") is None:
+        return "Requires an Extractor at this worldlet."
     if not admiralty_spend(side, pdef["cost"]):
         return "Not enough resources (" + admiralty_cost_text(kind) + ")."
     wobj.set_inventory_value("building_" + kind, True)
@@ -337,16 +365,18 @@ def admiralty_cost_text(kind):
 
 # --- Console GUI helpers (admiral.mast) -------------------------------------------
 def admiralty_ticker_text(side):
-    """The resource bar line: 'ORE 240   GAS 96   CREW 40   CMD 0/3'."""
+    """The resource bar line: 'ORE 240/600   GAS 96/600   CREW 40/600   CMD 0/3'."""
     p = admiralty_pools(side)
     cmd_max = admiralty_tuning("command_points", 0)
-    return ("ORE " + str(p["ore"]) + "   GAS " + str(p["gas"]) +
-            "   CREW " + str(p["crew"]) + "   CMD 0/" + str(cmd_max))
+    parts = []
+    for res in ADM_RESOURCES:
+        parts.append(res.upper() + " " + str(p[res]) + "/" + str(admiralty_pool_cap(side, res)))
+    return "   ".join(parts) + "   CMD 0/" + str(cmd_max)
 
 
 def worldlet_list_title():
     gui_row("row-height: 1.2em;padding:6px;background:#1578;")
-    gui_text("$text:Worldlets in this system;justify:left;")
+    gui_text("$text:Worldlets in this system")
 
 
 def worldlet_list_template(item):
@@ -357,7 +387,7 @@ def worldlet_list_template(item):
     rtext = "unlimited" if reserve is None else (str(int(reserve)) if reserve > 0 else "DEPLETED")
     gui_row("row-height: 2.2em;")
     gui_text("$text:" + str(item.name) + "  (" + str(tname) + ")  " + ytext +
-             " /min   reserve " + rtext + ";justify:left;font:gui-1")
+             " /min   reserve " + rtext + ";font:gui-1")
 
 
 def worldlet_sel_text(worldlet_id, side):

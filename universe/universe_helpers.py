@@ -233,6 +233,19 @@ def universe_save_players():
             side_credits[side] = get_inventory_value(to_side_id(side), "credits", 0)
     data["players"] = players
     data["side_credits"] = side_credits
+    # Admiralty economy (worldlets/research - additive, no migration needed):
+    # per-side stockpiles + completed research, straight off the side agent's
+    # inventory so this stays self-contained (see universe_worldlets.py).
+    side_adm = {}
+    for side in side_credits:
+        sid = to_side_id(side)
+        if get_inventory_value(sid, "adm_seeded", False):
+            side_adm[side] = {
+                "pools": {r: get_inventory_value(sid, "adm_" + r, 0)
+                          for r in ("ore", "gas", "crew")},
+                "research": list(get_inventory_value(sid, "adm_research", []) or []),
+            }
+    data["side_admiralty"] = side_adm
     data["shared_quests"] = _serialize_quests(Agent.SHARED_ID)
     universe_save_state(data)
 
@@ -247,11 +260,21 @@ def universe_load_players():
     side_credits = data.get("side_credits", {})
     seen_sides = set()
     _restore_quests(Agent.SHARED_ID, data.get("shared_quests"))
+    side_adm = data.get("side_admiralty", {})
     for ship in to_object_list(role("__player__")):
         side = ship.side
         if side and side not in seen_sides:
             set_inventory_value(to_side_id(side), "credits",
                                 side_credits.get(side, UNIVERSE_START_CREDITS))
+            # Admiralty stockpiles + research (marks the side seeded so
+            # admiralty_seed_pools won't re-seed a restored campaign).
+            adm = side_adm.get(side)
+            if adm:
+                sid = to_side_id(side)
+                set_inventory_value(sid, "adm_seeded", True)
+                for r, v in (adm.get("pools") or {}).items():
+                    set_inventory_value(sid, "adm_" + r, int(v))
+                set_inventory_value(sid, "adm_research", list(adm.get("research") or []))
             seen_sides.add(side)
         pdata = players.get(ship.name)
         if not pdata:
