@@ -160,7 +160,7 @@ Relays to field more fleets. Slots into the dynamic build menu with zero UI work
 Carried gap: fog-of-war coverage (the CQ Sensor Tower's other role) is not
 implemented - this is the command-point half only.
 
-## Build menu = scrollable listbox of buildable platforms (2026-07-02; exercise-verified)
+## Build menu = scrollable listbox of buildable platforms (2026-07-02; BROWSER-VERIFIED)
 The Map-tab build panel was a stack of platform buttons (8+), which overflowed /
 went wonky at small screen sizes. It is now the settled UI pattern: a scrollable
 `gui_list_box` of buildable platforms (`admiralty_buildable_items`) + a "Build
@@ -174,7 +174,7 @@ Refactor for one source of truth: the validation half of `admiralty_try_build`
 moved to a check-only `admiralty_can_build` (need_cost toggles affordability);
 `admiralty_can_afford` split out of `admiralty_spend`. Shared by the list and the
 build action. Verified with the --exercise pass (two listboxes on the Map tab
-drive clean); worth a browser eyeball for the small-screen layout.
+drive clean) and browser-confirmed (user, 2026-07-02 - "looks great").
 
 ## Depot - fleet supply anchor (2026-07-02; browser check pending)
 Phase-2 platform closing the gas-starvation gap: a fleet on any active order
