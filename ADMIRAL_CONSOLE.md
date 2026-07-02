@@ -690,8 +690,20 @@ Admiral-only overlays (yields popup, supply radii, border hatching).
     system is lethal, so fleet_tick(fleet, dt, veiled) forces any active
     fleet to hold and warns once (veil_warn chatter), reset on leaving or a
     new order. The Admiral must clear a lane or jump the flag out; lingering
-    feeds the MIA/capture loop. admiral.mast passes region_is_veiled. Only
-    remaining gap: subsidy (needs the code-locked LM commerce hooks).
+    feeds the MIA/capture loop. admiral.mast passes region_is_veiled.
+12. Subsidy (2026-07-02, test-verified; browser check pending): the bridge #2
+    from section 7 - the Admiral spends stockpiles to discount station prices
+    for the crews. One number, `market_subsidy` (0..subsidy_max) on the side
+    agent: LM items.market_price reads it (a backward-compatible ship_id param
+    discounts the buyer side's price - shown, checked, and charged coherently
+    in item_market.mast), and the Admiral console's Requisition tab cycles the
+    tier (0/10/20/30%). Every econ tick pays the rate's resource upkeep
+    (SUBSIDY_UPKEEP_PER_MIN, scaled by rate); a dry pool suspends it - the
+    anti-snowball rail (upkeep competes with fleets/builds/research; discount
+    capped; sells never subsidised). Persists in side_admiralty. This closes
+    the Admiral bridge set; the LM items.py change is generic (any mission can
+    set a side subsidy). Carried polish: NPC veil pathing, officer event
+    scenes beyond canned pools.
 
 ---
 

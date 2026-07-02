@@ -36,8 +36,15 @@ _ADM_DEFAULTS = {
     "skirmish_interval": 240,   # seconds between border raids (pressure-scaled)
     "mia_timer": 300,           # the MIA rescue window (seconds)
     "relay_rate": 0.5,          # Relay Gate remote income fraction
+    "subsidy_max": 0.3,         # cap on the crew price subsidy (fraction off)
+    "subsidy_step": 0.1,        # tier size the console cycles through
     "research_pace": "campaign",
 }
+
+# Per-minute resource upkeep of a FULL (100%) subsidy - the actual drain scales
+# with the active rate, so a 30% subsidy costs 30% of this each minute. This is
+# the anti-snowball rail: the upkeep competes with fleets/builds/research.
+SUBSIDY_UPKEEP_PER_MIN = {"ore": 180, "gas": 60}
 
 # Live per-load registries (reset by *_configure on universe load, mirroring
 # generation_configure / regions_configure).
@@ -382,6 +389,64 @@ def admiralty_relay_tick(side, sectors, cur_i, cur_j, dt_seconds):
             continue
         for res, per_min in (sval.get("adm_income") or {}).items():
             _pool_add_f(side, res, float(per_min) * scale)
+
+
+# --- Subsidy (resources -> crew prices; ADMIRAL_CONSOLE.md section 7) -----------
+# The Admiral spends the side's stockpiles to discount station prices for the
+# crews. The rate lives on the side agent as `market_subsidy` (0..subsidy_max) -
+# the same value LM's items.market_price reads - so the console and the market
+# are one number. Every econ tick pays the rate's resource upkeep; a dry pool
+# drops the subsidy (the anti-snowball rail: no free-goods pipeline).
+def admiralty_subsidy_rate(side):
+    """The side's active crew subsidy (0..subsidy_max)."""
+    sid = to_side_id(side)
+    if sid is None:
+        return 0.0
+    try:
+        rate = float(get_inventory_value(sid, "market_subsidy", 0.0) or 0.0)
+    except (TypeError, ValueError):
+        return 0.0
+    return max(0.0, min(float(admiralty_tuning("subsidy_max", 0.3)), rate))
+
+
+def admiralty_subsidy_cycle(side):
+    """Advance the subsidy to the next tier (0 -> step -> ... -> max -> 0),
+    the console's one-button control. Returns the new rate."""
+    step = float(admiralty_tuning("subsidy_step", 0.1))
+    cap = float(admiralty_tuning("subsidy_max", 0.3))
+    if step <= 0:
+        return 0.0
+    rate = admiralty_subsidy_rate(side) + step
+    if rate > cap + 1e-6:
+        rate = 0.0
+    set_inventory_value(to_side_id(side), "market_subsidy", round(rate, 4))
+    return rate
+
+
+def admiralty_subsidy_upkeep_text(side):
+    """The current subsidy's per-minute upkeep as 'NN ore, NN gas' (console)."""
+    rate = admiralty_subsidy_rate(side)
+    if rate <= 0:
+        return "none"
+    parts = [str(int(round(v * rate))) + " " + r
+             for r, v in SUBSIDY_UPKEEP_PER_MIN.items()]
+    return ", ".join(parts) + " / min"
+
+
+def admiralty_subsidy_upkeep(side, dt_seconds):
+    """Pay this tick's subsidy upkeep. Returns a reason string if the subsidy
+    lapsed (a pool ran dry -> dropped to 0), else None."""
+    rate = admiralty_subsidy_rate(side)
+    if rate <= 0:
+        return None
+    for res, per_min in SUBSIDY_UPKEEP_PER_MIN.items():
+        if per_min > 0 and admiralty_pool_get(side, res) <= 0:
+            set_inventory_value(to_side_id(side), "market_subsidy", 0.0)
+            return "The stockpiles can't sustain the crew subsidy - discounts suspended."
+    scale = rate * float(dt_seconds) / 60.0
+    for res, per_min in SUBSIDY_UPKEEP_PER_MIN.items():
+        _pool_add_f(side, res, -float(per_min) * scale)
+    return None
 
 
 def _pool_add_f(side, res, amount):

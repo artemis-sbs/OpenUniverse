@@ -27,6 +27,11 @@ shared ADM_BUILDS = []
     # Relay Gates (slice 4): every OTHER gated system feeds its last-known
     # income into the pools at the Relay rate - empire income while away.
     admiralty_relay_tick("tsn", universe_sectors, universe_i, universe_j, 6)
+    # Crew subsidy upkeep: the active discount drains the stockpiles; a dry
+    # pool suspends it (universe_worldlets). Tell the crews when it lapses.
+    subsidy_lapse = admiralty_subsidy_upkeep("tsn", 6)
+    if subsidy_lapse is not None:
+        universe_info_card(subsidy_lapse, "Admiralty Quartermaster", "#fa4")
     # Keep this system's persistence delta fresh (worldlet depletion + the
     # platforms built here + what this system earns per minute) so jumps and
     # saves carry the infrastructure and the relay knows what to pay.
@@ -321,6 +326,20 @@ shared ADM_BUILDS = []
                 on gui_message(b_req):
                     REQ_PICK = REQ_SEL
                     jump admiral_requisition
+        # Crew subsidy (resources -> station prices): one button cycles the
+        # discount tier; the active rate drains the stockpiles each econ tick
+        # (universe_worldlets) and discounts what the crews pay at any allied
+        # station market (LM items.market_price reads the same side value).
+        gui_row("row-height: 1.6em;")
+        """$text:Crew Subsidy;font:gui-2;color:#8cf"""
+        subsidy_rate = admiralty_subsidy_rate("tsn")
+        subsidy_line = str(int(subsidy_rate * 100)) + "% off station prices    upkeep " + admiralty_subsidy_upkeep_text("tsn")
+        gui_row("row-height: 2em;")
+        """$text:{subsidy_line};font:gui-1"""
+        gui_row("row-height: 2.2em;")
+        b_sub = gui_button("Cycle subsidy tier")
+        on gui_message(b_sub):
+            jump admiral_subsidy_cycle
         if ADM_MSG != "":
             gui_row("row-height: 2em;")
             """$text:{ADM_MSG};color:#fa4"""
@@ -371,6 +390,17 @@ shared ADM_BUILDS = []
         task_schedule(admiralty_research_task, {"research_key": RESEARCH_PICK})
     else:
         ADM_MSG = fail
+    jump admiral_console_gui
+
+
+=== admiral_subsidy_cycle
+    ADM_MSG = ""
+    new_subsidy = admiralty_subsidy_cycle("tsn")
+    universe_save_players()
+    if new_subsidy > 0:
+        ADM_MSG = "Crew subsidy set to " + str(int(new_subsidy * 100)) + "% off station prices."
+    else:
+        ADM_MSG = "Crew subsidy stood down."
     jump admiral_console_gui
 
 

@@ -246,6 +246,7 @@ def universe_save_players():
                 "research": list(get_inventory_value(sid, "adm_research", []) or []),
                 "fleets": list(get_inventory_value(sid, "adm_fleets", []) or []),
                 "officers": dict(get_inventory_value(sid, "adm_officers", {}) or {}),
+                "subsidy": float(get_inventory_value(sid, "market_subsidy", 0.0) or 0.0),
             }
     data["side_admiralty"] = side_adm
     data["shared_quests"] = _serialize_quests(Agent.SHARED_ID)
@@ -284,6 +285,7 @@ def universe_load_players(restore=True):
                 # (universe_fleets.fleets_respawn); officer fates ride along.
                 set_inventory_value(sid, "adm_fleets", list(adm.get("fleets") or []))
                 set_inventory_value(sid, "adm_officers", dict(adm.get("officers") or {}))
+                set_inventory_value(sid, "market_subsidy", float(adm.get("subsidy") or 0.0))
             seen_sides.add(side)
         pdata = players.get(ship.name)
         if not pdata:
