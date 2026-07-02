@@ -1,45 +1,20 @@
 // The Default universe for the Open Universe - one authored file holding the
-// whole world: identity (the level-1 heading), its clans, the generic clan jobs
-// they offer, and the shared narrative arcs. Heading level sets structure:
-//   #   the universe (identity + reputation rules)
-//   ##  a section: Clans / Jobs / Narrative
-//   ### an entry within a section (a clan, a job type, a narrative step)
+// whole world: its clans, the jobs they offer, the story, the map, the people,
+// and their dialogue. Heading level sets structure:
+//   #   the universe (identity)
+//   ##  a chapter: Clans / Jobs / Narrative / Goals / Regions / ...
+//   ### an entry within a chapter (a clan, a job type, a story beat)
 // Each heading's data lives between `---` fences as friendly `Label: value` fact
-// lines (no YAML). Lists use commas; weights are `name N`; makeup is `N% Race`;
-// reputation axes are `pos / neg`; quest triggers are an English verb phrase.
+// lines; the prose below the fence is the description players read.
+//
+// Everything is optional except the title: reputation axes, standing tuning, and
+// the generation dials (Station mix / Enemy mix / ...) all fall back to built-in
+// defaults when unwritten. See the writer's walkthrough (mkdocs/docs/writing/)
+// and the label reference (mkdocs/docs/reference/) - or WRITERS_GUIDE.pdf.
 
 # Default
 ---
 Display: Default
-// Reputation axes (per-captain spectrums). Authoring any Axis lines REPLACES the
-// built-in set, so a different universe can carry its own axes (e.g. pious /
-// heretical). Each axis is `positive / opposite`; drop the opposite for a single
-// pole. Omit all reputation lines to use the built-in seven + default tuning.
-Axis: honest / liar
-Axis: fearsome / cowardly
-Axis: peaceful / violent
-Axis: generous / selfish
-Axis: kind / cruel
-Axis: resourceful / by-the-book
-Axis: intellectual / foolish
-Job tiers: 20, 50
-Foe deals at: 20
-Max reward: 2.0
-Ceasefire free at: 30
-Ceasefire per point: 20
-Alliance at: 60
-// Generation knobs - the galaxy's shape. System mix = the chance a (non-home) cell
-// is each kind (the rest is empty space); Danger scales enemy density on top. Deck
-// = how often a system gets each POI. Omit any line to keep the default. Tune these
-// for a peaceful trade galaxy vs. a brutal warzone - all content, no code.
-Station mix: 15%
-Enemy mix: 15%
-Nebula mix: 12%
-Anomaly mix: 8%
-Loot max: 2
-Derelict chance: 40%
-Outpost chance: 40%
-Mine chance: 50%
 ---
 A living frontier of clans, trade, reputation, and contestable space docks. The
 galaxy reacts to who you are, not to a scripted hero.

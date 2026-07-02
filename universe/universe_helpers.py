@@ -40,6 +40,26 @@ UNIVERSE_SAVE_VERSION = 1
 _MIGRATIONS = {}
 
 
+def universe_read_optional_file(file):
+    """media_read_relative_file, but None when the file doesn't exist instead of
+    raising. Used for the legacy split-file fallbacks (clan_quests.amd) so a
+    modern universe with no ## Jobs section simply offers no clan work."""
+    from sbs_utils.helpers import FrameContext
+    from sbs_utils.procedural.media import media_read_from_zip, media_read_file
+    task = FrameContext.task
+    source_map = task.get_active_node_source_map() if task is not None else None
+    if source_map is None:
+        return None
+    try:
+        if source_map.is_lib:
+            return media_read_from_zip(source_map.basedir, file)
+        if not os.path.isfile(os.path.join(source_map.basedir, file)):
+            return None
+        return media_read_file(source_map.basedir, file)
+    except (OSError, KeyError):
+        return None
+
+
 def universe_system_key(universe_seed, i, j):
     """Stable per-sector seed derived from the universe seed and logical coords.
 

@@ -193,10 +193,18 @@ def universe_shared_id():
 
 def universe_clans_from_doc(doc):
     """Clan records from a parsed universe doc: the `clans` section's children if
-    present, else the doc's top-level children (a legacy flat clans.amd)."""
+    present, else the doc's top-level children (a legacy flat clans.amd).
+
+    A modern universe file is one root heading (identity fence + section
+    children); if it simply has no ## Clans section that means NO clans - don't
+    mistake the root itself for a legacy flat-file clan entry."""
     section = universe_section(doc, "clans")
-    nodes = section.get("children", []) if section is not None else (doc.get("children", []) if doc else [])
-    return _clans_from_nodes(nodes)
+    if section is not None:
+        return _clans_from_nodes(section.get("children", []))
+    kids = doc.get("children", []) if doc else []
+    if len(kids) == 1 and (kids[0].get("children") or (kids[0].get("data") or {}).get("display")):
+        return []
+    return _clans_from_nodes(kids)
 
 
 def universe_parse_clans(content):

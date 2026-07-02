@@ -13,3 +13,14 @@ display: Default
 universe: default.amd
 ```
     ->END
+
+# The worked example from the writer's walkthrough (mkdocs/docs/writing/).
+# Copy this label + silver_reach.amd to start a new universe.
+=== universe_silver_reach
+metadata:``` yaml
+type: universe/silver_reach
+key: silver_reach
+display: The Silver Reach
+universe: silver_reach.amd
+```
+    ->END

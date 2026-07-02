@@ -76,10 +76,14 @@ GameCode:
     # Clans -> spawned as sides below. The player side (tsn) already exists from the
     # server-start create_sides signal, so foe clans' enemies:"tsn" relation resolves.
     shared UNIVERSE_CLANS = universe_clans_from_doc(UNIVERSE_DOC)
-    # Generic clan jobs: the universe's `jobs` section, else a legacy clan_quests.amd.
+    # Generic clan jobs: the universe's `jobs` section. Legacy split-file universes
+    # may still carry a standalone clan_quests.amd; a modern universe with no
+    # ## Jobs section (and no legacy file) simply offers no clan work.
     shared UNIVERSE_CLAN_QUESTS = universe_jobs_from_doc(UNIVERSE_DOC)
     if UNIVERSE_CLAN_QUESTS is None:
-        UNIVERSE_CLAN_QUESTS = universe_parse_clan_quests(media_read_relative_file("clan_quests.amd"))
+        legacy_jobs = universe_read_optional_file("clan_quests.amd")
+        if legacy_jobs is not None:
+            UNIVERSE_CLAN_QUESTS = universe_parse_clan_quests(legacy_jobs)
     # Shared narrative arcs (the `narrative` section, may be None); granted below.
     shared UNIVERSE_NARRATIVE = universe_section(UNIVERSE_DOC, "narrative")
     # Campaign goals (the `goals` section, may be None): shared quests like narrative,

@@ -78,9 +78,9 @@ OpenUniverse/
     ├── universes.mast       # universe registry (start-screen dropdown)
     ├── universe_codex.mast  # Codex tab (lore.amd document viewer)
     ├── default.amd          # THE authored universe (capstone: clans/jobs/story/regions/...)
+    ├── silver_reach.amd     # the walkthrough's worked example universe (ships registered)
     ├── jobs.amd / lore.amd  # spliced sections: generic jobs, codex lore
-    ├── captains/ cast/ dialogue/  # per-clan captains, cast, dialogue scenes (spliced via File:)
-    └── clans.amd, clan_quests.amd # LEGACY split files (superseded by default.amd; loader fallback)
+    └── captains/ cast/ dialogue/  # per-clan captains, cast, dialogue scenes (spliced via File:)
 ```
 
 Writer-facing docs live in `mkdocs/` (same structure as LegendaryMissions' docs;

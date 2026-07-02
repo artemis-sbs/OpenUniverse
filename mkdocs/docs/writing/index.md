@@ -14,7 +14,8 @@ see the [reference](../reference/index.md).
 **What we build:** a small frontier galaxy called **The Silver Reach** - two
 factions, honest work, a three-chapter story, a war to win, and a pirate
 captain who holds a grudge. The finished file is on
-[the complete example](silver-reach.md) page.
+[the complete example](silver-reach.md) page - and it ships with the mission,
+playable from the Universe dropdown right now.
 
 ---
 
