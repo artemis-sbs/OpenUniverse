@@ -158,6 +158,13 @@ GameCode:
     await task_schedule(universe_enter_system)
     await task_schedule(spawn_players)
     universe_load_players()
+    # The load just restored adm_fleets (a Continue) - enter_system ran before
+    # it, so bring the saved navy back now. Idempotent: no-op on a New Game.
+    if admiralty_active():
+        fleets_respawn("tsn")
+    # Baseline save so the campaign (players, credits, admiralty pools) is
+    # durable even if the crew never jumps this session.
+    universe_save_players()
     task_schedule(universe_chatter_loop)
     task_schedule(universe_cull_loop)
     ->END
@@ -815,6 +822,14 @@ GameCode:
             universe_worldlet_spawn(lm.wtype, lmpos[0], 0.0, lmpos[2], 500)
         else:
             npc_spawn(lmpos[0], lmpos[1], lmpos[2], lm.name, lm.side + ", station, landmark", universe_landmark_art(lm), "behav_station")
+
+    # Admiralty persistence: re-apply this system's worldlet depletion and
+    # respawn its platforms from the sectors delta, then bring the navy
+    # through the jump (fleets travel with the flag - universe_fleets.py).
+    if admiralty_active():
+        worldlets_apply_reserves(universe_system_value(universe_sectors, universe_i, universe_j, "worldlet_reserves", None))
+        admiralty_restore_platforms("tsn", universe_system_value(universe_sectors, universe_i, universe_j, "admiral_platforms", None))
+        fleets_respawn("tsn")
 
     # Tell the quest driver we've arrived (completes on_reach cargo runs).
     signal_emit("universe_arrived", {"ARRIVE_I": universe_i, "ARRIVE_J": universe_j})

@@ -194,8 +194,56 @@ def worldlet_info(obj_or_id):
 
 
 def worldlets_in_system():
-    """All live worldlet objects (the current system - only one system exists)."""
-    return to_object_list(role("worldlet"))
+    """All live worldlet objects (the current system - only one system exists),
+    in creation order (sorted ids) so persistence snapshots line up with the
+    deterministic spawn order."""
+    return sorted(to_object_list(role("worldlet")), key=lambda o: o.id)
+
+
+# --- Per-system persistence (the universe_sectors delta) --------------------------
+# A system regenerates from the seed, so only player-made changes are stored:
+# worldlet depletion and the platforms built there. Snapshotted on the economy
+# tick (admiral.mast) into universe_sectors; re-applied on arrival
+# (universe.mast enter_system). Order-based: spawn order is deterministic.
+def worldlets_snapshot_reserves():
+    """[reserve or None per worldlet, creation order] for the sectors delta."""
+    return [w.get_inventory_value("worldlet_reserve") for w in worldlets_in_system()]
+
+
+def worldlets_apply_reserves(saved):
+    """Re-apply saved depletion to the freshly regenerated worldlets."""
+    if not isinstance(saved, list):
+        return
+    for w, r in zip(worldlets_in_system(), saved):
+        if r is not None:
+            w.set_inventory_value("worldlet_reserve", r)
+
+
+def admiralty_snapshot_platforms(side):
+    """[{k: kind, w: worldlet index}] for the sectors delta."""
+    order = {w.id: i for i, w in enumerate(worldlets_in_system())}
+    out = []
+    for plat in to_object_list(role("admiral_platform") & role(side)):
+        widx = order.get(plat.get_inventory_value("worldlet_id"))
+        kind = plat.get_inventory_value("admiral_kind")
+        if widx is not None and kind:
+            out.append({"k": kind, "w": widx})
+    return out
+
+
+def admiralty_restore_platforms(side, saved):
+    """Respawn this system's platforms from the sectors delta (arrival)."""
+    if not isinstance(saved, list):
+        return
+    worldlets = worldlets_in_system()
+    for rec in saved:
+        widx = rec.get("w")
+        kind = rec.get("k")
+        if widx is None or kind not in ADM_PLATFORMS or widx >= len(worldlets):
+            continue
+        wobj = worldlets[widx]
+        if admiralty_platform_at(wobj, kind) is None:
+            universe_platform_spawn(kind, side, wobj)
 
 
 # --- Side resource pools --------------------------------------------------------
@@ -227,13 +275,17 @@ def admiralty_pools(side):
 
 
 def admiralty_seed_pools(side):
-    """Seed a side's starting stockpiles once per campaign (guarded)."""
+    """Seed a side's starting stockpiles once per campaign (guarded). Returns
+    True when the seed happened on this call. Safe to retry: the side agent
+    may not exist yet at map start (to_side_id -> None early in some start
+    orders), so the economy tick retries until it lands."""
     sid = to_side_id(side)
-    if get_inventory_value(sid, "adm_seeded", False):
-        return
+    if sid is None or get_inventory_value(sid, "adm_seeded", False):
+        return False
     set_inventory_value(sid, "adm_seeded", True)
     for res in ADM_RESOURCES:
         admiralty_pool_set(side, res, admiralty_tuning("start_" + res, 0))
+    return True
 
 
 def admiralty_spend(side, cost):

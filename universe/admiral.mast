@@ -19,13 +19,22 @@ shared ADM_BUILDS = []
 --- econ_loop
     await delay_sim(6)
     ->END if not UNIVERSE_ACTIVE
+    # Retry seeding until the side agent exists (start-order differences can
+    # beat side creation at map start); persist the campaign when it lands.
+    if admiralty_seed_pools("tsn"):
+        universe_save_players()
     admiralty_extraction_tick("tsn", 6)
+    # Keep this system's persistence delta fresh (worldlet depletion + the
+    # platforms built here) so jumps and saves carry the infrastructure.
+    universe_sectors = universe_set_system_value(universe_sectors, universe_i, universe_j, "worldlet_reserves", worldlets_snapshot_reserves())
+    universe_sectors = universe_set_system_value(universe_sectors, universe_i, universe_j, "admiral_platforms", admiralty_snapshot_platforms("tsn"))
     jump econ_loop
 
 
 # The navy's heartbeat: every few seconds each fleet executes its order
 # (universe_fleets.fleet_tick - movement/targeting/gas/salvage). Officer
-# events (fleet lost, salvage hauls, dry tanks) reach the crews as comms.
+# events (fleet lost, salvage hauls, dry tanks) reach the crews as info-panel
+# cards in the officer's face and name - chatter never rides the waterfall.
 === admiralty_fleet_loop
 --- fleet_loop
     await delay_sim(3)
@@ -33,7 +42,7 @@ shared ADM_BUILDS = []
     for _fl in fleet_list():
         fleet_evt = fleet_tick(_fl.key, 3)
         if fleet_evt is not None:
-            comms_broadcast(role("__player__"), fleet_evt, "#8cf")
+            officer_card(fleet_evt.officer, fleet_evt.text)
     jump fleet_loop
 
 
@@ -65,7 +74,7 @@ shared ADM_BUILDS = []
     ADM_BUILDS.remove(research_label)
     research_complete("tsn", research_key)
     universe_save_players()
-    comms_broadcast(role("__player__"), "Admiralty research complete: " + rdef.get("name") + ".", "#0cf")
+    universe_info_card("Research complete: " + rdef.get("name") + ".", "Admiralty", "#0cf")
     ->END
 
 
@@ -329,8 +338,7 @@ shared ADM_BUILDS = []
     ADM_MSG = ""
     fail = fleet_try_form("tsn", OFFICER_PICK)
     if fail is None:
-        form_officer = officer_def(OFFICER_PICK)
-        comms_broadcast(role("__player__"), form_officer.name + " has formed a fleet at the shipyard.", "#8cf")
+        officer_card(OFFICER_PICK, "Fleet formed and standing by at the yard.")
     else:
         ADM_MSG = fail
     jump admiral_console_gui
@@ -342,7 +350,7 @@ shared ADM_BUILDS = []
     ADM_MSG = ""
     ack = fleet_set_order(FLEET_PICK, ORDER_PICK)
     if ack != "":
-        comms_broadcast(role("__player__"), ack, "#8cf")
+        officer_card(OFFICER_SEL, ack)
     jump admiral_console_gui
 
 
@@ -357,7 +365,7 @@ shared ADM_BUILDS = []
         if len(deliver_players) > 0:
             dpos = deliver_players[0].pos
             item_spawn(REQ_PICK, dpos.x + 600, dpos.y, dpos.z + 400)
-            comms_broadcast(role("__player__"), "Admiralty requisition delivered: " + req_entry[1] + " - collect nearby.", "#0cf")
+            universe_info_card("Requisition delivered: " + req_entry[1] + " - collect nearby.", "Admiralty Quartermaster", "#0cf")
             ADM_MSG = req_entry[1] + " delivered."
         else:
             ADM_MSG = "No player ship to deliver to."

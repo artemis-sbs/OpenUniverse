@@ -244,6 +244,7 @@ def universe_save_players():
                 "pools": {r: get_inventory_value(sid, "adm_" + r, 0)
                           for r in ("ore", "gas", "crew")},
                 "research": list(get_inventory_value(sid, "adm_research", []) or []),
+                "fleets": list(get_inventory_value(sid, "adm_fleets", []) or []),
             }
     data["side_admiralty"] = side_adm
     data["shared_quests"] = _serialize_quests(Agent.SHARED_ID)
@@ -275,6 +276,9 @@ def universe_load_players():
                 for r, v in (adm.get("pools") or {}).items():
                     set_inventory_value(sid, "adm_" + r, int(v))
                 set_inventory_value(sid, "adm_research", list(adm.get("research") or []))
+                # Fleets rebuild from this on the first enter_system
+                # (universe_fleets.fleets_respawn).
+                set_inventory_value(sid, "adm_fleets", list(adm.get("fleets") or []))
             seen_sides.add(side)
         pdata = players.get(ship.name)
         if not pdata:

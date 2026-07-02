@@ -14,8 +14,10 @@ primitives - deliberately NOT a brain tree, so slice 3 stays self-contained.
 Every non-hold order burns gas (Fleet gas burn per minute, officer-scaled);
 an empty tank forces hold.
 
-Fleets are per-session (not persisted) - a jump clears NPCs, so fleets live
-in the current system only for now (carried gap).
+Fleets persist: the live registry mirrors into side inventory (adm_fleets,
+saved by universe_helpers) on every form/order/tick change, and
+fleets_respawn re-instantiates surviving hulls on arrival in a system or
+when a saved campaign continues (the navy travels with the flag).
 
 Shared-namespace notes: universe_section from universe_clans.py; admiralty_*
 pool/tuning from universe_worldlets.py.
@@ -25,11 +27,12 @@ from sbs_utils.mast.mast_node import MastDataObject
 from sbs_utils.procedural.spawn import npc_spawn
 from sbs_utils.procedural.inventory import get_inventory_value, set_inventory_value
 from sbs_utils.procedural.sides import to_side_id
-from sbs_utils.procedural.roles import role
+from sbs_utils.procedural.roles import role, all_roles
 from sbs_utils.procedural.query import to_object_list, to_object
 from sbs_utils.procedural.space_objects import (closest_object, target, target_pos,
                                                 delete_object)
 from sbs_utils.procedural.gui import gui_row, gui_text
+from sbs_utils.procedural.comms import comms_info_card
 
 # The commissionable hull roster (data - difficulty/length tuning later).
 FLEET_ROSTER = [
@@ -41,9 +44,15 @@ FLEET_COST = {"ore": 180, "gas": 40, "crew": 24}
 
 FLEET_ORDERS = ["escort", "patrol", "strike", "hold", "salvage", "withdraw"]
 
-_OFFICERS = {}     # key -> authored record
-_FLEETS = {}       # fleet key ("f1"...) -> live state (MastDataObject)
+_OFFICERS = {}       # key -> authored record
+_OFFICER_FACES = {}  # key -> resolved face string (stable per session)
+_FLEETS = {}         # fleet key ("f1"...) -> live state (MastDataObject)
 _NEXT_FLEET = [1]
+
+
+def _evt(officer_key, text):
+    """A fleet event for the console loop: who said it + what they said."""
+    return MastDataObject({"officer": officer_key, "text": text})
 
 
 # --- Officers (## Officers) ---------------------------------------------------
@@ -66,10 +75,34 @@ def universe_parse_officers(doc):
 
 
 def officers_configure(officers):
-    global _OFFICERS, _FLEETS, _NEXT_FLEET
+    global _OFFICERS, _OFFICER_FACES, _FLEETS, _NEXT_FLEET
     _OFFICERS = {o.get("key"): o for o in (officers or [])}
+    _OFFICER_FACES = {}
     _FLEETS = {}
     _NEXT_FLEET = [1]
+
+
+def officer_face(key):
+    """The officer's face string, resolved once per session from the authored
+    Face keyword (lifeform_face, shared namespace) and cached so the portrait
+    stays stable."""
+    if key not in _OFFICER_FACES:
+        try:
+            _OFFICER_FACES[key] = lifeform_face(_OFFICERS.get(key))
+        except NameError:
+            _OFFICER_FACES[key] = None
+    return _OFFICER_FACES.get(key)
+
+
+def officer_card(key, line, time=12):
+    """Deliver an officer's line as an info-panel card (face/name/color) -
+    chatter never rides the text waterfall."""
+    if not line:
+        return
+    o = _OFFICERS.get(key)
+    title = (str(o.get("name")) + ", " + str(o.get("title"))) if o is not None else "Fleet Command"
+    comms_info_card(all_roles("console, comms"), line, title=title,
+                    color="#8cf", face=officer_face(key), time=time)
 
 
 def officer_def(key):
@@ -124,6 +157,24 @@ def fleet_cost_text():
     return ", ".join(str(v) + " " + k for k, v in FLEET_COST.items())
 
 
+def _fleets_sync(side):
+    """Mirror the live fleets into side inventory (adm_fleets) - the source of
+    truth the universe save persists (universe_helpers side_admiralty)."""
+    recs = [{"officer": f.get("officer"), "order": f.get("order", "hold"),
+             "alive": int(f.get("alive", len(FLEET_ROSTER)))}
+            for f in _FLEETS.values() if f.get("side") == side]
+    set_inventory_value(to_side_id(side), "adm_fleets", recs)
+
+
+def _fleet_spawn_ships(side, fkey, x, z, count):
+    """Spawn the first `count` roster hulls in a loose ring at (x, z)."""
+    for idx, (hull, hull_name) in enumerate(FLEET_ROSTER[:count]):
+        ang = idx * 2.4
+        name = "Fleet " + fkey.upper() + " " + hull_name + " " + str(idx + 1)
+        npc_spawn(x + 700 * math.cos(ang), 0.0, z + 700 * math.sin(ang),
+                  name, side + ", adm_fleet, adm_" + fkey, hull, "behav_npcship")
+
+
 def fleet_try_form(side, officer_key):
     """Validate + pay for a fleet. Returns None on success (hulls spawned at
     the Shipyard, officer assigned) or a short reason string."""
@@ -144,16 +195,40 @@ def fleet_try_form(side, officer_key):
     fkey = "f" + str(_NEXT_FLEET[0])
     _NEXT_FLEET[0] += 1
     ypos = yards[0].pos
-    for idx, (hull, hull_name) in enumerate(FLEET_ROSTER):
-        ang = idx * 2.4
-        name = "Fleet " + fkey.upper() + " " + hull_name + " " + str(idx + 1)
-        npc_spawn(ypos.x + 1200 + 700 * math.cos(ang), ypos.y,
-                  ypos.z + 1200 + 700 * math.sin(ang),
-                  name, side + ", adm_fleet, adm_" + fkey, hull, "behav_npcship")
+    _fleet_spawn_ships(side, fkey, ypos.x + 1200, ypos.z + 1200, len(FLEET_ROSTER))
     _FLEETS[fkey] = MastDataObject({
         "key": fkey, "side": side, "officer": officer_key,
-        "order": "hold", "gas_starved": False})
+        "order": "hold", "alive": len(FLEET_ROSTER), "gas_starved": False})
+    _fleets_sync(side)
     return None
+
+
+def fleets_respawn(side):
+    """Bring the navy along: after a jump (or a restored save) the system has
+    no NPCs, so re-instantiate every surviving fleet's hulls near the arrival
+    point. Rebuilds the live registry from side inventory when empty (fresh
+    session with a saved campaign)."""
+    global _FLEETS
+    if not _FLEETS:
+        recs = get_inventory_value(to_side_id(side), "adm_fleets", []) or []
+        for rec in recs:
+            if int(rec.get("alive", 0)) <= 0:
+                continue
+            fkey = "f" + str(_NEXT_FLEET[0])
+            _NEXT_FLEET[0] += 1
+            _FLEETS[fkey] = MastDataObject({
+                "key": fkey, "side": side, "officer": rec.get("officer"),
+                "order": rec.get("order", "hold"),
+                "alive": int(rec.get("alive", 0)), "gas_starved": False})
+    for n, f in enumerate(_FLEETS.values()):
+        if f.get("side") != side:
+            continue
+        alive = int(f.get("alive", 0))
+        if alive > 0 and len(fleet_ships(f.get("key"))) == 0:
+            ang = n * 1.3
+            _fleet_spawn_ships(side, f.get("key"),
+                               4200 * math.cos(ang), 4200 * math.sin(ang), alive)
+    _fleets_sync(side)
 
 
 def fleet_set_order(fleet_key, order):
@@ -164,7 +239,7 @@ def fleet_set_order(fleet_key, order):
         return ""
     setattr(f, "order", order)
     setattr(f, "gas_starved", False)
-    o = _OFFICERS.get(f.get("officer")) or {}
+    _fleets_sync(f.get("side"))
     acks = {
         "escort": "Falling in on your wing.",
         "patrol": "Sweeping the system.",
@@ -173,7 +248,7 @@ def fleet_set_order(fleet_key, order):
         "salvage": "Stripping the wrecks.",
         "withdraw": "Coming home.",
     }
-    return str(o.get("name", "Fleet")) + ": " + acks.get(order, "Acknowledged.")
+    return acks.get(order, "Acknowledged.")
 
 
 def _fleet_home_pos(side):
@@ -183,34 +258,39 @@ def _fleet_home_pos(side):
 
 
 def fleet_tick(fleet_key, dt_seconds):
-    """One order step for one fleet. Returns an event string for the console/
-    comms (fleet lost, salvage award, gas empty), or None."""
+    """One order step for one fleet. Returns an event (officer + line) for the
+    console loop to deliver (fleet lost, salvage award, gas empty), or None."""
     f = _FLEETS.get(fleet_key)
     if f is None:
         return None
     side = f.get("side")
+    okey = f.get("officer")
     ships = fleet_ships(fleet_key)
-    o = _OFFICERS.get(f.get("officer")) or {}
     if len(ships) == 0:
         del _FLEETS[fleet_key]
-        return str(o.get("name", "A fleet officer")) + ": we've lost the fleet. I'm sorry, Admiral."
+        _fleets_sync(side)
+        return _evt(okey, "We've lost the fleet. I'm sorry, Admiral.")
+    if len(ships) != int(f.get("alive", 0)):
+        setattr(f, "alive", len(ships))
+        _fleets_sync(side)
     order = f.get("order", "hold")
 
     # Gas: every non-hold order burns fuel (per minute, officer-scaled).
     if order != "hold":
-        burn = float(admiralty_tuning("fleet_gas_burn", 2)) * officer_bonus(f.get("officer"), "gas")
+        burn = float(admiralty_tuning("fleet_gas_burn", 2)) * officer_bonus(okey, "gas")
         need = burn * float(dt_seconds) / 60.0
         if admiralty_pool_get(side, "gas") <= 0:
             setattr(f, "order", "hold")
+            _fleets_sync(side)
             if not f.get("gas_starved"):
                 setattr(f, "gas_starved", True)
-                return str(o.get("name", "Fleet")) + ": tanks are dry - holding until we get gas."
+                return _evt(okey, "Tanks are dry - holding until we get gas.")
             return None
         _pool_add_f(side, "gas", -need)
 
     ids = set(s.id for s in ships)
     lead = ships[0]
-    engage = 6000.0 * officer_bonus(f.get("officer"), "engage")
+    engage = 6000.0 * officer_bonus(okey, "engage")
     hostiles = role("raider")
 
     if order == "escort":
@@ -242,22 +322,24 @@ def fleet_tick(fleet_key, dt_seconds):
             target(ids, threat.id, True, 1.0)
         else:
             setattr(f, "order", "hold")
-            return str(o.get("name", "Fleet")) + ": no hostiles on scope. Holding."
+            _fleets_sync(side)
+            return _evt(okey, "No hostiles on scope. Holding.")
     elif order == "salvage":
         wreck = closest_object(lead, role("universe_derelict"))
         if wreck is None:
             setattr(f, "order", "hold")
-            return str(o.get("name", "Fleet")) + ": nothing left to strip. Holding."
+            _fleets_sync(side)
+            return _evt(okey, "Nothing left to strip. Holding.")
         d2 = (lead.pos.x - wreck.pos.x) ** 2 + (lead.pos.z - wreck.pos.z) ** 2
         if d2 < 1500.0 ** 2:
-            mult = officer_bonus(f.get("officer"), "salvage")
+            mult = officer_bonus(okey, "salvage")
             ore_v = int(30 * mult)
             gas_v = int(15 * mult)
             delete_object(wreck.id)
             admiralty_pool_add(side, "ore", ore_v)
             admiralty_pool_add(side, "gas", gas_v)
-            return (str(o.get("name", "Fleet")) + ": wreck stripped - +" +
-                    str(ore_v) + " ore, +" + str(gas_v) + " gas.")
+            return _evt(okey, "Wreck stripped - +" + str(ore_v) + " ore, +" +
+                        str(gas_v) + " gas.")
         target_pos(ids, wreck.pos.x, wreck.pos.y, wreck.pos.z, 0.9, stop_dist=1000)
     elif order == "withdraw":
         home = _fleet_home_pos(side)
@@ -267,7 +349,8 @@ def fleet_tick(fleet_key, dt_seconds):
         d2 = (lead.pos.x - home.x) ** 2 + (lead.pos.z - home.z) ** 2
         if d2 < 3000.0 ** 2:
             setattr(f, "order", "hold")
-            return str(o.get("name", "Fleet")) + ": home and holding."
+            _fleets_sync(side)
+            return _evt(okey, "Home and holding.")
         target_pos(ids, home.x + 1500, home.y, home.z, 1.0, stop_dist=1200)
     # hold: leave the ships where they are.
     return None
