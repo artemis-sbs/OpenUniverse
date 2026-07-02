@@ -621,6 +621,27 @@ def admiralty_buildable_kinds(side, worldlet_id, sectors=None, here_key=None):
                                    need_cost=False) is None]
 
 
+def admiralty_buildable_items(side, worldlet_id, sectors=None, here_key=None):
+    """Buildable platforms as listbox items (key/name/cost) for the Map-tab build
+    list - a scrollable list beats a stack of buttons when many are unlocked."""
+    out = []
+    for kind in admiralty_buildable_kinds(side, worldlet_id, sectors, here_key):
+        pdef = ADM_PLATFORMS.get(kind) or {}
+        out.append(MastDataObject({"key": kind, "name": pdef.get("name"),
+                                   "cost": admiralty_cost_text(kind)}))
+    return out
+
+
+def build_list_title():
+    gui_row("row-height: 1.2em;padding:6px;background:#1578;")
+    gui_text("$text:Build here")
+
+
+def build_list_template(item):
+    gui_row("row-height: 2.2em;")
+    gui_text("$text:" + str(item.get("name")) + "   (" + str(item.get("cost")) + ");font:gui-1")
+
+
 def admiralty_try_build(kind, side, worldlet_id, sectors=None, here_key=None):
     """Validate + pay for a build at a worldlet. Returns None on success (cost
     deducted, in-progress flag set - the caller schedules the build task), or a

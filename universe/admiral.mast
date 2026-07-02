@@ -121,6 +121,7 @@ shared ADM_BUILDS = []
 
 === admiral_console_gui
     default SEL_WORLDLET = None
+    default BUILD_SEL = None
     default RESEARCH_SEL = None
     default OFFICER_SEL = None
     default REQ_SEL = None
@@ -148,25 +149,36 @@ shared ADM_BUILDS = []
                 sel_item = wlb.get_value()
                 if sel_item is not None:
                     SEL_WORLDLET = to_id(sel_item)
+                    BUILD_SEL = None
                 jump admiral_console_gui
 
-        gui_section(style="area: 60, 18, 98, 82;")
+        # Right panel: the selected worldlet's info on top, then a scrollable list
+        # of platforms buildable here (only prereq-met ones - the list unlocks as
+        # you build) with a Build action for the selection. A list, not a stack of
+        # buttons, so it behaves at small screen sizes.
+        gui_section(style="area: 60, 18, 98, 40;")
         if SEL_WORLDLET is None:
             """Select a worldlet to inspect it and build."""
         else:
             sel_text = worldlet_sel_text(SEL_WORLDLET, "tsn")
             """$text:{sel_text}"""
-            # Only offer platforms whose prereqs are met at this worldlet - the
-            # menu unlocks as you build (HQ first, then the rest), so it guides
-            # instead of showing every button. The label carries the cost; an
-            # unaffordable click still shows why (admiral_build -> ADM_MSG).
-            for build_kind in admiralty_buildable_kinds("tsn", SEL_WORLDLET, universe_sectors, f"{universe_i},{universe_j}"):
-                gui_row("row-height: 2em;")
-                build_label = "Build " + admiralty_platform_def(build_kind).get("name") + "  (" + admiralty_cost_text(build_kind) + ")"
-                b_build = gui_button(build_label, data={"bk": build_kind})
-                on gui_message(b_build):
-                    BUILD_PICK = bk
-                    jump admiral_build
+        if SEL_WORLDLET is not None:
+            gui_section(style="area: 60, 41, 98, 74;")
+            blb = gui_list_box(admiralty_buildable_items("tsn", SEL_WORLDLET, universe_sectors, f"{universe_i},{universe_j}"), "row-height: 2.2em;", item_template=build_list_template, title_template=build_list_title, select=True)
+            on change blb.value:
+                sel_build = blb.get_value()
+                if sel_build is not None:
+                    BUILD_SEL = sel_build.key
+                jump admiral_console_gui
+            gui_section(style="area: 60, 75, 98, 82;")
+            if BUILD_SEL is not None:
+                build_def = admiralty_platform_def(BUILD_SEL)
+                if build_def is not None:
+                    build_btn = "Build " + build_def.get("name") + "  (" + admiralty_cost_text(BUILD_SEL) + ")"
+                    b_build = gui_button(build_btn)
+                    on gui_message(b_build):
+                        BUILD_PICK = BUILD_SEL
+                        jump admiral_build
         if ADM_MSG != "":
             gui_row("row-height: 2em;")
             """$text:{ADM_MSG};color:#fa4"""

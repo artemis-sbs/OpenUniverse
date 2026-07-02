@@ -160,17 +160,21 @@ Relays to field more fleets. Slots into the dynamic build menu with zero UI work
 Carried gap: fog-of-war coverage (the CQ Sensor Tower's other role) is not
 implemented - this is the command-point half only.
 
-## Build menu shows only buildable platforms (2026-07-02; exercise-verified)
-The Map-tab build panel listed all platform buttons at once (8+), most of which
-just errored on click. It now loops `admiralty_buildable_kinds` and offers only
-platforms whose prereqs are met at the selected worldlet - so the menu unlocks as
-you build (HQ first, then the rest) and stays short. Refactor: the validation
-half of `admiralty_try_build` moved to a check-only `admiralty_can_build`
-(need_cost toggles the affordability test), and `admiralty_can_afford` split out
-of `admiralty_spend` - one source of truth for build rules, shared by the menu
-and the build action. Cost stays on the label; an unaffordable click still shows
-the reason. Verified with the --exercise pass (the dynamic button loop drives
-clean).
+## Build menu = scrollable listbox of buildable platforms (2026-07-02; exercise-verified)
+The Map-tab build panel was a stack of platform buttons (8+), which overflowed /
+went wonky at small screen sizes. It is now the settled UI pattern: a scrollable
+`gui_list_box` of buildable platforms (`admiralty_buildable_items`) + a "Build
+[name]" action button for the selection. Only prereq-met platforms are listed
+(`admiralty_buildable_kinds`), so the list unlocks as you build (HQ first, then
+the rest) and stays short. Selecting a worldlet resets the build selection. This
+also dropped the per-button `data={"bk":...}` loop injection - the build now
+flows select->BUILD_SEL->one button, no loop-variable capture.
+
+Refactor for one source of truth: the validation half of `admiralty_try_build`
+moved to a check-only `admiralty_can_build` (need_cost toggles affordability);
+`admiralty_can_afford` split out of `admiralty_spend`. Shared by the list and the
+build action. Verified with the --exercise pass (two listboxes on the Map tab
+drive clean); worth a browser eyeball for the small-screen layout.
 
 ## Depot - fleet supply anchor (2026-07-02; browser check pending)
 Phase-2 platform closing the gas-starvation gap: a fleet on any active order
