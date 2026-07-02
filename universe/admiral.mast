@@ -137,7 +137,39 @@ shared ADM_BUILDS = []
     " The war effort behind the fleet - worldlets, extraction, and stockpiles.
     default SEL_WORLDLET = None
     default ADM_MSG = ""
+    # A/B: `Admiral view: overseer` detaches onto a camera with a system-wide 2D
+    # command view (GM-style); the default `bridge` is the tab console.
+    jump admiral_overseer_gui if admiralty_tuning("admiral_view", "bridge") == "overseer"
     jump admiral_console_gui
+
+
+# Overseer mode (A/B, prototype). The Admiral rides a private camera object (the
+# GM cambot pattern - invisible, has_science_scan, all friendlies as scan
+# sources, big scan range) rather than a combat hull, and commands from a
+# system-wide 2D view. Step 1: the detached view + ticker; object-select popups
+# (build / fleet orders) and comms come next.
+=== admiral_overseer_gui
+    default ADM_MSG = ""
+    adm_cam_id = get_inventory_value(client_id, "ADMIRAL_CAM", None)
+    adm_cam = to_object(adm_cam_id)
+    if adm_cam_id is None or adm_cam is None:
+        adm_cam = to_object(player_spawn(0, 1000, 0, "", "#,admiral_cam,has_science_scan", "invisible"))
+        remove_role(adm_cam, "__player__")
+        adm_cam_id = to_id(adm_cam)
+        set_inventory_value(client_id, "ADMIRAL_CAM", adm_cam_id)
+        link(adm_cam_id, "extra_scan_source", any_role("__npc__,__player__"))
+        adm_cam.side = "tsn"
+        adm_cam.data_set.set("ship_base_scan_range", 40000, 0)
+    sbs.assign_client_to_ship(client_id, adm_cam_id)
+    science_set_scan_data(adm_cam_id, adm_cam_id, {"scan": "Admiral"})
+    set_comms_selection(adm_cam_id, adm_cam_id)
+    gui_activate_console("admiral_sci")
+    gui_section(style="area: 2, 2, 98, 9; background:#1578;")
+    overseer_ticker = admiralty_ticker_text("tsn")
+    """$text:{overseer_ticker};justify:center;font:gui-4"""
+    gui_section(style="area: 0, 10, 100, 100;")
+    gui_layout_widget("science_2d_view")
+    await gui()
 
 
 === admiral_console_gui
@@ -156,7 +188,7 @@ shared ADM_BUILDS = []
     # Tab strip - Map is live; the rest arrive in later slices.
     gui_section(style="area: 2, 10, 98, 17;")
     gui_row("row-height: 2em;")
-    admiral_tabs = [["map","Map"], ["build","Build"], ["research","Research"], ["fleets","Fleets"], ["requisition","Requisition"]]
+    admiral_tabs = [["map","Map"], ["system","System"], ["research","Research"], ["fleets","Fleets"], ["requisition","Requisition"]]
     gui_screen_tabs(admiral_tabs, ADMIRAL_TAB, "admiral_set_tab")
 
     if ADMIRAL_TAB == "map":
@@ -348,9 +380,15 @@ shared ADM_BUILDS = []
         if ADM_MSG != "":
             gui_row("row-height: 2em;")
             """$text:{ADM_MSG};color:#fa4"""
+    elif ADMIRAL_TAB == "system":
+        # A spatial view of the current system: the engine's 2D radar embedded in
+        # the console (worldlets, platforms, fleets, threats, player ships). Basic
+        # for now - Admiral overlays (supply radii, order tints) come later.
+        gui_section(style="area: 2, 18, 98, 82;")
+        gui_layout_widget("2dview")
     else:
         gui_section(style="area: 2, 20, 98, 60;")
-        """This tab arrives in a later slice. Map, Research and Requisition are live."""
+        """$text:Select a tab above."""
 
     # Build queue line (the mock's bottom bar).
     if len(ADM_BUILDS) > 0:

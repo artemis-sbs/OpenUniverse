@@ -139,6 +139,23 @@ state reads the list. Legacy single-key saves coerce to a list (in-progress
 research is session-only anyway; only the done set persists). The Research tab
 shows "Research slots: used/total". Slots into the dynamic build menu with no UI.
 
+## Overseer console - detached 2D command view, STEP 1 (2026-07-02; PROTOTYPE, browser check needed)
+Direction: turn the Admiral from a tab+list console into an RTS command surface -
+a detached overseer (GM cambot pattern) with a system-wide 2D view where you
+select objects for popup actions + comms. The engine/LM already anticipate it:
+the give-orders //popup/comms routes guard on `admiral` role, and the console
+dispatcher has admiral+2dview handling. Behind an A/B knob `Admiral view:`
+(bridge = the tab console, default; overseer = this). STEP 1 (shell only): the
+overseer console spawns a private camera per client (player_spawn invisible +
+has_science_scan, __player__ stripped, all friendlies linked as
+extra_scan_source, big scan range), assigns the client to it, and lays a
+full-system science_2d_view + the resource ticker. NOT YET: object-select popups
+(worldlet->build, fleet->orders), comms, the economy panels alongside. Verified
+no-crash headless/exercise; the RENDER (does the detached 2D view show the system
+in the browser?) needs user eyes before step 2. Also fixed the vestigial Build
+tab -> renamed to a System tab holding gui_layout_widget("2dview") for the bridge
+console (browser-verified separately: "looks great").
+
 ## Fabricator - build model B, A/B toggle (2026-07-02; browser A/B pending)
 An A/B alternative to instant menu building (design section 5), behind the
 Admiralty `Build model:` knob (menu = default, fabricator = B). universe_

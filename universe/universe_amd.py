@@ -242,6 +242,9 @@ def universe_amd_data(text):
         elif label == "build model":
             # 'menu' (instant/parallel) or 'fabricator' (a builder ship). A/B knob.
             data.setdefault("admiralty", {})["build_model"] = str(value).strip().lower()
+        elif label == "admiral view":
+            # 'bridge' (tab console) or 'overseer' (detached 2D command view). A/B.
+            data.setdefault("admiralty", {})["admiral_view"] = str(value).strip().lower()
         elif label == "research pace":
             data.setdefault("admiralty", {})["research_pace"] = value
         elif label == "values":
