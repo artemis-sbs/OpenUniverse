@@ -462,7 +462,7 @@ def fleet_try_form(side, officer_key):
     yards = to_object_list(role("admiral_shipyard") & role(side))
     if len(yards) == 0:
         return "Requires a Shipyard."
-    if fleet_count() >= int(admiralty_tuning("command_points", 0)):
+    if fleet_count() >= admiralty_command_points(side):
         return "No command points free."
     if not admiralty_spend(side, FLEET_COST):
         return "Not enough resources (" + fleet_cost_text() + ")."

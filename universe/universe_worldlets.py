@@ -524,10 +524,17 @@ ADM_PLATFORMS = {
     # to extend patrol range on the frontier without draining the stockpile.
     "depot": {"name": "Depot", "cost": {"ore": 160, "gas": 40, "crew": 10},
               "build_time": 35, "art": "starbase_industry", "per_worldlet": True},
+    # Sensor Relay (phase-2): each one raises the side's command-point cap, so
+    # the navy grows through infrastructure (admiralty_command_points). One per
+    # worldlet, so they stack across the system. (Fog-of-war coverage - the
+    # other CQ Sensor Tower role - is a carried gap.)
+    "sensor": {"name": "Sensor Relay", "cost": {"ore": 200, "crew": 20},
+               "build_time": 40, "art": "starbase_science", "per_worldlet": True},
 }
 
 REFINERY_EXTRACT_MULT = 1.5   # a Refinery speeds its own worldlet's extraction
 DEPOT_SUPPLY_RADIUS = 15000.0  # fleets within this of a friendly Depot burn no gas
+SENSOR_COMMAND_POINTS = 1     # command points each Sensor Relay adds to the cap
 REFINERY_STORAGE_BONUS = 400  # ...and adds silo capacity to the side
 
 
@@ -622,6 +629,15 @@ def admiralty_try_build(kind, side, worldlet_id, sectors=None, here_key=None):
     return None
 
 
+def admiralty_command_points(side):
+    """The side's fleet cap: the base `command_points` tuning plus each Sensor
+    Relay's grant. The navy grows through infrastructure - build Sensor Relays
+    to field more fleets. Read by the ticker and the fleet-form cap check."""
+    base = int(admiralty_tuning("command_points", 0))
+    relays = len(to_object_list(role("admiral_sensor") & role(side)))
+    return base + relays * SENSOR_COMMAND_POINTS
+
+
 def admiralty_build_done(kind, side, worldlet_id):
     """Finish a build: clear the in-progress flag and spawn the platform.
     Called by admiral.mast's build task after the build_time delay."""
@@ -644,7 +660,7 @@ def admiralty_ticker_text(side):
     CMD used = live fleets (fleet_count is a shared-namespace call into
     universe_fleets.py)."""
     p = admiralty_pools(side)
-    cmd_max = admiralty_tuning("command_points", 0)
+    cmd_max = admiralty_command_points(side)
     parts = []
     for res in ADM_RESOURCES:
         parts.append(res.upper() + " " + str(p[res]) + "/" + str(admiralty_pool_cap(side, res)))

@@ -129,6 +129,15 @@ anti-snowball rail (upkeep competes with fleets/builds/research; discount capped
 sells never subsidised). Persists in side_admiralty. Closes the Admiral bridge
 set; the LM items.py change is generic (any mission can set a side subsidy).
 
+## Sensor Relay - command-point expansion (2026-07-02; browser check pending)
+Phase-2 platform: the navy grows through infrastructure. Each Sensor Relay
+(per-worldlet, so they stack across a system) adds SENSOR_COMMAND_POINTS to the
+side's fleet cap via `admiralty_command_points(side)` = base tuning + relay
+count, which both the ticker and the fleet-form cap check now read. Build Sensor
+Relays to field more fleets. Slots into the dynamic build menu with zero UI work.
+Carried gap: fog-of-war coverage (the CQ Sensor Tower's other role) is not
+implemented - this is the command-point half only.
+
 ## Build menu shows only buildable platforms (2026-07-02; exercise-verified)
 The Map-tab build panel listed all platform buttons at once (8+), most of which
 just errored on click. It now loops `admiralty_buildable_kinds` and offers only
