@@ -377,7 +377,7 @@ and {gas}; rescue gets the {rescuer} ship's name; captured / lost get the
 {officer} name and the captor {clan}. Driven by universe_fleets.py. Keys:
 ack_escort / ack_patrol / ack_strike / ack_hold / ack_salvage / ack_withdraw,
 formed, pod_away, gas_dry, strike_clear, salvage_none, salvage_haul,
-withdraw_home, rescue, captured, lost.
+withdraw_home, veil_warn, rescue, captured, lost.
 
 ### Order: Strike (ack_strike)
 Weapons free. Moving to engage.

@@ -684,9 +684,14 @@ Admiral-only overlays (yields popup, supply radii, border hatching).
     per-event random pick and {ore}/{gas}/{rescuer}/{officer}/{clan} fields;
     a `## Fleet Chatter` AMD section overrides any pool (### <key> body lines
     = the pool), zero authoring keeps the defaults. default.amd ships a small
-    example (strike ack, salvage haul, rescue). Only remaining big gap:
-    subsidy (needs the code-locked LM commerce hooks); minor: NPC veil
-    avoidance.
+    example (strike ack, salvage haul, rescue).
+11. NPC veil avoidance (2026-07-02, test-verified; browser check pending):
+    the navy will not operate inside an antimatter veil - a whole veiled
+    system is lethal, so fleet_tick(fleet, dt, veiled) forces any active
+    fleet to hold and warns once (veil_warn chatter), reset on leaving or a
+    new order. The Admiral must clear a lane or jump the flag out; lingering
+    feeds the MIA/capture loop. admiral.mast passes region_is_veiled. Only
+    remaining gap: subsidy (needs the code-locked LM commerce hooks).
 
 ---
 

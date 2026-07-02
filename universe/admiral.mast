@@ -44,8 +44,9 @@ shared ADM_BUILDS = []
 --- fleet_loop
     await delay_sim(3)
     ->END if not UNIVERSE_ACTIVE
+    veiled_now = region_is_veiled(UNIVERSE_REGIONS, universe_i, universe_j)
     for _fl in fleet_list():
-        fleet_evt = fleet_tick(_fl.key, 3)
+        fleet_evt = fleet_tick(_fl.key, 3, veiled_now)
         if fleet_evt is not None:
             officer_card(fleet_evt.officer, fleet_evt.text)
     # MIA captains (slice 4): pod rescues, captures, lapsed beacons. Rescued

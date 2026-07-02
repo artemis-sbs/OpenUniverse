@@ -88,6 +88,8 @@ _FLEET_LINES_DEFAULT = {
     "salvage_haul": ["Wreck stripped - +{ore} ore, +{gas} gas.",
                      "Good haul off that hull: +{ore} ore, +{gas} gas."],
     "withdraw_home":["Home and holding.", "Docked and secure, Admiral."],
+    "veil_warn":    ["The antimatter's cooking our hulls - we can't operate in here, Admiral. Holding.",
+                     "This veil is death. We're holding until you clear us a lane."],
     "rescue":       ["Aboard and breathing, thanks to the {rescuer}. Put me back to work, Admiral.",
                      "The {rescuer} pulled me out of the black. I owe them one."],
     "captured":     ["{officer}'s pod went silent - then a {clan} claim signal. {officer} is their"
@@ -520,6 +522,7 @@ def fleet_set_order(fleet_key, order):
         return ""
     setattr(f, "order", order)
     setattr(f, "gas_starved", False)
+    setattr(f, "veil_warned", False)
     _fleets_sync(f.get("side"))
     return fleet_line("ack_" + order)
 
@@ -530,9 +533,11 @@ def _fleet_home_pos(side):
     return hqs[0].pos if hqs else None
 
 
-def fleet_tick(fleet_key, dt_seconds):
+def fleet_tick(fleet_key, dt_seconds, veiled=False):
     """One order step for one fleet. Returns an event (officer + line) for the
-    console loop to deliver (fleet lost, salvage award, gas empty), or None."""
+    console loop to deliver (fleet lost, salvage award, gas empty, veil), or
+    None. veiled: the current system lies in an antimatter veil (the whole
+    system is lethal) - the navy will not operate there."""
     f = _FLEETS.get(fleet_key)
     if f is None:
         return None
@@ -557,6 +562,21 @@ def fleet_tick(fleet_key, dt_seconds):
     setattr(f, "lz", lead0.pos.z)
     _officer_cast_host(okey, lead0.id)
     order = f.get("order", "hold")
+
+    # The antimatter veil denies the navy: the whole system is unsurvivable to
+    # linger in, so a fleet cannot hold formation or run an order here. Force
+    # hold and warn once (the Admiral must clear a lane or jump the flag out -
+    # linger and the crews feed the MIA/capture loop). Reset when clear.
+    if veiled:
+        if order != "hold":
+            setattr(f, "order", "hold")
+            _fleets_sync(side)
+            if not f.get("veil_warned"):
+                setattr(f, "veil_warned", True)
+                return _evt(okey, fleet_line("veil_warn"))
+        return None
+    if f.get("veil_warned"):
+        setattr(f, "veil_warned", False)
 
     # Gas: every non-hold order burns fuel (per minute, officer-scaled).
     if order != "hold":

@@ -403,12 +403,16 @@ GameCode:
     # passenger lifeform; reaching the destination pays the fare + disembarks them.
     # Handler label + data (not an inline block): the block would run on click
     # with the loop's LAST pax, not the clicked one.
+    # NOTE: compare against the integer 0, NOT QuestState.IDLE - QuestState is
+    # a Python enum in the .py files but is NOT in the engine's MAST eval
+    # globals (the mock's are more permissive, so --test never caught it).
+    # QuestState.IDLE == 0; the story_patrol check below already uses 0.
     for pax in universe_passengers_at(UNIVERSE_LIFEFORMS, universe_i, universe_j):
-        if quest_get_state(ship_id, "passenger_" + pax.key) == QuestState.IDLE:
+        if quest_get_state(ship_id, "passenger_" + pax.key) == 0:
             pax_label = f"Transport {pax.name} to ({pax.deliver_to[0]}, {pax.deliver_to[1]})  ({pax.pays} cr)"
             + "{pax_label}" universe_accept_passenger {"pax": pax}
     pax_tij = universe_delivery_target(universe_seed, universe_i, universe_j)
-    if quest_get_state(ship_id, "passenger_traveler_" + str(universe_i) + "_" + str(universe_j)) == QuestState.IDLE:
+    if quest_get_state(ship_id, "passenger_traveler_" + str(universe_i) + "_" + str(universe_j)) == 0:
         traveler_label = f"Transport a passenger to ({pax_tij[0]}, {pax_tij[1]})"
         + "{traveler_label}":
             universe_grant_passenger(ship_id, universe_generic_passenger(universe_i, universe_j, pax_tij[0], pax_tij[1]))
