@@ -48,9 +48,9 @@ shared ADM_BUILDS = []
         fleet_evt = fleet_tick(_fl.key, 3)
         if fleet_evt is not None:
             officer_card(fleet_evt.officer, fleet_evt.text)
-    # MIA captains (slice 4): pod rescues and lapsed beacons. Rescued officers
-    # speak for themselves; a loss is Admiralty operations traffic.
-    for mia_evt in officer_mia_tick("tsn", 3):
+    # MIA captains (slice 4): pod rescues, captures, lapsed beacons. Rescued
+    # officers speak for themselves; captures/losses are Admiralty ops traffic.
+    for mia_evt in officer_mia_tick("tsn", 3, UNIVERSE_CLANS):
         if mia_evt.officer is None:
             universe_info_card(mia_evt.text, "Admiralty Operations", "#f66")
         else:
@@ -354,7 +354,7 @@ shared ADM_BUILDS = []
 === admiral_build
     default BUILD_PICK = None
     ADM_MSG = ""
-    fail = admiralty_try_build(BUILD_PICK, "tsn", SEL_WORLDLET)
+    fail = admiralty_try_build(BUILD_PICK, "tsn", SEL_WORLDLET, universe_sectors, f"{universe_i},{universe_j}")
     if fail is None:
         task_schedule(admiralty_build_task, {"build_kind": BUILD_PICK, "build_worldlet_id": SEL_WORLDLET})
     else:

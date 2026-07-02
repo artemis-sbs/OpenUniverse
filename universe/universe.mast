@@ -209,9 +209,6 @@ GameCode:
     jump culloop
 
 
-# Capture: hold a foe clan station's space clear of its ships to take it. Once
-# the garrison is gone and the area stays clear long enough, the station morphs
-# to the player's side (persisted). Ends if you leave or it is destroyed.
 # The antimatter veil's teeth: while the current system is veiled, every
 # player ship heats across all engineering systems (the heat damage channel).
 # Started by enter_system on arrival in a veiled cell; ends itself after a
@@ -224,6 +221,9 @@ GameCode:
     jump veil_loop
 
 
+# Capture: hold a foe clan station's space clear of its ships to take it. Once
+# the garrison is gone and the area stays clear long enough, the station morphs
+# to the player's side (persisted). Ends if you leave or it is destroyed.
 === universe_capture_watch
     default cap_station = None
     default cap_clan = None
@@ -247,6 +247,12 @@ GameCode:
         universe_sectors = universe_set_system_flag(universe_sectors, cap_i, cap_j, "captured")
         universe_save(universe_seed, universe_i, universe_j, universe_sectors)
         comms_broadcast(role("__player__"), "Starbase captured!", "#0f0")
+        # Taking the station also empties its brig: captured Admiralty
+        # officers held by this clan walk free (the bloodless rescue raid).
+        for _freed_key in officers_captured_by(cap_clan):
+            officer_release("tsn", _freed_key)
+            officer_card(_freed_key, "They left my cell unlocked on the way out. Ready for duty.")
+        universe_save_players()
         await task_schedule(docking_standard_player_station)
         ->END
     jump cwatch
@@ -434,6 +440,36 @@ GameCode:
             universe_diplomacy = universe_set_dip(universe_diplomacy, my_side, dip_clan, sbs.DIPLOMACY.ALLIED)
             universe_save_diplomacy(universe_diplomacy)
             >> "Then we stand together. The clan is honored to call you ally."
+        # Ransom: this clan holds captured Admiralty officers (a lapsed MIA
+        # pod they claimed - universe_fleets). Buying them back is priced by
+        # standing (clan_ransom_cost): friends sell prisoners back cheap.
+        for _ransom_key in officers_captured_by(dip_clan):
+            _ransom_o = officer_def(_ransom_key)
+            if _ransom_o is not None:
+                _ransom_cost = clan_ransom_cost(dip_standing)
+                _ransom_label = f"Ransom {_ransom_o.name}  ({_ransom_cost} cr)"
+                if dip_credits >= _ransom_cost:
+                    + "{_ransom_label}" universe_pay_ransom {"ransom_key": _ransom_key, "ransom_cost": _ransom_cost}
+                else:
+                    + "{_ransom_label} - insufficient credits":
+                        >> "Come back when you can pay. The prisoner keeps."
+
+
+# Pay a clan's ransom for a captured Admiralty officer (from the station comms
+# above). data: ransom_key (officer), ransom_cost (credits, priced at offer time).
+=== universe_pay_ransom
+    default ransom_key = None
+    default ransom_cost = 0
+    ->END if ransom_key is None
+    ransom_side = get_side(COMMS_ORIGIN_ID)
+    ransom_side_id = to_side_id(ransom_side)
+    ransom_credits = get_inventory_value(ransom_side_id, "credits", 0)
+    ->END if ransom_credits < ransom_cost
+    set_inventory_value(ransom_side_id, "credits", ransom_credits - ransom_cost)
+    officer_release(ransom_side, ransom_key)
+    universe_save_players()
+    officer_card(ransom_key, "Cell door is open and the shuttle is warm. I owe you one - back to work.")
+    ->END
 
 
 # Accept a clan job (from the station comms above). Grants + activates it on the
@@ -898,6 +934,12 @@ GameCode:
 //damage/destroy if UNIVERSE_ACTIVE and has_role(DESTROYED_ID, "station") and not has_role(DESTROYED_ID, "outpost")
     universe_sectors = universe_set_system_flag(universe_sectors, universe_i, universe_j, "station_destroyed")
     universe_save(universe_seed, universe_i, universe_j, universe_sectors)
+    # The rescue raid: bringing down a captor clan's station frees every
+    # Admiralty officer it holds (the other way out of a ransom).
+    for _freed_key in officers_captured_by(get_side(DESTROYED_ID)):
+        officer_release("tsn", _freed_key)
+        officer_card(_freed_key, "Found my own way out when the walls came down. Nice shooting.")
+    universe_save_players()
     ->END
 
 

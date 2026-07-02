@@ -655,6 +655,17 @@ Admiral-only overlays (yields popup, supply radii, border hatching).
      depletion not simulated (income freezes at last visit).
    Remaining gaps: subsidy (commerce hooks); officer dialogue scenes;
    HQ/shipyard uniqueness is per-system, not per-campaign.
+8. Capture + ransom (2026-07-02, test-verified; browser check pending):
+   a lapsed MIA pod is claimed by a currently hostile foe clan (ceasefire
+   respected; no foe clans -> lost as before). The officer becomes their
+   PRISONER (persisted with the captor): buy them back at any captor-clan
+   station - ransom priced by standing (clan_ransom_cost: base 400 + 15/pt
+   below the ceasefire line, so friends sell cheap) - or break them out by
+   destroying OR capturing a captor-clan station (both hooks free every
+   prisoner the clan holds). Roster shows PRISONER; prisoners can't take
+   fleets. Also: the HQ is now campaign-unique (admiralty_try_build checks
+   the sectors delta, names the system that has it); Shipyard/Academy/Relay
+   stay per-system by design.
 
 ---
 

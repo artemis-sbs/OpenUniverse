@@ -35,6 +35,8 @@ _DEFAULT_TUNING = {
     "ceasefire_free_at": 30,     # ceasefire free at/above this standing
     "ceasefire_per_point": 20,   # cr per standing-point below the free line
     "alliance_standing": 60,     # standing to propose an alliance
+    "ransom_base": 400,          # cr floor to ransom a captured officer
+    "ransom_per_point": 15,      # cr markup per standing-point below the ceasefire line
 }
 
 # Live config - module globals rebuilt per universe load by reputation_configure().
@@ -77,7 +79,8 @@ def reputation_configure(cfg):
         if poles:
             _REP_POLES = poles
     for key in ("min", "max", "foe_deal", "reward_mult_max",
-                "ceasefire_free_at", "ceasefire_per_point", "alliance_standing"):
+                "ceasefire_free_at", "ceasefire_per_point", "alliance_standing",
+                "ransom_base", "ransom_per_point"):
         if key in cfg:
             _TUNING[key] = cfg[key]
     tiers = cfg.get("tiers")
@@ -197,3 +200,12 @@ def clan_ceasefire_cost(standing):
 def clan_alliance_standing():
     """Standing needed to propose an alliance (default 60)."""
     return _TUNING["alliance_standing"]
+
+
+def clan_ransom_cost(standing):
+    """Credits to ransom a captured officer from a clan: a base price plus a
+    markup per standing-point below the ceasefire line (defaults 400 + 15/pt
+    -> 850 at standing 0, 400 at/above the line). A genuine use for the
+    diplomacy economy: friends sell prisoners back cheap."""
+    markup = max(0, _TUNING["ceasefire_free_at"] - max(0, standing)) * _TUNING["ransom_per_point"]
+    return _TUNING["ransom_base"] + markup

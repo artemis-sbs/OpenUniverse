@@ -439,10 +439,30 @@ def admiralty_platform_at(worldlet_obj, kind):
     return None
 
 
-def admiralty_try_build(kind, side, worldlet_id):
+def admiralty_platform_elsewhere(sectors, kind, here_key):
+    """The sector key ("i,j") of another system whose persistence delta
+    already holds a platform of `kind`, or None. The HQ's campaign-uniqueness
+    check - live objects only exist in the current system, so uniqueness
+    across the campaign must consult the sectors delta."""
+    if not isinstance(sectors, dict):
+        return None
+    for skey, sval in sectors.items():
+        if skey == here_key or not isinstance(sval, dict):
+            continue
+        plats = sval.get("admiral_platforms")
+        if isinstance(plats, list) and any(
+                isinstance(p, dict) and p.get("k") == kind for p in plats):
+            return skey
+    return None
+
+
+def admiralty_try_build(kind, side, worldlet_id, sectors=None, here_key=None):
     """Validate + pay for a build at a worldlet. Returns None on success (cost
     deducted, in-progress flag set - the caller schedules the build task), or
-    a short reason string for the console to show."""
+    a short reason string for the console to show. sectors/here_key (the
+    persistence delta + this system's "i,j") enable the HQ's campaign-wide
+    uniqueness check; other one-per-side platforms stay per-system by design
+    (each system can host its own yard/academy/gate)."""
     pdef = ADM_PLATFORMS.get(kind)
     wobj = to_object(worldlet_id)
     if pdef is None or wobj is None:
@@ -453,6 +473,10 @@ def admiralty_try_build(kind, side, worldlet_id):
         return "This worldlet already has an " + pdef["name"] + "."
     if not pdef["per_worldlet"] and len(to_object_list(role("admiral_" + kind) & role(side))) > 0:
         return "The " + pdef["name"] + " is already built."
+    if kind == "hq":
+        hq_at = admiralty_platform_elsewhere(sectors, "hq", here_key)
+        if hq_at is not None:
+            return "The Headquarters is already established in system (" + hq_at.replace(",", ", ") + ")."
     if kind != "hq" and len(to_object_list(role("admiral_hq") & role(side))) == 0:
         return "Requires a Headquarters."
     if kind == "refinery" and admiralty_platform_at(wobj, "extractor") is None:

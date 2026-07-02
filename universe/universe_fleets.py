@@ -27,6 +27,7 @@ Shared-namespace notes: universe_section from universe_clans.py; admiralty_*
 pool/tuning from universe_worldlets.py.
 """
 import math
+import random
 from sbs_utils.mast.mast_node import MastDataObject
 from sbs_utils.procedural.spawn import npc_spawn, terrain_spawn
 from sbs_utils.procedural.inventory import get_inventory_value, set_inventory_value
@@ -146,15 +147,55 @@ def officer_bonus(key, kind):
 # A destroyed fleet does not kill its officer: the captain ejects into a pod
 # that becomes a rescue objective the bridge crews can fly (decision 13.3 -
 # Admiral drama becomes bridge content). Reach the pod inside the MIA timer
-# and the officer returns to the roster; let the beacon lapse and they are
-# lost for the campaign. Jumping away abandons the pod (the timer keeps
-# running). Carried gap: OU foe-clan capture/ransom - lapse reads as claimed.
+# and the officer returns to the roster. A lapsed beacon is claimed by a
+# hostile foe clan when one exists (decision 14.2 - a captured captain is a
+# better story than a dead one): ransom them at the captor's stations
+# (priced by standing - universe_reputation.clan_ransom_cost) or break them
+# out by destroying/capturing a captor-clan station. No foe clans -> lost.
 MIA_RESCUE_RANGE = 1500.0
 
 
 def officer_status(key):
     st = _OFFICER_STATE.get(key)
     return st.get("status", "active") if isinstance(st, dict) else "active"
+
+
+def officer_captor(key):
+    """The clan holding this officer prisoner, or None."""
+    st = _OFFICER_STATE.get(key)
+    return st.get("captor") if isinstance(st, dict) else None
+
+
+def officers_captured_by(clan_key):
+    """Officer keys held prisoner by this clan (the ransom-comms list)."""
+    return [k for k, st in _OFFICER_STATE.items()
+            if isinstance(st, dict) and st.get("status") == "captured"
+            and st.get("captor") == clan_key]
+
+
+def officer_release(side, key):
+    """Return a captured/MIA officer to the roster - the ransom was paid or
+    the captor's station fell."""
+    st = _OFFICER_STATE.get(key)
+    if not isinstance(st, dict):
+        return
+    st["status"] = "active"
+    st["mia_left"] = 0.0
+    st.pop("captor", None)
+    _officers_sync(side)
+
+
+def _pick_captor(clans, side):
+    """The clan that claims a lapsed pod: a currently hostile foe clan, or
+    None (deep space - the officer is simply lost). _clan_is_foe is the
+    skirmish module's ceasefire-aware check (shared namespace)."""
+    if not clans:
+        return None
+    try:
+        foes = [c.get("key") for c in clans if _clan_is_foe(clans, c.get("key"), side)]
+    except NameError:
+        foes = []
+    return random.choice(foes) if foes else None
 
 
 def _officers_sync(side):
@@ -189,11 +230,12 @@ def _officer_mia_begin(side, key, x, z):
         co.data_set.set("local_scale_" + ax + "_coeff", 0.35)
 
 
-def officer_mia_tick(side, dt_seconds):
+def officer_mia_tick(side, dt_seconds, clans=None):
     """One rescue step for every MIA officer. A player ship within reach of
-    the pod recovers them; a lapsed beacon loses them. Returns a list of
-    events - officer-keyed lines speak as the officer, officer=None lines are
-    Admiralty operations traffic."""
+    the pod recovers them; a lapsed beacon is claimed by a hostile foe clan
+    (captured - ransom or break them out) or, with no foe clans, lost.
+    Returns a list of events - officer-keyed lines speak as the officer,
+    officer=None lines are Admiralty operations traffic."""
     evts = []
     for key, st in _OFFICER_STATE.items():
         if not isinstance(st, dict) or st.get("status") != "mia":
@@ -214,12 +256,22 @@ def officer_mia_tick(side, dt_seconds):
         if st["mia_left"] <= 0:
             if pod is not None:
                 delete_object(pod.id)
-            st["status"] = "lost"
-            _officers_sync(side)
             o = _OFFICERS.get(key)
             oname = str(o.get("name")) if o is not None else "An officer"
-            evts.append(_evt(None, oname + "'s beacon has gone dark. " +
-                             oname + " is not coming home."))
+            captor = _pick_captor(clans, side)
+            if captor is not None:
+                st["status"] = "captured"
+                st["captor"] = captor
+                _officers_sync(side)
+                cname = str(clan_name(clans, captor) or captor)
+                evts.append(_evt(None, oname + "'s pod went silent - then a " + cname +
+                                 " claim signal. " + oname + " is their prisoner: pay the"
+                                 " ransom at a " + cname + " station, or take one down."))
+            else:
+                st["status"] = "lost"
+                _officers_sync(side)
+                evts.append(_evt(None, oname + "'s beacon has gone dark. " +
+                                 oname + " is not coming home."))
     return evts
 
 
@@ -271,6 +323,8 @@ def fleet_try_form(side, officer_key):
     o_status = officer_status(officer_key)
     if o_status == "mia":
         return o.get("name") + " is missing in action - the pod beacon is still live."
+    if o_status == "captured":
+        return o.get("name") + " is held prisoner - ransom them at the captor clan's stations."
     if o_status == "lost":
         return o.get("name") + " was lost in action."
     if officer_fleet(officer_key) is not None:
@@ -478,6 +532,8 @@ def officer_list_template(item):
     o_state = officer_status(okey)
     if o_state == "mia":
         status = "MISSING - pod beacon active"
+    elif o_state == "captured":
+        status = "PRISONER - ransom at the captor's stations"
     elif o_state == "lost":
         status = "lost in action"
     else:
