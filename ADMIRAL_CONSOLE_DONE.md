@@ -139,7 +139,7 @@ state reads the list. Legacy single-key saves coerce to a list (in-progress
 research is session-only anyway; only the done set persists). The Research tab
 shows "Research slots: used/total". Slots into the dynamic build menu with no UI.
 
-## Overseer console - detached 2D command view, STEP 1 (2026-07-02; PROTOTYPE, browser check needed)
+## Overseer console - detached 2D command view, STEP 1 (2026-07-02; STEP 1 BROWSER-VERIFIED - the 2D view renders)
 Direction: turn the Admiral from a tab+list console into an RTS command surface -
 a detached overseer (GM cambot pattern) with a system-wide 2D view where you
 select objects for popup actions + comms. The engine/LM already anticipate it:
