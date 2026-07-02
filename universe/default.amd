@@ -367,6 +367,31 @@ Scene: off_ashwell_hail
 Never met a wreck she could not strip or a sensor shadow she could not
 slip through. Ashwell's fleets salvage more and die less.
 
+## Fleet Chatter
+
+The fleet's radio voice - the short lines an officer sends the Admiral as an
+order lands or an event happens. Each entry's key is the event; its body lines
+are the pool (one is picked at random). Omit the chapter, or any key, to keep
+the built-in defaults. Fields in braces are filled in: salvage_haul gets {ore}
+and {gas}; rescue gets the {rescuer} ship's name; captured / lost get the
+{officer} name and the captor {clan}. Driven by universe_fleets.py. Keys:
+ack_escort / ack_patrol / ack_strike / ack_hold / ack_salvage / ack_withdraw,
+formed, pod_away, gas_dry, strike_clear, salvage_none, salvage_haul,
+withdraw_home, rescue, captured, lost.
+
+### Order: Strike (ack_strike)
+Weapons free. Moving to engage.
+Guns hot, Admiral - closing now.
+Say the word - said. Engaging.
+
+### Salvage Haul (salvage_haul)
+Wreck stripped: +{ore} ore, +{gas} gas in the hold.
+Good pickings off that hull - {ore} ore and {gas} gas the richer.
+
+### Officer Rescued (rescue)
+Aboard and breathing, thanks to the {rescuer}. Put me back to work, Admiral.
+The {rescuer} found my beacon. I owe that crew a drink.
+
 ## Research
 
 The Admiralty's tech ladder (researched at a Shipyard). Each milestone names

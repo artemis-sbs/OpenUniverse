@@ -676,9 +676,17 @@ Admiral-only overlays (yields popup, supply radii, border hatching).
    beamable - while podside/captured/between fleets. dialogue_speaker now
    resolves officer keys (officer_speaker; their Values are the leans, so
    crews build PERSONAL reputation with the captains they fly with - free
-   depth from the reputation engine, as section 6 predicted). Remaining:
-   subsidy (commerce hooks); event lines (acks/distress) still canned -
-   scenes cover conversations only.
+   depth from the reputation engine, as section 6 predicted).
+10. Authorable fleet chatter (2026-07-02, test-verified; browser check
+    pending): the fleet's event lines - order acks, gas/salvage/no-target
+    blips, pod-away/rescue/capture/lost - are no longer hardcoded. Built-in
+    pools (fleet_line + _FLEET_LINES_DEFAULT in universe_fleets) with a
+    per-event random pick and {ore}/{gas}/{rescuer}/{officer}/{clan} fields;
+    a `## Fleet Chatter` AMD section overrides any pool (### <key> body lines
+    = the pool), zero authoring keeps the defaults. default.amd ships a small
+    example (strike ack, salvage haul, rescue). Only remaining big gap:
+    subsidy (needs the code-locked LM commerce hooks); minor: NPC veil
+    avoidance.
 
 ---
 

@@ -378,7 +378,7 @@ shared ADM_BUILDS = []
     ADM_MSG = ""
     fail = fleet_try_form("tsn", OFFICER_PICK)
     if fail is None:
-        officer_card(OFFICER_PICK, "Fleet formed and standing by at the yard.")
+        officer_card(OFFICER_PICK, fleet_line("formed"))
     else:
         ADM_MSG = fail
     jump admiral_console_gui

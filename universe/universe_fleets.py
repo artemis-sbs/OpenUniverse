@@ -63,6 +63,75 @@ def _evt(officer_key, text):
     return MastDataObject({"officer": officer_key, "text": text})
 
 
+# --- Fleet chatter (## Fleet Chatter) --------------------------------------------
+# Fleet event lines are authorable: order acks, gas/salvage/no-target blips, the
+# loss / capture / rescue lines. Each event key owns a pool; fleet_line() picks
+# one at random and fills its fields ({ore}/{gas}/{rescuer}/{officer}/{clan}).
+# A universe overrides any pool via a `## Fleet Chatter` section (### <key> with
+# the candidate lines as its body); zero authoring -> these defaults stand.
+_FLEET_LINES_DEFAULT = {
+    "ack_escort":   ["Falling in on your wing.", "On your flank, Admiral."],
+    "ack_patrol":   ["Sweeping the system.", "Running the perimeter."],
+    "ack_strike":   ["Weapons free. Moving to engage.", "Guns hot - moving in."],
+    "ack_hold":     ["Holding position.", "Station keeping, Admiral."],
+    "ack_salvage":  ["Stripping the wrecks.", "Scavengers away."],
+    "ack_withdraw": ["Coming home.", "Falling back to base."],
+    "ack":          ["Acknowledged."],
+    "formed":       ["Fleet formed and standing by at the yard.",
+                     "Assembled and ready at the shipyard, Admiral."],
+    "pod_away":     ["Flag hull's gone... pod away. The beacon is live - come get me, Admiral.",
+                     "We're hit hard - I'm ejecting. Beacon's on. Come find me."],
+    "gas_dry":      ["Tanks are dry - holding until we get gas.",
+                     "Out of fuel, Admiral. Dead in the water until resupply."],
+    "strike_clear": ["No hostiles on scope. Holding.", "Scope's clear - standing down."],
+    "salvage_none": ["Nothing left to strip. Holding.", "Wrecks are picked clean, Admiral."],
+    "salvage_haul": ["Wreck stripped - +{ore} ore, +{gas} gas.",
+                     "Good haul off that hull: +{ore} ore, +{gas} gas."],
+    "withdraw_home":["Home and holding.", "Docked and secure, Admiral."],
+    "rescue":       ["Aboard and breathing, thanks to the {rescuer}. Put me back to work, Admiral.",
+                     "The {rescuer} pulled me out of the black. I owe them one."],
+    "captured":     ["{officer}'s pod went silent - then a {clan} claim signal. {officer} is their"
+                     " prisoner: pay the ransom at a {clan} station, or take one down."],
+    "lost":         ["{officer}'s beacon has gone dark. {officer} is not coming home."],
+}
+_FLEET_LINES = {k: list(v) for k, v in _FLEET_LINES_DEFAULT.items()}
+
+
+def fleet_chatter_configure(doc):
+    """Merge an authored `## Fleet Chatter` section over the built-in event
+    lines (resets to defaults first, so re-selecting a universe never inherits
+    the last one's chatter). Each `### <key>` entry's non-blank body lines are
+    that event's pool. universe_section is a shared-namespace call."""
+    global _FLEET_LINES
+    _FLEET_LINES = {k: list(v) for k, v in _FLEET_LINES_DEFAULT.items()}
+    try:
+        section = universe_section(doc, "fleet_chatter")
+    except NameError:
+        section = None
+    if section is None:
+        return
+    for n in section.get("children", []):
+        key = n.get("key")
+        pool = [ln.strip() for ln in (n.get("description") or "").splitlines() if ln.strip()]
+        if key and pool:
+            _FLEET_LINES[key] = pool
+
+
+def fleet_line(key, **fields):
+    """A line for an event key: a random candidate from its pool, formatted with
+    the given fields (ore/gas/rescuer/officer/clan; any unset -> blank). Falls
+    back to the raw line if it references an unknown field, and to the key if a
+    pool is empty."""
+    pool = _FLEET_LINES.get(key) or [key]
+    line = random.choice(pool)
+    ctx = {"ore": "", "gas": "", "rescuer": "", "officer": "", "clan": ""}
+    ctx.update({k: str(v) for k, v in fields.items()})
+    try:
+        return line.format(**ctx)
+    except (KeyError, IndexError, ValueError):
+        return line
+
+
 # --- Officers (## Officers) ---------------------------------------------------
 def universe_parse_officers(doc):
     """Officer records from the `## Officers` chapter (empty if none)."""
@@ -310,8 +379,7 @@ def officer_mia_tick(side, dt_seconds, clans=None):
                 st["status"] = "active"
                 st["mia_left"] = 0.0
                 _officers_sync(side)
-                evts.append(_evt(key, "Aboard and breathing, thanks to the " +
-                                 str(rescuer.name) + ". Put me back to work, Admiral."))
+                evts.append(_evt(key, fleet_line("rescue", rescuer=rescuer.name)))
                 continue
         st["mia_left"] = float(st.get("mia_left", 0.0)) - float(dt_seconds)
         if st["mia_left"] <= 0:
@@ -325,14 +393,11 @@ def officer_mia_tick(side, dt_seconds, clans=None):
                 st["captor"] = captor
                 _officers_sync(side)
                 cname = str(clan_name(clans, captor) or captor)
-                evts.append(_evt(None, oname + "'s pod went silent - then a " + cname +
-                                 " claim signal. " + oname + " is their prisoner: pay the"
-                                 " ransom at a " + cname + " station, or take one down."))
+                evts.append(_evt(None, fleet_line("captured", officer=oname, clan=cname)))
             else:
                 st["status"] = "lost"
                 _officers_sync(side)
-                evts.append(_evt(None, oname + "'s beacon has gone dark. " +
-                                 oname + " is not coming home."))
+                evts.append(_evt(None, fleet_line("lost", officer=oname)))
     return evts
 
 
@@ -456,15 +521,7 @@ def fleet_set_order(fleet_key, order):
     setattr(f, "order", order)
     setattr(f, "gas_starved", False)
     _fleets_sync(f.get("side"))
-    acks = {
-        "escort": "Falling in on your wing.",
-        "patrol": "Sweeping the system.",
-        "strike": "Weapons free. Moving to engage.",
-        "hold": "Holding position.",
-        "salvage": "Stripping the wrecks.",
-        "withdraw": "Coming home.",
-    }
-    return acks.get(order, "Acknowledged.")
+    return fleet_line("ack_" + order)
 
 
 def _fleet_home_pos(side):
@@ -488,7 +545,7 @@ def fleet_tick(fleet_key, dt_seconds):
         # The officer ejects where the fleet died: MIA, pod beacon live -
         # a rescue objective for the bridge crews (officer_mia_tick).
         _officer_mia_begin(side, okey, float(f.get("lx", 0.0)), float(f.get("lz", 0.0)))
-        return _evt(okey, "Flag hull's gone... pod away. The beacon is live - come get me, Admiral.")
+        return _evt(okey, fleet_line("pod_away"))
     if len(ships) != int(f.get("alive", 0)):
         setattr(f, "alive", len(ships))
         _fleets_sync(side)
@@ -510,7 +567,7 @@ def fleet_tick(fleet_key, dt_seconds):
             _fleets_sync(side)
             if not f.get("gas_starved"):
                 setattr(f, "gas_starved", True)
-                return _evt(okey, "Tanks are dry - holding until we get gas.")
+                return _evt(okey, fleet_line("gas_dry"))
             return None
         _pool_add_f(side, "gas", -need)
 
@@ -549,13 +606,13 @@ def fleet_tick(fleet_key, dt_seconds):
         else:
             setattr(f, "order", "hold")
             _fleets_sync(side)
-            return _evt(okey, "No hostiles on scope. Holding.")
+            return _evt(okey, fleet_line("strike_clear"))
     elif order == "salvage":
         wreck = closest_object(lead, role("universe_derelict"))
         if wreck is None:
             setattr(f, "order", "hold")
             _fleets_sync(side)
-            return _evt(okey, "Nothing left to strip. Holding.")
+            return _evt(okey, fleet_line("salvage_none"))
         d2 = (lead.pos.x - wreck.pos.x) ** 2 + (lead.pos.z - wreck.pos.z) ** 2
         if d2 < 1500.0 ** 2:
             mult = officer_bonus(okey, "salvage")
@@ -564,8 +621,7 @@ def fleet_tick(fleet_key, dt_seconds):
             delete_object(wreck.id)
             admiralty_pool_add(side, "ore", ore_v)
             admiralty_pool_add(side, "gas", gas_v)
-            return _evt(okey, "Wreck stripped - +" + str(ore_v) + " ore, +" +
-                        str(gas_v) + " gas.")
+            return _evt(okey, fleet_line("salvage_haul", ore=ore_v, gas=gas_v))
         target_pos(ids, wreck.pos.x, wreck.pos.y, wreck.pos.z, 0.9, stop_dist=1000)
     elif order == "withdraw":
         home = _fleet_home_pos(side)
@@ -576,7 +632,7 @@ def fleet_tick(fleet_key, dt_seconds):
         if d2 < 3000.0 ** 2:
             setattr(f, "order", "hold")
             _fleets_sync(side)
-            return _evt(okey, "Home and holding.")
+            return _evt(okey, fleet_line("withdraw_home"))
         target_pos(ids, home.x + 1500, home.y, home.z, 1.0, stop_dist=1200)
     # hold: leave the ships where they are.
     return None
