@@ -24,6 +24,7 @@ from sbs_utils.procedural.inventory import get_inventory_value, set_inventory_va
 from sbs_utils.procedural.sides import to_side_id
 from sbs_utils.procedural.roles import role
 from sbs_utils.procedural.query import to_object_list
+from sbs_utils.procedural.gui import gui_row, gui_text
 
 _RESEARCH = {}        # key -> record, insertion-ordered (the authored ladder)
 
@@ -211,6 +212,39 @@ def requisition_costs_text(side, key):
     if entry is None:
         return ""
     return ", ".join(str(v) + " " + k for k, v in entry[2].items())
+
+
+# --- Console listbox templates (admiral.mast) ------------------------------------
+def research_list_title():
+    gui_row("row-height: 1.2em;padding:6px;background:#1578;")
+    gui_text("$text:Research milestones")
+
+
+def research_list_template(item):
+    state = research_state("tsn", item.get("key"))
+    line = str(item.get("name")) + "  [" + str(item.get("branch")) + "]  -  " + state
+    gui_row("row-height: 2.2em;")
+    gui_text("$text:" + line + ";font:gui-1")
+
+
+def requisition_catalog_items(side):
+    """The catalog as listbox items (key/name/costs_text)."""
+    out = []
+    for key, name, costs in requisition_catalog(side):
+        out.append(MastDataObject({
+            "key": key, "name": name,
+            "costs_text": ", ".join(str(v) + " " + k for k, v in costs.items())}))
+    return out
+
+
+def requisition_list_title():
+    gui_row("row-height: 1.2em;padding:6px;background:#1578;")
+    gui_text("$text:Requisition catalog")
+
+
+def requisition_list_template(item):
+    gui_row("row-height: 2.2em;")
+    gui_text("$text:" + str(item.get("name")) + "   (" + str(item.get("costs_text")) + ");font:gui-1")
 
 
 def requisition_try_deliver(side, key):

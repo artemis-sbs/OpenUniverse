@@ -302,9 +302,12 @@ ADM_PLATFORMS = {
     # Refinery: boosts ITS worldlet's extraction and adds storage (slice 2).
     "refinery": {"name": "Refinery", "cost": {"ore": 100, "gas": 20},
                  "build_time": 30, "art": "starbase_civil", "per_worldlet": True},
-    # Shipyard: the research site (universe_research.py); fleet hulls in slice 3.
+    # Shipyard: the research site (universe_research.py); fleets form here.
     "shipyard": {"name": "Shipyard", "cost": {"ore": 200, "crew": 20},
                  "build_time": 45, "art": "starbase_science", "per_worldlet": False},
+    # Academy: trains the officer roster (universe_fleets.py).
+    "academy": {"name": "Academy", "cost": {"ore": 120, "crew": 10},
+                "build_time": 35, "art": "starbase_command", "per_worldlet": False},
 }
 
 REFINERY_EXTRACT_MULT = 1.5   # a Refinery speeds its own worldlet's extraction
@@ -365,13 +368,15 @@ def admiralty_cost_text(kind):
 
 # --- Console GUI helpers (admiral.mast) -------------------------------------------
 def admiralty_ticker_text(side):
-    """The resource bar line: 'ORE 240/600   GAS 96/600   CREW 40/600   CMD 0/3'."""
+    """The resource bar line: 'ORE 240/600   GAS 96/600   CREW 40/600   CMD 1/3'.
+    CMD used = live fleets (fleet_count is a shared-namespace call into
+    universe_fleets.py)."""
     p = admiralty_pools(side)
     cmd_max = admiralty_tuning("command_points", 0)
     parts = []
     for res in ADM_RESOURCES:
         parts.append(res.upper() + " " + str(p[res]) + "/" + str(admiralty_pool_cap(side, res)))
-    return "   ".join(parts) + "   CMD 0/" + str(cmd_max)
+    return "   ".join(parts) + "   CMD " + str(fleet_count()) + "/" + str(cmd_max)
 
 
 def worldlet_list_title():

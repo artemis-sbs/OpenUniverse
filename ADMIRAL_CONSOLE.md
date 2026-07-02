@@ -605,10 +605,25 @@ Admiral-only overlays (yields popup, supply radii, border hatching).
    delivered as REAL items beside the player ships with a comms
    notice. Subsidy deferred to slice 2.5 (needs commerce pricing
    hooks). GUI style rule learned: $text first, justify:left never.
-5. Slice 3 next: fleets + captains (Academy, the six orders, gas burn,
-   command points live) + `## Officers` AMD. Carried gaps: worldlet
-   reserve depletion not persisted across jumps/saves; CMD shows 0/N
-   until fleets; subsidy pending.
+5. ~~Slice 3.~~ **DONE + verified in the browser (2026-07-01):** the
+   Academy platform trains the `## Officers` AMD roster (Vale / Kade /
+   Ashwell); fleets (2 escorts + 1 line ship) form at the Shipyard for
+   resources + one command point; the six orders run as a per-fleet
+   tick using target/target_pos primitives (deliberately not brains -
+   self-contained); every non-hold order burns gas (officer-scaled)
+   and dry tanks force hold; salvage strips wrecks into the
+   stockpiles; officer trait bonuses derive linearly from the authored
+   Values (by-the-book 40 -> gas x0.8, resourceful 40 -> salvage x1.5,
+   fearsome 40 -> engage x1.4) - writers tune officers by writing
+   character; officer acknowledgments reach the crews as comms; CMD in
+   the ticker is live. **UI pattern settled (user): every repeating
+   list is a scrollable gui_list_box + a context/detail panel acting
+   on the selection** - Map, Research, Fleets, Requisition all use it.
+6. Slice 4 next: Bastion + border skirmishes, MIA/rescue captains,
+   antimatter veil, (OU) Relay Gate. Carried gaps: fleets are
+   per-session and per-system (jump clears NPCs; not persisted);
+   worldlet reserve depletion not persisted; subsidy pending; officer
+   faces/dialogue scenes not yet wired (chatter is text broadcasts).
 
 ---
 

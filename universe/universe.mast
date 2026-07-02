@@ -119,13 +119,15 @@ GameCode:
     worldlets_configure(universe_parse_worldlets(UNIVERSE_DOC))
     admiralty_configure(universe_admiralty_cfg(UNIVERSE_DOC))
     research_configure(universe_parse_research(UNIVERSE_DOC))
+    officers_configure(universe_parse_officers(UNIVERSE_DOC))
     for _clan in UNIVERSE_CLANS:
         await prefab_spawn(prefab_side_generic, {"key": _clan.key, "name": _clan.name, "desc": _clan.desc, "color": _clan.color, "enemies": _clan.enemies})
     # Seed the Admiral side's starting stockpiles (guarded - once per campaign)
-    # and start the extraction economy (admiral.mast).
+    # and start the extraction economy + the fleet order loop (admiral.mast).
     if admiralty_active():
         admiralty_seed_pools("tsn")
         task_schedule(admiralty_economy_tick)
+        task_schedule(admiralty_fleet_loop)
     shared universe_terrain_value = terrain_to_value(TERRAIN_SELECT)
     # Continue loads the saved universe (seed + position + deltas); New Game
     # starts fresh from the Seed property (0 = random) and overwrites the save.

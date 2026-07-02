@@ -23,6 +23,20 @@ shared ADM_BUILDS = []
     jump econ_loop
 
 
+# The navy's heartbeat: every few seconds each fleet executes its order
+# (universe_fleets.fleet_tick - movement/targeting/gas/salvage). Officer
+# events (fleet lost, salvage hauls, dry tanks) reach the crews as comms.
+=== admiralty_fleet_loop
+--- fleet_loop
+    await delay_sim(3)
+    ->END if not UNIVERSE_ACTIVE
+    for _fl in fleet_list():
+        fleet_evt = fleet_tick(_fl.key, 3)
+        if fleet_evt is not None:
+            comms_broadcast(role("__player__"), fleet_evt, "#8cf")
+    jump fleet_loop
+
+
 # One platform build: cost was already paid (admiralty_try_build); wait out
 # the build time, then the platform appears beside its worldlet.
 === admiralty_build_task
@@ -64,6 +78,9 @@ shared ADM_BUILDS = []
 
 === admiral_console_gui
     default SEL_WORLDLET = None
+    default RESEARCH_SEL = None
+    default OFFICER_SEL = None
+    default REQ_SEL = None
     default ADM_MSG = ""
     ticker = admiralty_ticker_text("tsn")
 
@@ -120,44 +137,140 @@ shared ADM_BUILDS = []
             on gui_message(b_yard):
                 BUILD_PICK = "shipyard"
                 jump admiral_build
+            gui_row("row-height: 2em;")
+            aca_label = "Build Academy  (" + admiralty_cost_text("academy") + ")"
+            b_aca = gui_button(aca_label)
+            on gui_message(b_aca):
+                BUILD_PICK = "academy"
+                jump admiral_build
         if ADM_MSG != "":
             gui_row("row-height: 2em;")
             """$text:{ADM_MSG};color:#fa4"""
     elif ADMIRAL_TAB == "research":
-        # The tech ladder (## Research). One research at a time, at a Shipyard.
-        gui_section(style="area: 2, 18, 98, 82;")
-        for rrec in research_list():
-            r_state = research_state("tsn", rrec.key)
-            r_line = rrec.name + "  [" + rrec.branch + "]  " + research_costs_text(rrec.key) + "  " + str(rrec.time) + "s  -  " + r_state
-            r_desc = rrec.desc
-            gui_row("row-height: 2.4em; padding: 8px, 0, 0, 0;")
-            """$text:{r_line};font:gui-2"""
-            gui_row("row-height: 2.2em;")
-            """$text:{r_desc};font:gui-1"""
-            if r_state == "available":
-                gui_row("row-height: 2.2em;")
-                b_res = gui_button("Start research", data={"pick_research": rrec.key})
-                on gui_message(b_res):
-                    RESEARCH_PICK = pick_research
-                    jump admiral_research_start
+        # The tech ladder (## Research): scrollable list, actions on the
+        # selection (the Map tab's list+context pattern).
+        gui_section(style="area: 2, 18, 58, 82;")
+        rlb = gui_list_box(research_list(), "row-height: 2.2em;", item_template=research_list_template, title_template=research_list_title, select=True)
+        on change rlb.value:
+            sel_res = rlb.get_value()
+            if sel_res is not None:
+                RESEARCH_SEL = sel_res.key
+            jump admiral_console_gui
+        gui_section(style="area: 60, 18, 98, 82;")
+        if RESEARCH_SEL is None:
+            """Select a milestone to inspect it."""
+        else:
+            rrec = research_def(RESEARCH_SEL)
+            if rrec is not None:
+                r_state = research_state("tsn", RESEARCH_SEL)
+                r_line = rrec.name + "  [" + rrec.branch + "]  -  " + r_state
+                r_info = research_costs_text(RESEARCH_SEL) + "   " + str(rrec.time) + "s"
+                r_desc = rrec.desc
+                gui_row("row-height: 2.4em;")
+                """$text:{r_line};font:gui-2"""
+                gui_row("row-height: 2em;")
+                """$text:{r_info};font:gui-1"""
+                gui_row("row-height: 4em;")
+                """$text:{r_desc};font:gui-1"""
+                if r_state == "available":
+                    gui_row("row-height: 2.2em;")
+                    b_res = gui_button("Start research")
+                    on gui_message(b_res):
+                        RESEARCH_PICK = RESEARCH_SEL
+                        jump admiral_research_start
+        if ADM_MSG != "":
+            gui_row("row-height: 2em;")
+            """$text:{ADM_MSG};color:#fa4"""
+    elif ADMIRAL_TAB == "fleets":
+        # The navy: a scrollable officer roster; the context panel forms a
+        # fleet for (or gives orders to) the selected officer.
+        gui_section(style="area: 2, 18, 58, 82;")
+        olb = gui_list_box(officer_list(), "row-height: 2.2em;", item_template=officer_list_template, title_template=officer_list_title, select=True)
+        on change olb.value:
+            sel_off = olb.get_value()
+            if sel_off is not None:
+                OFFICER_SEL = sel_off.key
+            jump admiral_console_gui
+        gui_section(style="area: 60, 18, 98, 82;")
+        if OFFICER_SEL is None:
+            """Select an officer. A fleet costs one command point."""
+        else:
+            orec = officer_def(OFFICER_SEL)
+            if orec is not None:
+                o_fleet = officer_fleet(OFFICER_SEL)
+                o_line = orec.name + ", " + orec.title
+                o_desc = orec.desc
+                gui_row("row-height: 2.4em;")
+                """$text:{o_line};font:gui-2"""
+                gui_row("row-height: 4em;")
+                """$text:{o_desc};font:gui-1"""
+                if o_fleet is None:
+                    gui_row("row-height: 2em;")
+                    form_line = "Fleet cost - " + fleet_cost_text()
+                    """$text:{form_line};font:gui-1"""
+                    gui_row("row-height: 2.2em;")
+                    b_form = gui_button("Form fleet")
+                    on gui_message(b_form):
+                        OFFICER_PICK = OFFICER_SEL
+                        jump admiral_fleet_form
+                else:
+                    FLEET_PICK = o_fleet.key
+                    fl_line = fleet_status_text(o_fleet.key)
+                    gui_row("row-height: 2em;")
+                    """$text:{fl_line};font:gui-1;color:#8cf"""
+                    gui_row("row-height: 2.2em;")
+                    b_o1 = gui_button("Escort")
+                    b_o2 = gui_button("Patrol")
+                    b_o3 = gui_button("Strike")
+                    on gui_message(b_o1):
+                        ORDER_PICK = "escort"
+                        jump admiral_fleet_order
+                    on gui_message(b_o2):
+                        ORDER_PICK = "patrol"
+                        jump admiral_fleet_order
+                    on gui_message(b_o3):
+                        ORDER_PICK = "strike"
+                        jump admiral_fleet_order
+                    gui_row("row-height: 2.2em;")
+                    b_o4 = gui_button("Hold")
+                    b_o5 = gui_button("Salvage")
+                    b_o6 = gui_button("Withdraw")
+                    on gui_message(b_o4):
+                        ORDER_PICK = "hold"
+                        jump admiral_fleet_order
+                    on gui_message(b_o5):
+                        ORDER_PICK = "salvage"
+                        jump admiral_fleet_order
+                    on gui_message(b_o6):
+                        ORDER_PICK = "withdraw"
+                        jump admiral_fleet_order
         if ADM_MSG != "":
             gui_row("row-height: 2em;")
             """$text:{ADM_MSG};color:#fa4"""
     elif ADMIRAL_TAB == "requisition":
         # Resources -> a real item delivered beside the player ships. The
         # catalog starts with the classic upgrades; research adds to it.
-        gui_section(style="area: 2, 18, 98, 82;")
-        gui_row("row-height: 2em;")
+        gui_section(style="area: 2, 18, 58, 82;")
+        qlb = gui_list_box(requisition_catalog_items("tsn"), "row-height: 2.2em;", item_template=requisition_list_template, title_template=requisition_list_title, select=True)
+        on change qlb.value:
+            sel_req = qlb.get_value()
+            if sel_req is not None:
+                REQ_SEL = sel_req.key
+            jump admiral_console_gui
+        gui_section(style="area: 60, 18, 98, 82;")
+        gui_row("row-height: 3em;")
         """Requisitions are delivered beside the player ships - fly over to collect."""
-        for req in requisition_catalog("tsn"):
-            req_line = req[1] + "   (" + requisition_costs_text("tsn", req[0]) + ")"
-            gui_row("row-height: 2.4em; padding: 8px, 0, 0, 0;")
-            """$text:{req_line};font:gui-2"""
-            gui_row("row-height: 2.2em;")
-            b_req = gui_button("Deliver", data={"pick_req": req[0]})
-            on gui_message(b_req):
-                REQ_PICK = pick_req
-                jump admiral_requisition
+        if REQ_SEL is not None:
+            req_entry = requisition_entry("tsn", REQ_SEL)
+            if req_entry is not None:
+                req_line = req_entry[1] + "   (" + requisition_costs_text("tsn", REQ_SEL) + ")"
+                gui_row("row-height: 2.4em;")
+                """$text:{req_line};font:gui-2"""
+                gui_row("row-height: 2.2em;")
+                b_req = gui_button("Deliver")
+                on gui_message(b_req):
+                    REQ_PICK = REQ_SEL
+                    jump admiral_requisition
         if ADM_MSG != "":
             gui_row("row-height: 2em;")
             """$text:{ADM_MSG};color:#fa4"""
@@ -208,6 +321,28 @@ shared ADM_BUILDS = []
         task_schedule(admiralty_research_task, {"research_key": RESEARCH_PICK})
     else:
         ADM_MSG = fail
+    jump admiral_console_gui
+
+
+=== admiral_fleet_form
+    default OFFICER_PICK = None
+    ADM_MSG = ""
+    fail = fleet_try_form("tsn", OFFICER_PICK)
+    if fail is None:
+        form_officer = officer_def(OFFICER_PICK)
+        comms_broadcast(role("__player__"), form_officer.name + " has formed a fleet at the shipyard.", "#8cf")
+    else:
+        ADM_MSG = fail
+    jump admiral_console_gui
+
+
+=== admiral_fleet_order
+    default FLEET_PICK = None
+    default ORDER_PICK = None
+    ADM_MSG = ""
+    ack = fleet_set_order(FLEET_PICK, ORDER_PICK)
+    if ack != "":
+        comms_broadcast(role("__player__"), ack, "#8cf")
     jump admiral_console_gui
 
 

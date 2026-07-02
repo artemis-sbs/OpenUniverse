@@ -14,6 +14,7 @@ import universe_landmarks.py
 import universe_goods.py
 import universe_worldlets.py
 import universe_research.py
+import universe_fleets.py
 import universe_systems.py
 import universe_standby.py
 import universe_codex.mast

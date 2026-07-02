@@ -316,6 +316,40 @@ Research pace: campaign
 The war effort behind the player fleet - dials for the Admiral console.
 Omit this chapter (and Worldlets) for a universe with no Admiral game.
 
+## Officers
+
+The Academy roster - named fleet captains for the player side (the Admiral
+console's navy). Values use the reputation poles and drive each officer's
+fleet bonuses: by-the-book runs leaner (less gas burn), resourceful salvages
+richer, fearsome engages farther. Driven by universe_fleets.py.
+
+### Commodore Ansel Vale (vale)
+---
+Title: the Quartermaster
+Values: by-the-book 40, honest 30, kind 10
+Face: male
+---
+Ran the academy's logistics course for a decade and the lanes know it.
+Fleets under Vale come home fueled, patched, and on schedule.
+
+### Captain Iris Kade (kade)
+---
+Title: Old Thunder
+Values: fearsome 40, violent 20, generous 10
+Face: female
+---
+Leads from the front and shoots first. Kade's fleets hit harder and
+scare easier prey off the board before a shot is fired.
+
+### Captain Juno Ashwell (ashwell)
+---
+Title: the Magpie
+Values: resourceful 40, intellectual 20, selfish 10
+Face: female
+---
+Never met a wreck she could not strip or a sensor shadow she could not
+slip through. Ashwell's fleets salvage more and die less.
+
 ## Research
 
 The Admiralty's tech ladder (researched at a Shipyard). Each milestone names
