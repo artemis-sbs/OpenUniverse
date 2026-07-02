@@ -113,8 +113,18 @@ GameCode:
     shared UNIVERSE_LANDMARKS = universe_parse_landmarks(UNIVERSE_DOC)
     # Goods (the `goods` section): the authored loot pool the POI deck scatters.
     goods_configure(universe_parse_goods(UNIVERSE_DOC))
+    # Worldlets + Admiralty (the Admiral console economy, ADMIRAL_CONSOLE.md):
+    # register the authored worldlet types and the Admiralty tuning. Inactive
+    # (zero worldlets, no Admiral game) unless the universe authors both.
+    worldlets_configure(universe_parse_worldlets(UNIVERSE_DOC))
+    admiralty_configure(universe_admiralty_cfg(UNIVERSE_DOC))
     for _clan in UNIVERSE_CLANS:
         await prefab_spawn(prefab_side_generic, {"key": _clan.key, "name": _clan.name, "desc": _clan.desc, "color": _clan.color, "enemies": _clan.enemies})
+    # Seed the Admiral side's starting stockpiles (guarded - once per campaign)
+    # and start the extraction economy (admiral.mast).
+    if admiralty_active():
+        admiralty_seed_pools("tsn")
+        task_schedule(admiralty_economy_tick)
     shared universe_terrain_value = terrain_to_value(TERRAIN_SELECT)
     # Continue loads the saved universe (seed + position + deltas); New Game
     # starts fresh from the Seed property (0 = random) and overwrites the save.
@@ -788,6 +798,8 @@ GameCode:
                     mine = terrain_spawn(poi.x + moff.x, poi.y, poi.z + moff.z, None, None, "danger_1a", "behav_mine")
                     mine.data_set.set("damage_done", 8)
                     mine.data_set.set("blast_radius", 900)
+            case "worldlet":
+                universe_worldlet_spawn(poi.worldlet_type, poi.x, poi.y, poi.z, poi.radius)
 
     # Landmarks: named hand-placed stations/wrecks/beacons pinned to this system,
     # layered on top of the procedural content (universe_landmarks.py).
@@ -795,6 +807,9 @@ GameCode:
         lmpos = universe_landmark_pos(key, lm)
         if lm.kind == "derelict":
             terrain_spawn(lmpos[0], lmpos[1], lmpos[2], lm.name, "wreck, universe_derelict, landmark", universe_landmark_art(lm), "behav_wreck")
+        elif lm.kind == "worldlet":
+            # A hand-placed worldlet (Type: names the ## Worldlets entry).
+            universe_worldlet_spawn(lm.wtype, lmpos[0], 0.0, lmpos[2], 500)
         else:
             npc_spawn(lmpos[0], lmpos[1], lmpos[2], lm.name, lm.side + ", station, landmark", universe_landmark_art(lm), "behav_station")
 

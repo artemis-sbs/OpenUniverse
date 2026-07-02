@@ -26,6 +26,8 @@ def universe_parse_landmarks(doc):
                 "side": data.get("side") or "tsn",
                 "art": data.get("art"),
                 "roles": data.get("roles"),
+                # Kind: worldlet landmarks name their worldlet type (Type: cinder).
+                "wtype": data.get("type"),
             }))
     return out
 

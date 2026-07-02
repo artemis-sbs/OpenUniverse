@@ -195,6 +195,36 @@ def universe_amd_data(text):
             data.setdefault("generation", {})[_GEN_PCT[label]] = _f_pct(value)
         elif label == "loot max":
             data.setdefault("generation", {})["loot_max"] = _f_num(value)
+        elif label == "worldlet chance":
+            data.setdefault("generation", {})["worldlet"] = _f_pct(value)
+        elif label == "yields":
+            # Worldlet extraction: 'ore 8, crew 2' -> {ore: 8, crew: 2} per minute.
+            data["yields"] = _f_weighted(value)
+        elif label == "reserve":
+            # Depletion pool; 'unlimited' -> None (never runs dry).
+            data["reserve"] = None if value.strip().lower() == "unlimited" else _f_num(value)
+        elif label == "palette":
+            # behav_planet surface look: 'base #8c2f1c, clouds #b8c4e0, bands 3.7'
+            # -> {base: '#8c2f1c', clouds: '#b8c4e0', bands: 3.7}.
+            pal = {}
+            for item in _f_list(value):
+                toks = item.split()
+                if len(toks) >= 2:
+                    pal[_f_norm(toks[0])] = _f_num(" ".join(toks[1:]))
+            data["palette"] = pal
+        elif label in ("start ore", "start gas", "start crew"):
+            # Admiralty starting stockpiles.
+            data.setdefault("admiralty", {})[_f_norm(label)] = _f_num(value)
+        elif label == "command points":
+            data.setdefault("admiralty", {})["command_points"] = _f_num(value)
+        elif label == "fleet gas burn":
+            data.setdefault("admiralty", {})["fleet_gas_burn"] = _f_num(value)
+        elif label == "requisition budget":
+            data.setdefault("admiralty", {})["requisition_budget"] = _f_reward(value)["credits"]
+        elif label == "skirmish pressure":
+            data.setdefault("admiralty", {})["skirmish_pressure"] = value
+        elif label == "research pace":
+            data.setdefault("admiralty", {})["research_pace"] = value
         elif label == "values":
             data["leans"] = _f_weighted(value)
         elif label == "offers":

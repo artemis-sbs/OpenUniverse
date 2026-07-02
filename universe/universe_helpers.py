@@ -435,6 +435,9 @@ _GEN_DEFAULTS = {
     "station": 0.15, "enemy": 0.15, "nebula": 0.12, "anomaly": 0.08,
     # POI-deck weights (universe_systems.universe_system_deck).
     "loot_max": 2, "derelict": 0.4, "derelict_nebula": 0.7, "outpost": 0.4, "mines": 0.5,
+    # Worldlets (Admiral console economy) are off unless a universe authors an
+    # Admiralty chapter (its Worldlet chance dial arrives via generation_set).
+    "worldlet": 0.0,
 }
 _GEN = dict(_GEN_DEFAULTS)
 # Regions with local generation overrides (set at load by regions_configure), so a
@@ -455,6 +458,14 @@ def generation_configure(cfg):
         for k, v in cfg.items():
             if k in _GEN_DEFAULTS:
                 _GEN[k] = v
+
+
+def generation_set(name, value):
+    """Set one generation knob after configure - the Admiralty chapter's
+    Worldlet chance arrives this way (admiralty_configure in
+    universe_worldlets.py), since it is authored outside the root fence."""
+    if name in _GEN_DEFAULTS:
+        _GEN[name] = value
 
 
 def regions_configure(regions):

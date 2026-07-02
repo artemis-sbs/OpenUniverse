@@ -267,6 +267,54 @@ Weight: 6
 ---
 Quiet cargo, quiet questions. Rare, and not strictly legal.
 
+## Worldlets
+
+The resource bodies of this galaxy (the Admiral console's economy). Each type
+names what it yields per minute per extractor, how much it holds before
+running dry (Reserve: unlimited for settled worlds), and its look (the
+behav_planet surface palette). Placement: procedural via the POI deck
+(Worldlet chance, in Admiralty) or hand-placed as a Landmark with
+Kind: worldlet. Driven by universe_worldlets.py.
+
+### Cinder World (cinder)
+---
+Yields: ore 8
+Reserve: 4000
+Palette: base #8c2f1c, emissive #48180c, clouds #776655
+---
+A cracked, mineral-rich ember of a world. Miners love it; nobody else does.
+
+### Veiled Giant (veiled_giant)
+---
+Yields: gas 10
+Reserve: 6000
+Palette: base #2c4a8c, clouds #b8c4e0, bands 3.7
+---
+A banded gas giant, its high winds rich in fuel-grade volatiles.
+
+### Haven World (haven)
+---
+Yields: crew 2, ore 2, gas 2
+Reserve: unlimited
+Palette: base #2f6e3a, clouds #ffffff
+---
+A small settled world. People, modest industry, and somewhere to come from.
+
+## Admiralty
+---
+Worldlet chance: 30%
+Start ore: 200
+Start gas: 100
+Start crew: 40
+Command points: 3
+Fleet gas burn: 2
+Requisition budget: 800 credits
+Skirmish pressure: border
+Research pace: campaign
+---
+The war effort behind the player fleet - dials for the Admiral console.
+Omit this chapter (and Worldlets) for a universe with no Admiral game.
+
 ## Captains
 ---
 File: captains/ashfang.amd

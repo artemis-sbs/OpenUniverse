@@ -1,0 +1,140 @@
+# The Admiral console - slice 1 (see ADMIRAL_CONSOLE.md).
+# A strategic console ON THE PLAYER SIDE: worldlets, extraction, and the side
+# stockpiles. This slice: the resource ticker, the Map tab (worldlet list +
+# selection + info), and HQ/Extractor builds feeding the extraction tick.
+# Later slices add Build/Research/Fleets/Requisition content to the tabs.
+#
+# Economy state lives on the side agent (universe_worldlets.py); the console
+# only presents it, so any number of Admiral consoles can join one side
+# (decision: multi-Admiral co-op, last command wins).
+
+default shared ADMIRAL_TAB = "map"
+shared ADM_BUILDS = []
+
+
+# Started by @map/universe when the universe has an Admiralty chapter. One
+# global task: every tick, extractor platforms pull their worldlet's yields
+# into the side pools (per-minute rates, scaled by the tick seconds).
+=== admiralty_economy_tick
+--- econ_loop
+    await delay_sim(6)
+    ->END if not UNIVERSE_ACTIVE
+    admiralty_extraction_tick("tsn", 6)
+    jump econ_loop
+
+
+# One platform build: cost was already paid (admiralty_try_build); wait out
+# the build time, then the platform appears beside its worldlet.
+=== admiralty_build_task
+    default build_kind = "extractor"
+    default build_worldlet_id = None
+    pdef = admiralty_platform_def(build_kind)
+    ->END if pdef is None or build_worldlet_id is None
+    build_label = pdef.get("name") + " at " + str(to_object(build_worldlet_id).name)
+    ADM_BUILDS.append(build_label)
+    await delay_sim(pdef.get("build_time"))
+    ADM_BUILDS.remove(build_label)
+    admiralty_build_done(build_kind, "tsn", build_worldlet_id)
+    ->END
+
+
+@console/admiral !0 ^10 "Admiral" if UNIVERSE_ACTIVE and admiralty_active()
+    " The war effort behind the fleet - worldlets, extraction, and stockpiles.
+    default SEL_WORLDLET = None
+    default ADM_MSG = ""
+    jump admiral_console_gui
+
+
+=== admiral_console_gui
+    default SEL_WORLDLET = None
+    default ADM_MSG = ""
+    ticker = admiralty_ticker_text("tsn")
+
+    # Resource bar (CQ's resource bar, reborn).
+    gui_section(style="area: 2, 2, 98, 9; background:#1578;")
+    """justify:center; font:gui-4; $text:{ticker}"""
+
+    # Tab strip - Map is live; the rest arrive in later slices.
+    gui_section(style="area: 2, 10, 98, 17;")
+    gui_row("row-height: 2em;")
+    admiral_tabs = [["map","Map"], ["build","Build"], ["research","Research"], ["fleets","Fleets"], ["requisition","Requisition"]]
+    gui_screen_tabs(admiral_tabs, ADMIRAL_TAB, "admiral_set_tab")
+
+    if ADMIRAL_TAB == "map":
+        worldlet_list = worldlets_in_system()
+        gui_section(style="area: 2, 18, 58, 82;")
+        if len(worldlet_list) == 0:
+            """No worldlets in this system. Explore - the survey charts show them on arrival."""
+        else:
+            wlb = gui_list_box(worldlet_list, "row-height: 2.2em;", item_template=worldlet_list_template, title_template=worldlet_list_title, select=True)
+            on change wlb.value:
+                sel_item = wlb.get_value()
+                if sel_item is not None:
+                    SEL_WORLDLET = to_id(sel_item)
+                jump admiral_console_gui
+
+        gui_section(style="area: 60, 18, 98, 82;")
+        if SEL_WORLDLET is None:
+            """Select a worldlet to inspect it and build."""
+        else:
+            sel_text = worldlet_sel_text(SEL_WORLDLET, "tsn")
+            """justify:left; $text:{sel_text}"""
+            gui_row("row-height: 2em;")
+            hq_label = "Build HQ  (" + admiralty_cost_text("hq") + ")"
+            b_hq = gui_button(hq_label)
+            on gui_message(b_hq):
+                jump admiral_build_hq
+            gui_row("row-height: 2em;")
+            ext_label = "Build Extractor  (" + admiralty_cost_text("extractor") + ")"
+            b_ext = gui_button(ext_label)
+            on gui_message(b_ext):
+                jump admiral_build_extractor
+        if ADM_MSG != "":
+            gui_row("row-height: 1.5em;")
+            """justify:left; color:#fa4; $text:{ADM_MSG}"""
+    else:
+        gui_section(style="area: 2, 20, 98, 60;")
+        """This tab arrives in a later slice. The Map tab is live now."""
+
+    # Build queue line (the mock's bottom bar).
+    if len(ADM_BUILDS) > 0:
+        gui_section(style="area: 2, 84, 98, 92; background:#0006;")
+        queue_text = ", ".join(ADM_BUILDS)
+        """justify:left; $text:BUILDING - {queue_text}"""
+
+    gui_sub_task_schedule("admiral_watch")
+    await gui()
+
+--- admiral_watch
+    # Repaint when the economy moves (ticker change) or a build finishes.
+    prev_sig = ticker + str(len(ADM_BUILDS))
+    await delay_sim(3)
+    ->END if not UNIVERSE_ACTIVE
+    if prev_sig != admiralty_ticker_text("tsn") + str(len(ADM_BUILDS)):
+        gui_task_jump("admiral_console_gui")
+    jump admiral_watch
+
+
+=== admiral_set_tab
+    ADMIRAL_TAB = TAB_KEY
+    jump admiral_console_gui
+
+
+=== admiral_build_hq
+    ADM_MSG = ""
+    fail = admiralty_try_build("hq", "tsn", SEL_WORLDLET)
+    if fail is None:
+        task_schedule(admiralty_build_task, {"build_kind": "hq", "build_worldlet_id": SEL_WORLDLET})
+    else:
+        ADM_MSG = fail
+    jump admiral_console_gui
+
+
+=== admiral_build_extractor
+    ADM_MSG = ""
+    fail = admiralty_try_build("extractor", "tsn", SEL_WORLDLET)
+    if fail is None:
+        task_schedule(admiralty_build_task, {"build_kind": "extractor", "build_worldlet_id": SEL_WORLDLET})
+    else:
+        ADM_MSG = fail
+    jump admiral_console_gui

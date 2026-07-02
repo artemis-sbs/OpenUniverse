@@ -579,11 +579,25 @@ Admiral-only overlays (yields popup, supply radii, border hatching).
 ## 18. Next actions
 
 1. Confirm/correct the Siege-worldlet reading.
-2. Review the AMD strawman appendix; when it reads right, it moves into
-   `default.amd` (or an `admiralty.amd` spliced via `File:`) as slice 1's
-   authored data.
-3. Slice 1 build begins: worldlet spawn (POI deck + Landmark kind), the
-   Map tab shell, resource ticker.
+2. ~~Review the AMD strawman; move into default.amd.~~ **DONE** - `##
+   Worldlets` + `## Admiralty` live in default.amd (Officers wait for
+   slice 3).
+3. ~~Slice 1 build.~~ **DONE + verified in the browser (2026-07-01):**
+   worldlet types/tuning parse via the friendly reader
+   (universe_amd.py), worldlets spawn via the POI deck (authored 30%,
+   home system guaranteed a settled type) and as `Kind: worldlet`
+   landmarks (universe_worldlets.py + universe_systems.py), side
+   ore/gas/crew pools ride the side agent like credits, and the
+   Admiral console (admiral.mast) has the ticker, the five tabs (Map
+   live), worldlet select/inspect, HQ + Extractor builds with costs,
+   prereqs and build times, a build queue line, and the extraction
+   tick feeding the ticker. Inert for universes with no Admiralty
+   chapter (Silver Reach unchanged).
+4. Slice 2 next: Refinery + Shipyard platforms, milestone research
+   (one branch), requisition -> an upgrade item at a station, subsidy
+   toggle. Known slice-1 gaps to carry: worldlet reserve depletion is
+   not yet persisted across jumps/saves; CMD shows 0/N until fleets
+   exist (slice 3).
 
 ---
 
