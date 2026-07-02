@@ -50,6 +50,14 @@ FLEET_COST = {"ore": 180, "gas": 40, "crew": 24}
 
 FLEET_ORDERS = ["escort", "patrol", "strike", "hold", "salvage", "withdraw"]
 
+# Veterancy: officers on active fleet duty accrue service time and level up,
+# deepening the authored Values they were built for (ADMIRAL_CONSOLE.md s.6 -
+# "captains the crews fly with get better"). Capped so veterans improve but
+# never trivialise; a lost veteran genuinely stings (raises the MIA stakes).
+VETERAN_STEP = 90.0        # active-duty seconds per veteran level
+VETERAN_BUMP = 4           # lean points added per level (to authored poles only)
+VETERAN_MAX_LEVEL = 4      # level cap
+
 _OFFICERS = {}       # key -> authored record
 _OFFICER_FACES = {}  # key -> resolved face string (stable per session)
 _OFFICER_STATE = {}  # key -> {"status": active|mia|lost|captured, ...}
@@ -259,18 +267,33 @@ def officer_fleet(key):
     return None
 
 
+def officer_level(key):
+    """Veteran level from accrued active-duty service (capped). 0 = rookie."""
+    st = _OFFICER_STATE.get(key)
+    vet = float(st.get("vet", 0.0)) if isinstance(st, dict) else 0.0
+    return min(VETERAN_MAX_LEVEL, int(vet / VETERAN_STEP))
+
+
+def officer_effective_lean(key, pole):
+    """An officer's pole weight grown by veterancy - but only for poles they were
+    built for (an authored strength deepens with service; veterancy never grants
+    a pole from nothing, so officers grow INTO their character, not out of it)."""
+    base = ((_OFFICERS.get(key) or {}).get("leans") or {}).get(pole, 0)
+    if base <= 0:
+        return base
+    return base + officer_level(key) * VETERAN_BUMP
+
+
 def officer_bonus(key, kind):
-    """A trait-derived multiplier. Linear in the pole weight, so the authored
-    Values ARE the tuning: by_the_book 40 -> gas x0.8; resourceful 40 ->
-    salvage x1.5; fearsome 40 -> engage range x1.4."""
-    o = _OFFICERS.get(key)
-    leans = (o.get("leans") if o else None) or {}
+    """A trait-derived multiplier. Linear in the pole weight (grown by veterancy),
+    so the authored Values ARE the tuning: by_the_book 40 -> gas x0.8;
+    resourceful 40 -> salvage x1.5; fearsome 40 -> engage range x1.4."""
     if kind == "gas":
-        return max(0.5, 1.0 - leans.get("by_the_book", 0) * 0.005)
+        return max(0.5, 1.0 - officer_effective_lean(key, "by_the_book") * 0.005)
     if kind == "salvage":
-        return 1.0 + leans.get("resourceful", 0) * 0.0125
+        return 1.0 + officer_effective_lean(key, "resourceful") * 0.0125
     if kind == "engage":
-        return 1.0 + leans.get("fearsome", 0) * 0.01
+        return 1.0 + officer_effective_lean(key, "fearsome") * 0.01
     return 1.0
 
 
@@ -337,8 +360,8 @@ def _officers_sync(side):
 
 
 def _officers_restore(side):
-    """Rebuild officer fates from side inventory when the live registry is
-    empty (a fresh session continuing a saved campaign)."""
+    """Rebuild officer fates + veterancy from side inventory when the live
+    registry is empty (a fresh session continuing a saved campaign)."""
     if _OFFICER_STATE:
         return
     saved = get_inventory_value(to_side_id(side), "adm_officers", {}) or {}
@@ -347,11 +370,26 @@ def _officers_restore(side):
             _OFFICER_STATE[k] = dict(v)
 
 
+def _officer_add_service(side, key, dt):
+    """Accrue active-duty time for a commanding officer; persist on a level-up.
+    Creates a plain active entry the first time (status defaults to active), so
+    veterancy tracks even for officers who never go MIA."""
+    st = _OFFICER_STATE.setdefault(key, {"status": "active", "vet": 0.0})
+    if not isinstance(st, dict):
+        return
+    before = officer_level(key)
+    st["vet"] = float(st.get("vet", 0.0)) + float(dt)
+    if officer_level(key) != before:
+        _officers_sync(side)
+
+
 def _officer_mia_begin(side, key, x, z):
     """The flag is gone: the officer goes MIA and the pod drops where the
-    fleet died. The pod is a small friendly wreck the crews can reach."""
-    _OFFICER_STATE[key] = {"status": "mia",
-                           "mia_left": float(admiralty_tuning("mia_timer", 300))}
+    fleet died. The pod is a small friendly wreck the crews can reach.
+    Updates the entry in place so accrued veterancy survives the ordeal."""
+    st = _OFFICER_STATE.setdefault(key, {"status": "active", "vet": 0.0})
+    st["status"] = "mia"
+    st["mia_left"] = float(admiralty_tuning("mia_timer", 300))
     _officer_cast_park(key)
     _officers_sync(side)
     o = _OFFICERS.get(key)
@@ -600,6 +638,9 @@ def fleet_tick(fleet_key, dt_seconds, veiled=False):
 
     ids = set(s.id for s in ships)
     lead = ships[0]
+    # Active duty grows the officer: veterancy deepens their fleet bonuses.
+    if order != "hold":
+        _officer_add_service(side, okey, dt_seconds)
     engage = 6000.0 * officer_bonus(okey, "engage")
     hostiles = role("raider")
 
@@ -696,5 +737,8 @@ def officer_list_template(item):
         status = ("commanding " + f.get("key").upper() + " (" + f.get("order") + ")"
                   if f is not None else "available")
     line = str(item.get("name")) + ", " + str(item.get("title")) + "  -  " + status
+    o_lvl = officer_level(okey)
+    if o_lvl > 0:
+        line = line + "   [Vet " + str(o_lvl) + "]"
     gui_row("row-height: 2.2em;")
     gui_text("$text:" + line + ";font:gui-1")

@@ -129,6 +129,18 @@ anti-snowball rail (upkeep competes with fleets/builds/research; discount capped
 sells never subsidised). Persists in side_admiralty. Closes the Admiral bridge
 set; the LM items.py change is generic (any mission can set a side subsidy).
 
+## Officer veterancy (2026-07-02; browser check pending)
+"Captains the crews fly with get better" (design section 6). An officer
+commanding a fleet on an active (non-hold) order accrues service time each
+fleet_tick; every VETERAN_STEP seconds is a veteran level (capped at
+VETERAN_MAX_LEVEL). Each level adds VETERAN_BUMP to the Values they were built
+for - and ONLY those (officer_effective_lean grows an authored pole, never
+grants a new one), so a fearsome captain grows more fearsome (engage range), a
+resourceful one salvages richer, a by-the-book one burns less gas. officer_bonus
+reads the grown leans. Veterancy persists (vet field in adm_officers) and
+survives MIA/capture in place, so a lost veteran genuinely stings - it raises
+the stakes of the MIA/rescue loop. Roster shows "[Vet N]".
+
 ## Sensor Relay - command-point expansion (2026-07-02; browser check pending)
 Phase-2 platform: the navy grows through infrastructure. Each Sensor Relay
 (per-worldlet, so they stack across a system) adds SENSOR_COMMAND_POINTS to the
