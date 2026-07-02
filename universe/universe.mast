@@ -199,14 +199,17 @@ GameCode:
     ->END
 
 
-# Engine-network culling: periodically park terrain far from all players (out of
-# the network) and retrieve it as they approach. Terrain only (brain-less).
+# Engine-network culling. Terrain is NEVER proximity-culled within a system:
+# parking/retrieving to standby is itself expensive network traffic, and terrain
+# is passive, so it just stays loaded for the whole visit. A system's terrain is
+# torn down only on a jump (universe_clear_system despawns the whole sector).
+# Raider fleets - brained NPCs whose AI is the real ongoing cost - still cull as a
+# unit (an occasional whole-formation park when the players leave them behind).
 === universe_cull_loop
 --- culloop
     await delay_sim(3)
     ->END if not UNIVERSE_ACTIVE
     if UNIVERSE_CULL:
-        universe_cull_step(to_object_list(role("asteroid") | role("nebula") | role("black_hole") | role("mine")), UNIVERSE_CULL_RADIUS)
         # Fleets cull as a unit (whole formation parked + brain paused when far).
         universe_cull_fleets("raider_fleet", UNIVERSE_CULL_RADIUS)
     jump culloop
