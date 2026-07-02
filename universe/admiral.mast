@@ -37,7 +37,7 @@ shared ADM_BUILDS = []
     # saves carry the infrastructure and the relay knows what to pay.
     universe_sectors = universe_set_system_value(universe_sectors, universe_i, universe_j, "worldlet_reserves", worldlets_snapshot_reserves())
     universe_sectors = universe_set_system_value(universe_sectors, universe_i, universe_j, "admiral_platforms", admiralty_snapshot_platforms("tsn"))
-    universe_sectors = universe_set_system_value(universe_sectors, universe_i, universe_j, "adm_income", admiralty_income_snapshot("tsn"))
+    universe_sectors = universe_set_system_value(universe_sectors, universe_i, universe_j, "adm_relay", admiralty_relay_snapshot("tsn"))
     jump econ_loop
 
 

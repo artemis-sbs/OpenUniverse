@@ -74,10 +74,10 @@ exists.
   systems (region_veil_tick); tinted red nebula volume on arrival; hard amber
   wash on the chart (shown unexplored) + a nav-panel warning. Optional `Heat:` /
   `Damage:` per-second overrides. default.amd ships one at (0,7) r1.
-- **Relay Gate** - one per system; a gated system feeds its last-known income
-  (adm_income in the sectors delta) into the pools at `Relay rate:` while the
-  flag is elsewhere. Carried: remote depletion not simulated (income freezes at
-  last visit).
+- **Relay Gate** - one per system; a gated system feeds income into the pools at
+  `Relay rate:` while the flag is elsewhere. Remote depletion IS simulated (see
+  below): the relay draws against the system's stored worldlet reserves, so a
+  gated finite worldlet runs dry and unlimited ones pay on.
 
 ## Captain capture + ransom; HQ campaign uniqueness (f6c1e3f, 2026-07-02; browser check pending)
 A lapsed MIA pod is claimed by a currently hostile foe clan (ceasefire respected;
@@ -128,6 +128,16 @@ item_market.mast), and the Admiral console's Requisition tab cycles the tier
 anti-snowball rail (upkeep competes with fleets/builds/research; discount capped;
 sells never subsidised). Persists in side_admiralty. Closes the Admiral bridge
 set; the LM items.py change is generic (any mission can set a side subsidy).
+
+## Relay Gate remote depletion (2026-07-02; browser check pending)
+A gated system's remote income is no longer infinite. The econ tick snapshots a
+per-worldlet relay plan (adm_relay: {w: creation-order index, rate: {res: per
+min}} per extractor) into the sectors delta, and admiralty_relay_tick draws that
+income against the SAME worldlet_reserves list that arrival re-applies - so a
+gated finite worldlet really drains and stops, while unlimited (Haven) worldlets
+pay on. Single source of truth: the relay mutates the stored reserves in place,
+so the depletion is exactly what the player sees on their next visit. Old saves
+(adm_income, no adm_relay) fall back to the frozen aggregate.
 
 ## Terrain no longer proximity-culls in a system (a614293, 2026-07-02)
 Not an Admiral feature but landed alongside: parking/retrieving terrain to

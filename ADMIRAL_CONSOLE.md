@@ -590,9 +590,8 @@ Open:
    (in-process suite) + headless PASS; a full browser pass is still pending.
 3. Carried polish (non-blocking):
    - NPC veil *pathing* - fleets route around a veil, vs today's refuse-and-hold.
+     (Marginal: the veil is whole-system, so refuse-and-hold is arguably correct.)
    - Event dialogue *scenes* - richer than the authorable canned chatter pools.
-   - Relay Gate remote depletion is not simulated (gated income freezes at the
-     last visit).
 
 ---
 
