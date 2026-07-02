@@ -458,6 +458,31 @@ def fleet_ships(fleet_key):
     return to_object_list(role("adm_" + fleet_key))
 
 
+def fleet_of_ship(ship_id):
+    """The fleet key a selected hull belongs to (via its adm_<key> role), or None.
+    The overseer's comms route uses this: click a fleet ship on the 2D view, look
+    up which fleet it is, offer that fleet's orders."""
+    for fkey, f in _FLEETS.items():
+        if int(f.get("alive", 0)) > 0 and ship_id in role("adm_" + fkey):
+            return fkey
+    return None
+
+
+def fleet_current_order(fleet_key):
+    """A fleet's standing order ('hold' if unknown)."""
+    f = _FLEETS.get(fleet_key)
+    return f.get("order", "hold") if f is not None else "hold"
+
+
+def fleet_officer_name(fleet_key):
+    """Display name of the officer commanding a fleet ('' if none)."""
+    f = _FLEETS.get(fleet_key)
+    if f is None:
+        return ""
+    o = _OFFICERS.get(f.get("officer"))
+    return o.get("name", "") if o else ""
+
+
 def fleet_cost_text():
     return ", ".join(str(v) + " " + k for k, v in FLEET_COST.items())
 

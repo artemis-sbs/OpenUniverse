@@ -21,6 +21,7 @@ from sbs_utils.procedural.inventory import get_inventory_value, set_inventory_va
 from sbs_utils.procedural.sides import to_side_id
 from sbs_utils.procedural.roles import role, has_role
 from sbs_utils.procedural.query import to_object_list, to_object
+from sbs_utils.procedural.science import science_set_scan_data
 from sbs_utils.procedural.gui import gui_row, gui_text
 from sbs_utils.helpers import FrameContext
 
@@ -663,6 +664,25 @@ def admiralty_command_points(side):
     base = int(admiralty_tuning("command_points", 0))
     relays = len(to_object_list(role("admiral_sensor") & role(side)))
     return base + relays * SENSOR_COMMAND_POINTS
+
+
+def admiralty_scan_theatre(side):
+    """Mark the side's own theatre - the worldlets it can develop, its stations,
+    its fleets - as scanned for the WHOLE side, so the Admiral's overseer can open
+    comms on them (the engine won't enable comms on an object the origin holds no
+    science data for). science_set_scan_data keys the data on the origin's side
+    (universe: side-wide scan), so ONE pass here covers every console on the side -
+    no per-client loop. Any tsn object serves as origin; the home starbase always
+    qualifies. Stopgap until the engine can mark a side's own objects known."""
+    origins = to_object_list(role(side))
+    if not origins:
+        return
+    origin = origins[0]
+    targets = to_object_list(role("worldlet"))
+    targets += to_object_list(role("adm_fleet") & role(side))
+    targets += to_object_list(role("station") & role(side))
+    for t in targets:
+        science_set_scan_data(origin, t.id, "Admiralty Scan")
 
 
 def admiralty_build_done(kind, side, worldlet_id):
