@@ -139,6 +139,23 @@ state reads the list. Legacy single-key saves coerce to a list (in-progress
 research is session-only anyway; only the done set persists). The Research tab
 shows "Research slots: used/total". Slots into the dynamic build menu with no UI.
 
+## Fabricator - build model B, A/B toggle (2026-07-02; browser A/B pending)
+An A/B alternative to instant menu building (design section 5), behind the
+Admiralty `Build model:` knob (menu = default, fabricator = B). universe_
+fabricator.py: one slow unarmed Fabricator ship per side physically flies to
+each queued worldlet and constructs it - serial, travel takes time, the ship is
+a target. Auto-queue (not a micro chore): the Admiral queues builds
+(fabricator_enqueue, cost paid up front), the driver loop (fabricator_tick, 2s)
+flies + builds through them. Death penalty is TIME, not resources: the queue
+lives on adm_fab_queue and survives the ship, so a lost Fabricator relaunches
+from the yards after FAB_RESPAWN_DELAY and resumes the (restarted) job; a jump
+that clears the system drops jobs whose worldlet is gone, like a menu build.
+admiral_build branches on the model; the Map bottom bar shows the FABRICATOR
+queue. Placeholder hull tsn_light_cruiser (ART_WANTED). Purpose: playtest A/B -
+does menu building feel too spreadsheet-y vs. build-by-vulnerable-ship? Flip the
+AMD knob to compare. Carried: multiple fabricators, per-cell safe/vulnerable
+routing, resource-loss-on-death variant.
+
 ## Fog of war - Sensor Relay reveal (2026-07-02; browser check pending)
 The Sensor Relay's second CQ role (it already did command points). Finishing a
 Sensor Relay marks its system + the 8 neighbours 'sensed' in the sectors delta

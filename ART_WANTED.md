@@ -105,6 +105,14 @@ so there is visual variety now.
   type; author 3-4 palettes per type. See ADMIRAL_CONSOLE.md appendix "worldlet
   surface knobs" for the full data_set parameter list.
 
+## P3 - The Fabricator ship
+
+The build-model-B builder (`FAB_ART` in universe_fabricator.py) is a placeholder
+`tsn_light_cruiser`. Wants a slow, unarmed **construction / tender** hull -
+reads clearly as a non-combatant worker (cranes, cargo, a fat slow silhouette),
+so watching it cross contested space feels like exposing a valuable builder.
+Only relevant if the fabricator build model is adopted after the A/B test.
+
 ## P3 - Fleet hull livery
 
 Fleets reuse real player-faction hulls (`tsn_light_cruiser` x2 as escorts,

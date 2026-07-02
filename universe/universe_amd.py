@@ -239,6 +239,9 @@ def universe_amd_data(text):
         elif label == "relay rate":
             # Relay Gate remote income, a fraction ('50%' or '0.5').
             data.setdefault("admiralty", {})["relay_rate"] = _f_pct(value)
+        elif label == "build model":
+            # 'menu' (instant/parallel) or 'fabricator' (a builder ship). A/B knob.
+            data.setdefault("admiralty", {})["build_model"] = str(value).strip().lower()
         elif label == "research pace":
             data.setdefault("admiralty", {})["research_pace"] = value
         elif label == "values":

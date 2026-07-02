@@ -38,6 +38,7 @@ _ADM_DEFAULTS = {
     "relay_rate": 0.5,          # Relay Gate remote income fraction
     "subsidy_max": 0.3,         # cap on the crew price subsidy (fraction off)
     "subsidy_step": 0.1,        # tier size the console cycles through
+    "build_model": "menu",      # "menu" (instant/parallel) or "fabricator" (A/B)
     "research_pace": "campaign",
 }
 

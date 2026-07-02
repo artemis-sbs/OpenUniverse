@@ -152,9 +152,11 @@ GameCode:
     if admiralty_active():
         admiralty_seed_pools("tsn")
         skirmish_reset()
+        fabricator_reset()
         task_schedule(admiralty_economy_tick)
         task_schedule(admiralty_fleet_loop)
         task_schedule(admiralty_skirmish_loop)
+        task_schedule(admiralty_fabricator_loop)
     shared universe_terrain_value = terrain_to_value(TERRAIN_SELECT)
     # Continue loads the saved universe (seed + position + deltas); New Game
     # starts fresh from the Seed property (0 = random) and overwrites the save.

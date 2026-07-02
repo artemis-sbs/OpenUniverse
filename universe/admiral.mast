@@ -80,6 +80,20 @@ shared ADM_BUILDS = []
     jump skirmish_loop
 
 
+# Build model B: the Fabricator. Drives the builder ship through its queue -
+# fly to the next worldlet, construct, repeat (universe_fabricator.fabricator_tick).
+# A no-op under the default menu model (nothing ever enqueues). Events (relaunch,
+# build complete) reach the crews as Admiralty cards.
+=== admiralty_fabricator_loop
+--- fab_loop
+    await delay_sim(2)
+    ->END if not UNIVERSE_ACTIVE
+    fab_evt = fabricator_tick("tsn", 2)
+    if fab_evt is not None:
+        universe_info_card(fab_evt, "Admiralty Fabricator", "#0cf")
+    jump fab_loop
+
+
 # One platform build: cost was already paid (admiralty_try_build); wait out
 # the build time, then the platform appears beside its worldlet.
 === admiralty_build_task
@@ -343,6 +357,12 @@ shared ADM_BUILDS = []
         gui_section(style="area: 2, 84, 98, 92; background:#0006;")
         queue_text = ", ".join(ADM_BUILDS)
         """justify:left; $text:BUILDING - {queue_text}"""
+    # Fabricator model: show its build queue instead (the menu queue stays empty).
+    fab_queue = fabricator_queue("tsn")
+    if len(fab_queue) > 0:
+        gui_section(style="area: 2, 84, 98, 92; background:#0006;")
+        fab_text = ", ".join([admiralty_platform_def(fab_job["kind"]).get("name") for fab_job in fab_queue])
+        """justify:left; $text:FABRICATOR - {fab_text}"""
 
     gui_sub_task_schedule("admiral_watch")
     await gui()
@@ -365,11 +385,23 @@ shared ADM_BUILDS = []
 === admiral_build
     default BUILD_PICK = None
     ADM_MSG = ""
-    fail = admiralty_try_build(BUILD_PICK, "tsn", SEL_WORLDLET, universe_sectors, f"{universe_i},{universe_j}")
-    if fail is None:
-        task_schedule(admiralty_build_task, {"build_kind": BUILD_PICK, "build_worldlet_id": SEL_WORLDLET})
+    # Build model A/B (Admiralty `Build model:`). menu = instant + parallel task;
+    # fabricator = pay + queue a builder ship that flies out and constructs
+    # (universe_fabricator). Both validate + charge the same way.
+    if admiralty_tuning("build_model", "menu") == "fabricator":
+        build_fail = admiralty_can_build(BUILD_PICK, "tsn", SEL_WORLDLET, universe_sectors, f"{universe_i},{universe_j}")
+        if build_fail is None:
+            admiralty_spend("tsn", admiralty_platform_def(BUILD_PICK).get("cost"))
+            fabricator_enqueue("tsn", BUILD_PICK, SEL_WORLDLET)
+            ADM_MSG = "Fabricator dispatched to build " + admiralty_platform_def(BUILD_PICK).get("name") + "."
+        else:
+            ADM_MSG = build_fail
     else:
-        ADM_MSG = fail
+        build_fail = admiralty_try_build(BUILD_PICK, "tsn", SEL_WORLDLET, universe_sectors, f"{universe_i},{universe_j}")
+        if build_fail is None:
+            task_schedule(admiralty_build_task, {"build_kind": BUILD_PICK, "build_worldlet_id": SEL_WORLDLET})
+        else:
+            ADM_MSG = build_fail
     jump admiral_console_gui
 
 
