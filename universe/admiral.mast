@@ -198,6 +198,12 @@ shared ADM_BUILDS = []
             on gui_message(b_rel):
                 BUILD_PICK = "relay"
                 jump admiral_build
+            gui_row("row-height: 2em;")
+            dep_label = "Build Depot  (" + admiralty_cost_text("depot") + ")"
+            b_dep = gui_button(dep_label)
+            on gui_message(b_dep):
+                BUILD_PICK = "depot"
+                jump admiral_build
         if ADM_MSG != "":
             gui_row("row-height: 2em;")
             """$text:{ADM_MSG};color:#fa4"""

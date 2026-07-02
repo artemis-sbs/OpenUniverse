@@ -84,6 +84,7 @@ dedicated model set per platform is a nice-to-have, not a blocker.
 | Academy | `starbase_command` | A training/campus station (distinct from HQ) |
 | Bastion | `starbase_command`, `local_scale 1.5` | An armed fort - turrets/ion cannon, visibly a weapon |
 | Relay Gate | `starbase_science` | A jump-gate ring, reads as inter-system infrastructure |
+| Depot | `starbase_industry` | A supply depot with fuel tanks / tenders - a fleet resupply anchor |
 
 Art keys are the `art:` values in `ADM_PLATFORMS` (universe_worldlets.py) - an
 `## Platforms` AMD chapter could move them to data later. HQ and Bastion share

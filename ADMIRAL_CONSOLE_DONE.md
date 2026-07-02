@@ -129,6 +129,15 @@ anti-snowball rail (upkeep competes with fleets/builds/research; discount capped
 sells never subsidised). Persists in side_admiralty. Closes the Admiral bridge
 set; the LM items.py change is generic (any mission can set a side subsidy).
 
+## Depot - fleet supply anchor (2026-07-02; browser check pending)
+Phase-2 platform closing the gas-starvation gap: a fleet on any active order
+within a Depot's supply radius (DEPOT_SUPPLY_RADIUS, universe_worldlets) burns no
+gas - it's resupplied locally (admiralty_in_supply, checked in fleet_tick against
+the lead hull). Place Depots to extend patrol range on the frontier without
+draining the central stockpile; pairs with the Bastion (defend + sustain). A
+per-worldlet build (ADM_PLATFORMS "depot"), so it persists and restores via the
+existing platform snapshot like the others. Build button on the Map tab.
+
 ## Relay Gate remote depletion (2026-07-02; browser check pending)
 A gated system's remote income is no longer infinite. The econ tick snapshots a
 per-worldlet relay plan (adm_relay: {w: creation-order index, rate: {res: per

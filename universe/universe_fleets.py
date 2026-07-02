@@ -578,8 +578,10 @@ def fleet_tick(fleet_key, dt_seconds, veiled=False):
     if f.get("veil_warned"):
         setattr(f, "veil_warned", False)
 
-    # Gas: every non-hold order burns fuel (per minute, officer-scaled).
-    if order != "hold":
+    # Gas: every non-hold order burns fuel (per minute, officer-scaled) - unless
+    # the fleet sits in a Depot's supply radius, where it is resupplied locally
+    # and burns nothing (universe_worldlets.admiralty_in_supply).
+    if order != "hold" and not admiralty_in_supply(side, lead0.pos.x, lead0.pos.z):
         burn = float(admiralty_tuning("fleet_gas_burn", 2)) * officer_bonus(okey, "gas")
         need = burn * float(dt_seconds) / 60.0
         if admiralty_pool_get(side, "gas") <= 0:
@@ -590,6 +592,11 @@ def fleet_tick(fleet_key, dt_seconds, veiled=False):
                 return _evt(okey, fleet_line("gas_dry"))
             return None
         _pool_add_f(side, "gas", -need)
+    elif f.get("gas_starved"):
+        # Back in supply (or holding): clear the dry-tank flag so the warning
+        # can fire again next time the fleet actually runs out.
+        setattr(f, "gas_starved", False)
+        _fleets_sync(side)
 
     ids = set(s.id for s in ships)
     lead = ships[0]

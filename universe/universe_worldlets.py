@@ -513,9 +513,15 @@ ADM_PLATFORMS = {
     # at the Relay rate. One per system (the live-object check's scope).
     "relay": {"name": "Relay Gate", "cost": {"ore": 400, "gas": 120, "crew": 20},
               "build_time": 60, "art": "starbase_science", "per_worldlet": False},
+    # Depot (phase-2): a fleet supply anchor. Fleets within its supply radius
+    # burn no gas (resupplied locally, universe_fleets.fleet_tick) - place them
+    # to extend patrol range on the frontier without draining the stockpile.
+    "depot": {"name": "Depot", "cost": {"ore": 160, "gas": 40, "crew": 10},
+              "build_time": 35, "art": "starbase_industry", "per_worldlet": True},
 }
 
 REFINERY_EXTRACT_MULT = 1.5   # a Refinery speeds its own worldlet's extraction
+DEPOT_SUPPLY_RADIUS = 15000.0  # fleets within this of a friendly Depot burn no gas
 REFINERY_STORAGE_BONUS = 400  # ...and adds silo capacity to the side
 
 
@@ -529,6 +535,17 @@ def admiralty_platform_at(worldlet_obj, kind):
         if plat.get_inventory_value("worldlet_id") == worldlet_obj.id:
             return plat
     return None
+
+
+def admiralty_in_supply(side, x, z):
+    """True if (x, z) is within a friendly Depot's supply radius - a fleet there
+    is resupplied locally and burns no gas (universe_fleets.fleet_tick)."""
+    r2 = DEPOT_SUPPLY_RADIUS * DEPOT_SUPPLY_RADIUS
+    for depot in to_object_list(role("admiral_depot") & role(side)):
+        dp = depot.pos
+        if (x - dp.x) ** 2 + (z - dp.z) ** 2 <= r2:
+            return True
+    return False
 
 
 def admiralty_platform_elsewhere(sectors, kind, here_key):
