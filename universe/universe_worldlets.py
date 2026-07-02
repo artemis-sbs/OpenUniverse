@@ -298,13 +298,19 @@ def admiralty_seed_pools(side):
     return True
 
 
-def admiralty_spend(side, cost):
-    """Deduct a {res: amount} cost if affordable; True on success."""
-    cost = cost or {}
-    for res, amt in cost.items():
+def admiralty_can_afford(side, cost):
+    """True if the side's pools cover a {res: amount} cost (no deduction)."""
+    for res, amt in (cost or {}).items():
         if admiralty_pool_get(side, res) < int(amt):
             return False
-    for res, amt in cost.items():
+    return True
+
+
+def admiralty_spend(side, cost):
+    """Deduct a {res: amount} cost if affordable; True on success."""
+    if not admiralty_can_afford(side, cost):
+        return False
+    for res, amt in (cost or {}).items():
         admiralty_pool_add(side, res, -int(amt))
     return True
 
@@ -565,13 +571,12 @@ def admiralty_platform_elsewhere(sectors, kind, here_key):
     return None
 
 
-def admiralty_try_build(kind, side, worldlet_id, sectors=None, here_key=None):
-    """Validate + pay for a build at a worldlet. Returns None on success (cost
-    deducted, in-progress flag set - the caller schedules the build task), or
-    a short reason string for the console to show. sectors/here_key (the
-    persistence delta + this system's "i,j") enable the HQ's campaign-wide
-    uniqueness check; other one-per-side platforms stay per-system by design
-    (each system can host its own yard/academy/gate)."""
+def admiralty_can_build(kind, side, worldlet_id, sectors=None, here_key=None, need_cost=True):
+    """Why a build is (None) or isn't (a reason string) allowed at a worldlet,
+    WITHOUT spending. sectors/here_key drive the HQ's campaign-wide uniqueness
+    check. need_cost=False skips the affordability test - the build menu uses
+    that so it lists everything currently UNLOCKED (prereqs met), and the button
+    label carries the cost."""
     pdef = ADM_PLATFORMS.get(kind)
     wobj = to_object(worldlet_id)
     if pdef is None or wobj is None:
@@ -590,9 +595,30 @@ def admiralty_try_build(kind, side, worldlet_id, sectors=None, here_key=None):
         return "Requires a Headquarters."
     if kind == "refinery" and admiralty_platform_at(wobj, "extractor") is None:
         return "Requires an Extractor at this worldlet."
-    if not admiralty_spend(side, pdef["cost"]):
+    if need_cost and not admiralty_can_afford(side, pdef["cost"]):
         return "Not enough resources (" + admiralty_cost_text(kind) + ")."
-    wobj.set_inventory_value("building_" + kind, True)
+    return None
+
+
+def admiralty_buildable_kinds(side, worldlet_id, sectors=None, here_key=None):
+    """Platform kinds whose prereqs are met at a worldlet right now (ignoring
+    cost), in ADM_PLATFORMS order - the console build menu. The list shrinks as
+    you build (HQ drops out once placed; a per-worldlet platform drops once this
+    worldlet has it), so the menu guides rather than dumping every button."""
+    return [kind for kind in ADM_PLATFORMS
+            if admiralty_can_build(kind, side, worldlet_id, sectors, here_key,
+                                   need_cost=False) is None]
+
+
+def admiralty_try_build(kind, side, worldlet_id, sectors=None, here_key=None):
+    """Validate + pay for a build at a worldlet. Returns None on success (cost
+    deducted, in-progress flag set - the caller schedules the build task), or a
+    short reason string. Shares its checks with admiralty_can_build."""
+    reason = admiralty_can_build(kind, side, worldlet_id, sectors, here_key, need_cost=True)
+    if reason is not None:
+        return reason
+    admiralty_spend(side, ADM_PLATFORMS[kind]["cost"])
+    to_object(worldlet_id).set_inventory_value("building_" + kind, True)
     return None
 
 

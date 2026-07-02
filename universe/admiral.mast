@@ -156,54 +156,17 @@ shared ADM_BUILDS = []
         else:
             sel_text = worldlet_sel_text(SEL_WORLDLET, "tsn")
             """$text:{sel_text}"""
-            gui_row("row-height: 2em;")
-            hq_label = "Build HQ  (" + admiralty_cost_text("hq") + ")"
-            b_hq = gui_button(hq_label)
-            on gui_message(b_hq):
-                BUILD_PICK = "hq"
-                jump admiral_build
-            gui_row("row-height: 2em;")
-            ext_label = "Build Extractor  (" + admiralty_cost_text("extractor") + ")"
-            b_ext = gui_button(ext_label)
-            on gui_message(b_ext):
-                BUILD_PICK = "extractor"
-                jump admiral_build
-            gui_row("row-height: 2em;")
-            ref_label = "Build Refinery  (" + admiralty_cost_text("refinery") + ")"
-            b_ref = gui_button(ref_label)
-            on gui_message(b_ref):
-                BUILD_PICK = "refinery"
-                jump admiral_build
-            gui_row("row-height: 2em;")
-            yard_label = "Build Shipyard  (" + admiralty_cost_text("shipyard") + ")"
-            b_yard = gui_button(yard_label)
-            on gui_message(b_yard):
-                BUILD_PICK = "shipyard"
-                jump admiral_build
-            gui_row("row-height: 2em;")
-            aca_label = "Build Academy  (" + admiralty_cost_text("academy") + ")"
-            b_aca = gui_button(aca_label)
-            on gui_message(b_aca):
-                BUILD_PICK = "academy"
-                jump admiral_build
-            gui_row("row-height: 2em;")
-            bas_label = "Build Bastion  (" + admiralty_cost_text("bastion") + ")"
-            b_bas = gui_button(bas_label)
-            on gui_message(b_bas):
-                BUILD_PICK = "bastion"
-                jump admiral_build
-            gui_row("row-height: 2em;")
-            rel_label = "Build Relay Gate  (" + admiralty_cost_text("relay") + ")"
-            b_rel = gui_button(rel_label)
-            on gui_message(b_rel):
-                BUILD_PICK = "relay"
-                jump admiral_build
-            gui_row("row-height: 2em;")
-            dep_label = "Build Depot  (" + admiralty_cost_text("depot") + ")"
-            b_dep = gui_button(dep_label)
-            on gui_message(b_dep):
-                BUILD_PICK = "depot"
-                jump admiral_build
+            # Only offer platforms whose prereqs are met at this worldlet - the
+            # menu unlocks as you build (HQ first, then the rest), so it guides
+            # instead of showing every button. The label carries the cost; an
+            # unaffordable click still shows why (admiral_build -> ADM_MSG).
+            for build_kind in admiralty_buildable_kinds("tsn", SEL_WORLDLET, universe_sectors, f"{universe_i},{universe_j}"):
+                gui_row("row-height: 2em;")
+                build_label = "Build " + admiralty_platform_def(build_kind).get("name") + "  (" + admiralty_cost_text(build_kind) + ")"
+                b_build = gui_button(build_label, data={"bk": build_kind})
+                on gui_message(b_build):
+                    BUILD_PICK = bk
+                    jump admiral_build
         if ADM_MSG != "":
             gui_row("row-height: 2em;")
             """$text:{ADM_MSG};color:#fa4"""

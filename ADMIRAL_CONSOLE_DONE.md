@@ -129,6 +129,18 @@ anti-snowball rail (upkeep competes with fleets/builds/research; discount capped
 sells never subsidised). Persists in side_admiralty. Closes the Admiral bridge
 set; the LM items.py change is generic (any mission can set a side subsidy).
 
+## Build menu shows only buildable platforms (2026-07-02; exercise-verified)
+The Map-tab build panel listed all platform buttons at once (8+), most of which
+just errored on click. It now loops `admiralty_buildable_kinds` and offers only
+platforms whose prereqs are met at the selected worldlet - so the menu unlocks as
+you build (HQ first, then the rest) and stays short. Refactor: the validation
+half of `admiralty_try_build` moved to a check-only `admiralty_can_build`
+(need_cost toggles the affordability test), and `admiralty_can_afford` split out
+of `admiralty_spend` - one source of truth for build rules, shared by the menu
+and the build action. Cost stays on the label; an unaffordable click still shows
+the reason. Verified with the --exercise pass (the dynamic button loop drives
+clean).
+
 ## Depot - fleet supply anchor (2026-07-02; browser check pending)
 Phase-2 platform closing the gas-starvation gap: a fleet on any active order
 within a Depot's supply radius (DEPOT_SUPPLY_RADIUS, universe_worldlets) burns no
