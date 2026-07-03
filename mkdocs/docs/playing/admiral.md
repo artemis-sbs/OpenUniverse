@@ -10,6 +10,13 @@ This page is how to play that role, start to finish.
     Admiralty (some don't), the console simply isn't there - that's up to whoever
     wrote the universe (see [writing the Admiralty](../writing/admiralty.md)).
 
+!!! note "More than one Admiral"
+    A universe can field **more than one player-commanded side**. When it does,
+    each side has **its own Admiral** running **its own** economy, fleets, and
+    research - you command **your** side, and the map you ride shows your side's
+    view of the system. Whether the other sides are **allies** (a co-op war) or
+    **rivals** is up to the universe.
+
 ## The command view
 
 The Admiral doesn't sit on a ship. You ride a **camera high over the current

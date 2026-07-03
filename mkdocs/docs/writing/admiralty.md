@@ -197,6 +197,14 @@ Research pace: campaign   // how quickly the tech ladder is meant to be climbed
 Leave `Admiral view` as `overseer` - that is the map-and-click console this page
 described. `bridge` is the older tabbed version.
 
+!!! note "It's multi-side, for free"
+    Everything on this page is written **once** and runs for **every**
+    player-commanded side your universe fields. Field two player sides and each
+    gets its **own** Admiral, stockpiles, fleets, and research off these same
+    chapters - you don't duplicate anything, and you don't name a side anywhere in
+    them. Whether those sides are **allies** (a co-op war) or **rivals** is set
+    where the universe defines its sides, not here.
+
 ## The platforms (the fixed kit)
 
 You don't write the platforms - they are the standard set the Admiral builds
