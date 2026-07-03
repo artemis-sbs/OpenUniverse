@@ -305,7 +305,7 @@ default shared ADM_LAST_MSG = ""
         # The tech ladder (## Research): scrollable list, actions on the
         # selection (the Map tab's list+context pattern).
         gui_section(style="area: 2, 18, 58, 82;")
-        rlb = gui_list_box(research_list(), "row-height: 2.2em;", item_template=research_list_template, title_template=research_list_title, select=True)
+        rlb = gui_list_box(research_list(), "row-height: 2.2em;", item_template=research_list_template_for(adm_side), title_template=research_list_title, select=True)
         on change rlb.value:
             sel_res = rlb.get_value()
             if sel_res is not None:

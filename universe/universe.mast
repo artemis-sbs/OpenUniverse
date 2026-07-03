@@ -107,8 +107,8 @@ GameCode:
     # Generation knobs (the root `generation:` block): system-kind mix + POI-deck
     # weights. Must run before universe_enter_system / the galaxy map use them.
     generation_configure(universe_generation_cfg(UNIVERSE_DOC))
-    # Clans -> spawned as sides below. The player side (tsn) already exists from the
-    # server-start create_sides signal, so foe clans' enemies:"tsn" relation resolves.
+    # Clans -> spawned as sides below. The player sides already exist from the
+    # server-start create_sides signal, so foe clans' hostile relations resolve.
     shared UNIVERSE_CLANS = universe_clans_from_doc(UNIVERSE_DOC)
     # Generic clan jobs: the universe's `jobs` section. Legacy split-file universes
     # may still carry a standalone clan_quests.amd; a modern universe with no
@@ -156,7 +156,10 @@ GameCode:
     officers_configure(universe_parse_officers(UNIVERSE_DOC))
     fleet_chatter_configure(UNIVERSE_DOC)
     for _clan in UNIVERSE_CLANS:
-        await prefab_spawn(prefab_side_generic, {"key": _clan.key, "name": _clan.name, "desc": _clan.desc, "color": _clan.color, "enemies": _clan.enemies})
+        # A foe clan is hostile to every player side (the live roster), not just a
+        # hardcoded "tsn" - so foes stay foes no matter which sides are playing.
+        _clan_enemies = ",".join(universe_player_sides()) if _clan.diplomacy == "foe" else ""
+        await prefab_spawn(prefab_side_generic, {"key": _clan.key, "name": _clan.name, "desc": _clan.desc, "color": _clan.color, "enemies": _clan_enemies})
     # Seed the Admiral side's starting stockpiles (guarded - once per campaign)
     # and start the extraction economy + the fleet order loop (admiral.mast).
     if admiralty_active():

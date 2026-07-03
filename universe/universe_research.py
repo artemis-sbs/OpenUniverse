@@ -247,11 +247,20 @@ def research_list_title():
     gui_text("$text:Research milestones")
 
 
+def research_list_template_for(side):
+    """A listbox item_template bound to the acting side, so each row shows THAT
+    side's progress (multi-side: the Admiral console passes its own side)."""
+    def _tmpl(item):
+        state = research_state(side, item.get("key"))
+        line = str(item.get("name")) + "  [" + str(item.get("branch")) + "]  -  " + state
+        gui_row("row-height: 2.2em;")
+        gui_text("$text:" + line + ";font:gui-1")
+    return _tmpl
+
+
 def research_list_template(item):
-    state = research_state("tsn", item.get("key"))
-    line = str(item.get("name")) + "  [" + str(item.get("branch")) + "]  -  " + state
-    gui_row("row-height: 2.2em;")
-    gui_text("$text:" + line + ";font:gui-1")
+    # Back-compat default (primary side) for any caller that doesn't bind a side.
+    research_list_template_for(universe_primary_side())(item)
 
 
 def requisition_catalog_items(side):

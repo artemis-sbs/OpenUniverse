@@ -46,10 +46,13 @@ def _clan_is_foe(clans, key, side):
     return True
 
 
-def skirmish_pressure(clans, seed, i, j, danger="Quiet", side="tsn"):
+def skirmish_pressure(clans, seed, i, j, danger="Quiet", side=None):
     """(pressure, foe_keys) for a system: one point per foe-owned cell in the
     Chebyshev ring around it, two for the system itself being foe-owned.
-    Zero deep in friendly space - the map IS the threat model."""
+    Zero deep in friendly space - the map IS the threat model. `side` is the
+    player side under threat (defaults to the primary player side)."""
+    if side is None:
+        side = universe_primary_side()
     pressure = 0
     foes = []
     for di in (-1, 0, 1):

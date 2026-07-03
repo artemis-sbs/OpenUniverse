@@ -23,7 +23,7 @@ def universe_parse_landmarks(doc):
                 "desc": (n.get("description") or "").strip(),
                 "at": at if (at and len(at) == 2) else None,
                 "kind": (data.get("kind") or "station"),
-                "side": data.get("side") or "tsn",
+                "side": data.get("side") or universe_primary_side(),
                 "art": data.get("art"),
                 "roles": data.get("roles"),
                 # Kind: worldlet landmarks name their worldlet type (Type: cinder).

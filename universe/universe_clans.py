@@ -212,8 +212,9 @@ def universe_parse_clans(content):
     (MastDataObject). Section-aware with a legacy flat-file fallback.
 
     Each record: key, name, desc, color, archetype, diplomacy (foe/neutral),
-    homes [[i,j],...], leans {axis:val}, quest_pool [..], and enemies (csv for
-    prefab_side_generic - "tsn" for foe clans, "" for neutral).
+    homes [[i,j],...], leans {axis:val}, quest_pool [..]. A foe clan's hostile
+    relations are set at spawn against the live player-side roster (universe.mast),
+    not baked here - so "foe" means foe of whatever sides are playing.
     """
     return universe_clans_from_doc(universe_doc(content))
 
@@ -240,7 +241,6 @@ def _clans_from_nodes(nodes):
             # Optional comms-card identity (info panel): a face string + an icon.
             "face": data.get("face"),
             "icon": data.get("icon"),
-            "enemies": "tsn" if diplomacy == "foe" else "",
         }))
     return clans
 
