@@ -171,7 +171,8 @@ fleets, the six orders, veterancy), `universe_research.py` (tech ladder),
   `:` in them, and identifiers starting with `jump`.
 - Full MAST/AMD references live in the sibling repo — read when needed:
   `../sbs_utils/CLAUDE.md`, `../sbs_utils/MAST_CLAUDE.md`,
-  `../sbs_utils/MAST_MISSION_CLAUDE.md`, and `../AMD_AUTHORS_GUIDE.md`.
+  `../sbs_utils/MAST_MISSION_CLAUDE.md`, **`../sbs_utils/GUI.md`** (GUI best
+  practices + gotchas), and `../AMD_AUTHORS_GUIDE.md`.
 
 ---
 
