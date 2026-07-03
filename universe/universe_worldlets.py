@@ -19,7 +19,7 @@ from sbs_utils.mast.mast_node import MastDataObject
 from sbs_utils.procedural.spawn import terrain_spawn, npc_spawn
 from sbs_utils.procedural.inventory import get_inventory_value, set_inventory_value
 from sbs_utils.procedural.sides import to_side_id
-from sbs_utils.procedural.roles import role, has_role
+from sbs_utils.procedural.roles import role, has_role, remove_role
 from sbs_utils.procedural.query import to_object_list, to_object
 from sbs_utils.procedural.science import science_set_scan_data
 from sbs_utils.procedural.gui import gui_row, gui_text
@@ -29,7 +29,9 @@ ADM_RESOURCES = ["ore", "gas", "crew"]
 
 # Built-in Admiralty tuning; a universe's ## Admiralty fence overrides any knob.
 _ADM_DEFAULTS = {
-    "start_ore": 200, "start_gas": 100, "start_crew": 40,
+    # Ore must cover the bootstrap: HQ (150) + first Extractor (60) = 210 before any
+    # income exists, so start above that with a buffer (a soft-lock otherwise).
+    "start_ore": 300, "start_gas": 100, "start_crew": 40,
     "storage": 600,
     "command_points": 3, "fleet_gas_burn": 2,
     "requisition_budget": 800,
@@ -666,6 +668,23 @@ def admiralty_command_points(side):
     return base + relays * SENSOR_COMMAND_POINTS
 
 
+def admiralty_status_line(builds, last_msg):
+    """The overseer's status/queue line. Active builds take priority (a live queue -
+    what the yards are working on); else the last action result (a build/commission
+    confirmation or a rejection reason); else idle. `builds` is the shared ADM_BUILDS
+    list, `last_msg` the shared ADM_LAST_MSG - passed in so this stays pure Python."""
+    if builds:
+        return "Under construction: " + ", ".join(builds)
+    # No income source is worth flagging over a stale last-action line: the HQ is
+    # only a hub, the Extractor is what actually produces (the discoverability gap
+    # that had ore/gas going nowhere). Clears itself once an extractor exists.
+    if not to_object_list(role("admiral_extractor")):
+        return "No extractors yet - build an Extractor on a worldlet to produce ore and gas."
+    if last_msg:
+        return last_msg
+    return "Shipyards standing by - select a worldlet or platform to command."
+
+
 def admiralty_scan_theatre(side):
     """Mark the side's own theatre - the worldlets it can develop, its stations,
     its fleets - as scanned for the WHOLE side, so the Admiral's overseer can open
@@ -680,6 +699,7 @@ def admiralty_scan_theatre(side):
     origin = origins[0]
     targets = to_object_list(role("worldlet"))
     targets += to_object_list(role("adm_fleet") & role(side))
+    targets += to_object_list(role("admiral_platform") & role(side))
     targets += to_object_list(role("station") & role(side))
     for t in targets:
         science_set_scan_data(origin, t.id, "Admiralty Scan")
@@ -761,8 +781,16 @@ def universe_platform_spawn(kind, side, worldlet_obj):
     pos = worldlet_obj.pos
     off = float(worldlet_obj.get_inventory_value("worldlet_radius", 400)) + 900
     name = (worldlet_obj.name + " " + pdef["name"]) if worldlet_obj.name else pdef["name"]
-    roles = side + ", station, admiral_platform, admiral_" + kind
+    # No `station` role: it would pull in LM's default station comms (docking/market
+    # /hail) on top of the Admiral's own platform menus. These are Admiral
+    # infrastructure, commanded only through the admiral_* routes, so we tag them
+    # admiral_platform + admiral_<kind> and leave `station` off. (behav_station still
+    # gives them station physics/behaviour - the role is only a query/comms tag.)
+    roles = side + ", admiral_platform, admiral_" + kind
     co = npc_spawn(pos.x + off, pos.y, pos.z, name, roles, pdef["art"], "behav_station")
+    # The engine also derives `station` from the starbase ART's ship data, so the
+    # role string alone won't keep it off - strip it explicitly after the spawn.
+    remove_role(co, "station")
     if kind == "bastion":
         # Legible-over-pretty (section 9): the fort reads bigger than the works.
         for ax in ("x", "y", "z"):

@@ -15,6 +15,7 @@
 # Default
 ---
 Display: Default
+Nebula mix: 4%
 ---
 A living frontier of clans, trade, reputation, and contestable space docks. The
 galaxy reacts to who you are, not to a scripted hero.
@@ -314,13 +315,14 @@ A small settled world. People, modest industry, and somewhere to come from.
 ## Admiralty
 ---
 Worldlet chance: 30%
-Start ore: 200
+Start ore: 300
 Start gas: 100
 Start crew: 40
 Storage: 600
 Command points: 3
 Fleet gas burn: 2
 Requisition budget: 800 credits
+Admiral view: overseer
 Skirmish pressure: border
 Skirmish interval: 240
 MIA timer: 300

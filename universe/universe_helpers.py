@@ -77,7 +77,10 @@ def universe_generate_system(universe_seed, i, j, terrain_value=2):
     """
     key = universe_system_key(universe_seed, i, j)
     r = UNIVERSE_SYSTEM_R
-    nebula_chance = terrain_value * 0.0012
+    # Nebula clouds are the heaviest terrain for the engine to transmit, so the
+    # per-cell chance is kept low (dialled down from 0.0012). Ramp back up if the
+    # universe wants thicker nebulae and the client can carry them.
+    nebula_chance = terrain_value * 0.0004
     asteroid_chance = terrain_value * 0.0010
     # marker=False: no per-nebula map markers in the universe (they clutter /
     # misbehave on the galaxy-scale map; the field itself is enough).

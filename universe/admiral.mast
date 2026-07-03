@@ -10,6 +10,10 @@
 
 default shared ADMIRAL_TAB = "map"
 shared ADM_BUILDS = []
+# The overseer's last action result (build/commission/research confirmation or a
+# rejection reason). Surfaced in the overseer status line since that console has no
+# info panel; also mirrored to info cards for the tab console / other consoles.
+default shared ADM_LAST_MSG = ""
 
 
 # Started by @map/universe when the universe has an Admiralty chapter. One
@@ -102,13 +106,22 @@ shared ADM_BUILDS = []
 === admiralty_build_task
     default build_kind = "extractor"
     default build_worldlet_id = None
+    default build_side = "tsn"
     pdef = admiralty_platform_def(build_kind)
     ->END if pdef is None or build_worldlet_id is None
     build_label = pdef.get("name") + " at " + str(to_object(build_worldlet_id).name)
     ADM_BUILDS.append(build_label)
     await delay_sim(pdef.get("build_time"))
     ADM_BUILDS.remove(build_label)
-    built_plat = admiralty_build_done(build_kind, "tsn", build_worldlet_id)
+    built_plat = admiralty_build_done(build_kind, build_side, build_worldlet_id)
+    # Completion lands on the overseer status line (the platform also appears on the
+    # 2D view); keeps the "did it finish?" question answered.
+    ADM_LAST_MSG = pdef.get("name") + " complete."
+    # Force-refresh the comms buttons of any overseer that has this worldlet selected
+    # so the newly unlocked builds appear without re-clicking (comms_navigate_override
+    # no-ops for cameras not currently on this pair - "only if it's selected"). Scoped
+    # to the building side's cameras (& role(build_side)) so a rival Admiral isn't refreshed.
+    comms_navigate_override(role("admiral_cam") & role(build_side), build_worldlet_id)
     # A finished Sensor Relay senses this system's neighbourhood - the galaxy map
     # reveals those cells' contents without a visit (fog of war, the relay's
     # second CQ role). Persist the intel.
@@ -170,23 +183,41 @@ shared ADM_BUILDS = []
         adm_cam.data_set.set("ship_base_scan_range", 40000, 0)
     sbs.assign_client_to_ship(client_id, adm_cam_id)
     set_comms_selection(adm_cam_id, adm_cam_id)
-    gui_activate_console("overseer_comm")
-    gui_section(style="area: 2, 2, 98, 9; background:#1578;")
-    overseer_ticker = admiralty_ticker_text("tsn")
-    """$text:{overseer_ticker};justify:center;font:gui-4"""
-    # Left: the system 2D view (click an object to select it). Right: the comms
-    # face + menu, where a selected object's actions appear (existing //comms
-    # routes; the Admiral's own build/order routes come next slice).
-    gui_section(style="area: 0, 10, 72, 100;")
+    # Console name: `gamemaster_` prefix -> the engine's optimized network path for
+    # detached command consoles; `comms` (not `sci`/`admiral`) -> the dispatcher
+    # routes 2D-view selection to comms (consoledispatcher.py), which our //comms
+    # routes need. The camera's ROLE is `admiral`, not `gamemaster`, so GM menus
+    # (gated on the gamemaster role) don't apply - only our Admiral routes.
+    gui_activate_console("gamemaster_overseer_comms")
+    gui_section(style="area: 2, 2, 98, 8; background:#1578;")
+    # Live resource ticker: a plain text label is built once and goes stale, so use
+    # a handle + on-change (the pools shift on the economy tick - watch the string
+    # and repaint when it changes).
+    adm_ticker_w = gui_text("$text:" + admiralty_ticker_text("tsn") + ";justify:center;font:gui-4")
+    on change admiralty_ticker_text("tsn"):
+        # .update() replaces the whole style, so carry the format props too (else
+        # the text reverts to unstyled/left-aligned).
+        adm_ticker_w.update("text:" + admiralty_ticker_text("tsn") + ";justify:center;font:gui-4")
+    # Left: zoom + the system 2D view (click an object to command it).
+    gui_section(style="area: 0, 9, 72, 100;")
     gui_row("row-height: 34px;")
     gui_layout_widget("radar_zoom_ctrl")
     gui_row()
     gui_layout_widget("comms_2d_view")
-    gui_section(style="area: 72, 10, 100, 100;")
+    # Right, top: the selected object's comms face + action menu.
+    gui_section(style="area: 72, 9, 100, 66;")
     gui_row("row-height: 100px;")
     gui_layout_widget("comms_face")
     gui_row()
     gui_layout_widget("comms_control")
+    # Right, bottom: build-queue / action status, under the comms buttons with real
+    # vertical space. This console has no info panel, so the Admiralty's build
+    # progress, confirmations and rejection reasons live here (ADM_BUILDS +
+    # ADM_LAST_MSG, both shared). The on-change watcher repaints when either changes.
+    gui_section(style="area: 72, 67, 100, 100; background:#0234;")
+    adm_bwidget = gui_text("$text:" + admiralty_status_line(ADM_BUILDS, ADM_LAST_MSG) + ";justify:center;font:gui-2;color:#8cf")
+    on change str(len(ADM_BUILDS)) + "|" + ADM_LAST_MSG:
+        adm_bwidget.update("text:" + admiralty_status_line(ADM_BUILDS, ADM_LAST_MSG) + ";justify:center;font:gui-2;color:#8cf")
     # Comms won't open on an object the side holds no science data for. Scan the
     # Admiral's theatre once now so THIS console's first click works; the economy
     # tick keeps it fresh side-wide thereafter (admiralty_scan_theatre is one pass
@@ -581,34 +612,47 @@ shared ADM_BUILDS = []
 
 
 //comms if has_roles(COMMS_ORIGIN_ID, "admiral") and has_roles(COMMS_SELECTED_ID, "worldlet")
+    # The building side is the selecting Admiral's own side (COMMS_ORIGIN.side), not
+    # a hard-coded "tsn" - so a rival-side Admiral would build/refresh for its side.
+    adm_side = COMMS_ORIGIN.side
     adm_here = f"{universe_i},{universe_j}"
-    adm_items = admiralty_buildable_items("tsn", COMMS_SELECTED_ID, universe_sectors, adm_here)
+    adm_items = admiralty_buildable_items(adm_side, COMMS_SELECTED_ID, universe_sectors, adm_here)
     yield success if len(adm_items) == 0
     for adm_it in adm_items:
-        + "Build {adm_it.name} ({adm_it.cost})" admiral_overseer_build {"BUILD_PICK": adm_it.get("key"), "SEL_WORLDLET": COMMS_SELECTED_ID}
+        + "Build {adm_it.name} ({adm_it.cost})" admiral_overseer_build {"BUILD_PICK": adm_it.get("key"), "SEL_WORLDLET": COMMS_SELECTED_ID, "BUILD_SIDE": adm_side}
 
 
 === admiral_overseer_build
     default BUILD_PICK = None
     default SEL_WORLDLET = None
+    # Side threaded from the initiating Admiral (falls back to tsn for the tab
+    # console's callers, which don't pass it).
+    default BUILD_SIDE = "tsn"
     adm_here = f"{universe_i},{universe_j}"
     adm_pdef = admiralty_platform_def(BUILD_PICK)
     adm_pname = adm_pdef.get("name") if adm_pdef is not None else "platform"
     if admiralty_tuning("build_model", "menu") == "fabricator":
-        build_fail = admiralty_can_build(BUILD_PICK, "tsn", SEL_WORLDLET, universe_sectors, adm_here)
+        build_fail = admiralty_can_build(BUILD_PICK, BUILD_SIDE, SEL_WORLDLET, universe_sectors, adm_here)
         if build_fail is None:
-            admiralty_spend("tsn", adm_pdef.get("cost"))
-            fabricator_enqueue("tsn", BUILD_PICK, SEL_WORLDLET)
-            universe_info_card("Fabricator dispatched to build " + adm_pname + ".", "Admiralty", "#0cf")
+            admiralty_spend(BUILD_SIDE, adm_pdef.get("cost"))
+            fabricator_enqueue(BUILD_SIDE, BUILD_PICK, SEL_WORLDLET)
+            ADM_LAST_MSG = "Fabricator dispatched to build " + adm_pname + "."
         else:
-            universe_info_card(build_fail, "Cannot build", "#f80")
+            ADM_LAST_MSG = build_fail
     else:
-        build_fail = admiralty_try_build(BUILD_PICK, "tsn", SEL_WORLDLET, universe_sectors, adm_here)
+        build_fail = admiralty_try_build(BUILD_PICK, BUILD_SIDE, SEL_WORLDLET, universe_sectors, adm_here)
         if build_fail is None:
-            task_schedule(admiralty_build_task, {"build_kind": BUILD_PICK, "build_worldlet_id": SEL_WORLDLET})
-            universe_info_card("Construction started: " + adm_pname + ".", "Admiralty", "#0cf")
+            task_schedule(admiralty_build_task, {"build_kind": BUILD_PICK, "build_worldlet_id": SEL_WORLDLET, "build_side": BUILD_SIDE})
+            ADM_LAST_MSG = "Construction started: " + adm_pname + "."
         else:
-            universe_info_card(build_fail, "Cannot build", "#f80")
+            ADM_LAST_MSG = build_fail
+    # Surface on the overseer status line (ADM_LAST_MSG) AND as an info card for the
+    # tab console / any console with an info panel.
+    universe_info_card(ADM_LAST_MSG, "Admiralty", "#0cf")
+    # Refresh the worldlet's comms buttons now the build is underway (the started
+    # item drops out of its own menu) - only for THIS side's cameras currently on
+    # this worldlet (& role(BUILD_SIDE), so a rival Admiral isn't touched).
+    comms_navigate_override(role("admiral_cam") & role(BUILD_SIDE), SEL_WORLDLET)
     ->END
 
 
@@ -627,3 +671,75 @@ shared ADM_BUILDS = []
         adm_pt = Vec3(EVENT.source_point)
         if adm_pt.x != 0 or adm_pt.z != 0:
             COMMS_ORIGIN.pos = adm_pt
+
+
+# --- Overseer: platform command menus --------------------------------------------
+# The Admiral's own platforms are stations; selecting one adds Admiral actions to
+# its comms (on top of the default station comms). This re-homes the tab console's
+# Fleets / Research / Subsidy onto the map: commission at the Shipyard, research at
+# the Lab, set subsidy at the HQ. Per-button keys are captured in the handler data
+# dict at build time (never read at click time); handlers report via info card
+# instead of jumping to the tab console.
+
+# Shipyard: commission a fleet under an available officer (fleet_try_form validates
+# Academy/Shipyard/command-points/cost; we only list officers with no fleet yet).
+//enable/comms if has_roles(COMMS_ORIGIN_ID, "admiral") and has_roles(COMMS_SELECTED_ID, "admiral_shipyard")
+
+
+//comms if has_roles(COMMS_ORIGIN_ID, "admiral") and has_roles(COMMS_SELECTED_ID, "admiral_shipyard")
+    for adm_off in officer_list():
+        if officer_fleet(adm_off.key) is None and officer_status(adm_off.key) == "active":
+            + "Commission {adm_off.name} - {adm_off.title}" admiral_overseer_commission {"OFFICER_PICK": adm_off.key}
+
+
+=== admiral_overseer_commission
+    default OFFICER_PICK = None
+    fail = fleet_try_form("tsn", OFFICER_PICK)
+    if fail is None:
+        officer_card(OFFICER_PICK, fleet_line("formed"))
+        adm_ocmr = officer_def(OFFICER_PICK)
+        adm_ocmr_name = adm_ocmr.name if adm_ocmr is not None else "An officer"
+        ADM_LAST_MSG = adm_ocmr_name + " has taken command of a new fleet at the shipyard."
+    else:
+        ADM_LAST_MSG = fail
+    ->END
+
+
+# Lab: start an available research milestone (research_try_start validates slots).
+//enable/comms if has_roles(COMMS_ORIGIN_ID, "admiral") and has_roles(COMMS_SELECTED_ID, "admiral_lab")
+
+
+//comms if has_roles(COMMS_ORIGIN_ID, "admiral") and has_roles(COMMS_SELECTED_ID, "admiral_lab")
+    for adm_res in research_list():
+        if research_state("tsn", adm_res.key) == "available":
+            + "Research {adm_res.name} [{adm_res.branch}]" admiral_overseer_research {"RESEARCH_PICK": adm_res.key}
+
+
+=== admiral_overseer_research
+    default RESEARCH_PICK = None
+    fail = research_try_start("tsn", RESEARCH_PICK)
+    if fail is None:
+        task_schedule(admiralty_research_task, {"research_key": RESEARCH_PICK})
+        adm_rrec = research_def(RESEARCH_PICK)
+        adm_rname = adm_rrec.name if adm_rrec is not None else "project"
+        ADM_LAST_MSG = "Research started: " + adm_rname + "."
+    else:
+        ADM_LAST_MSG = fail
+    universe_info_card(ADM_LAST_MSG, "Admiralty R&D", "#0cf")
+    ->END
+
+
+# HQ: cycle the crew subsidy (off -> tiers -> off), the same action the Map/econ
+# tab exposed. Drains the pools while active (admiralty_subsidy_upkeep).
+//enable/comms if has_roles(COMMS_ORIGIN_ID, "admiral") and has_roles(COMMS_SELECTED_ID, "admiral_hq")
+
+
+//comms if has_roles(COMMS_ORIGIN_ID, "admiral") and has_roles(COMMS_SELECTED_ID, "admiral_hq")
+    + "Adjust crew subsidy":
+        adm_new_sub = admiralty_subsidy_cycle("tsn")
+        universe_save_players()
+        if adm_new_sub > 0:
+            ADM_LAST_MSG = "Crew subsidy set to " + str(int(adm_new_sub * 100)) + "% off station prices."
+        else:
+            ADM_LAST_MSG = "Crew subsidy stood down."
+        universe_info_card(ADM_LAST_MSG, "Admiralty Quartermaster", "#0cf")
