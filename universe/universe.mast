@@ -213,7 +213,7 @@ GameCode:
     ->END if not UNIVERSE_ACTIVE
     if UNIVERSE_CULL:
         # Fleets cull as a unit (whole formation parked + brain paused when far).
-        universe_cull_fleets("raider_fleet", UNIVERSE_CULL_RADIUS)
+        standby_cull_fleets("raider_fleet", UNIVERSE_CULL_RADIUS)
     jump culloop
 
 
@@ -1019,7 +1019,7 @@ GameCode:
     universe_i = ti
     universe_j = tj
     # Return parked terrain to normal space so it gets despawned with the rest.
-    universe_cull_clear()
+    standby_cull_clear()
     universe_clear_system()
     await task_schedule(universe_enter_system)
     universe_reposition_players()
