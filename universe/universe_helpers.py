@@ -7,11 +7,10 @@ plus the current coordinates (persistence of player-made changes comes later).
 """
 import math
 import os
-import shutil
 
 from sbs_utils import scatter
 from sbs_utils.vec import Vec3
-from sbs_utils.fs import get_mission_dir, save_yaml_data, load_yaml_data
+from sbs_utils.fs import get_mission_dir
 from sbs_utils.procedural.terrain import terrain_spawn_field_keyed
 from sbs_utils.procedural.space_objects import delete_objects_box
 from sbs_utils.procedural.roles import role
@@ -20,6 +19,7 @@ from sbs_utils.procedural.execution import labels_get_type
 from sbs_utils.procedural.inventory import get_inventory_value, set_inventory_value
 from sbs_utils.procedural.sides import to_side_id
 from sbs_utils.procedural.upgrades import upgrade_add
+from sbs_utils.procedural.persistence import PersistentStore
 from sbs_utils.procedural.quest import (quest_agent_quests, quest_add, quest_set_key,
                                         quest_get_state, QuestState)
 from sbs_utils.agent import Agent
@@ -116,41 +116,29 @@ def universe_save_path():
     return os.path.join(common, "universe_save.yaml")
 
 
+def _universe_store():
+    """The versioned save store (schema/migrate/merge/backup live in the library
+    sbs_utils.procedural.persistence; this file owns only the path + schema)."""
+    return PersistentStore(universe_save_path(), version=UNIVERSE_SAVE_VERSION,
+                           migrations=_MIGRATIONS, fmt="yaml")
+
+
 def universe_save_state(data):
     """Write the full save dict (low-level), stamped with the current version."""
-    data["save_version"] = UNIVERSE_SAVE_VERSION
-    save_yaml_data(universe_save_path(), data)
+    _universe_store().save(data)
 
 
 def universe_save_diplomacy(diplomacy):
     """Persist the per-pair diplomacy deltas (merges into the save)."""
-    data = universe_load() or {}
-    data["diplomacy"] = diplomacy
-    universe_save_state(data)
+    _universe_store().update(diplomacy=diplomacy)
 
 
 def universe_migrate(data):
     """Bring a loaded save up to UNIVERSE_SAVE_VERSION via the migration ladder.
-
-    Only stored deltas are ever migrated (procedural content regenerates from the
-    seed). Returns the upgraded dict, the dict unchanged if it is NEWER than this
-    build understands (load best-effort, don't rewrite), or None if it cannot be
-    migrated - which the callers treat as "no save" (New Game). See QUESTS_PLAN 8a.
-    """
-    if not isinstance(data, dict):
-        return None
-    v = data.get("save_version", 1)
-    if v > UNIVERSE_SAVE_VERSION:
-        return data
-    try:
-        while v < UNIVERSE_SAVE_VERSION and v in _MIGRATIONS:
-            data = _MIGRATIONS[v](data)
-            v += 1
-        data["save_version"] = v
-        return data
-    except Exception as e:
-        print(f"universe_migrate failed: {e}")
-        return None
+    Delegates to the store; only stored deltas are migrated (procedural content
+    regenerates from the seed). Newer-than-build -> unchanged; failure -> None
+    (callers treat as New Game)."""
+    return _universe_store().migrate(data)
 
 
 def universe_save(seed, i, j, sectors):
@@ -159,11 +147,7 @@ def universe_save(seed, i, j, sectors):
     Merges into the existing save so the players/side_credits sections (written
     by universe_save_players) are preserved.
     """
-    data = universe_load() or {}
-    data["universe_seed"] = seed
-    data["current_sector"] = [i, j]
-    data["sectors"] = sectors
-    universe_save_state(data)
+    _universe_store().update(universe_seed=seed, current_sector=[i, j], sectors=sectors)
 
 
 # --- Player / economy persistence -------------------------------------------
@@ -307,23 +291,8 @@ def universe_load_players(restore=True):
 
 def universe_load():
     """Load the saved universe (migrated to the current version), or None.
-
-    Backs up the file once before an upgrading migration so a bad migration is
-    recoverable (universe_save.yaml.bak).
-    """
-    raw = load_yaml_data(universe_save_path())
-    if not isinstance(raw, dict):
-        return None
-    before = raw.get("save_version", 1)
-    data = universe_migrate(raw)
-    if data is not None and data.get("save_version", 1) > before:
-        path = universe_save_path()
-        if not os.path.exists(path + ".bak"):
-            try:
-                shutil.copyfile(path, path + ".bak")
-            except Exception:
-                pass
-    return data
+    Backs up once before an upgrading migration (universe_save.yaml.bak)."""
+    return _universe_store().load()
 
 
 def universe_system_flag(sectors, i, j, flag):
