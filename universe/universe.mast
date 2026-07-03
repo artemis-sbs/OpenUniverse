@@ -152,7 +152,8 @@ GameCode:
     # Seed the Admiral side's starting stockpiles (guarded - once per campaign)
     # and start the extraction economy + the fleet order loop (admiral.mast).
     if admiralty_active():
-        admiralty_seed_pools("tsn")
+        for _side in universe_player_sides():
+            admiralty_seed_pools(_side)
         skirmish_reset()
         fabricator_reset()
         task_schedule(admiralty_economy_tick)
@@ -194,7 +195,8 @@ GameCode:
     # The load just restored adm_fleets (a Continue) - enter_system ran before
     # it, so bring the saved navy back now. Idempotent: no-op on a New Game.
     if admiralty_active():
-        fleets_respawn("tsn")
+        for _side in universe_player_sides():
+            fleets_respawn(_side)
     # Baseline save so the campaign (players, credits, admiralty pools) is
     # durable even if the crew never jumps this session.
     universe_save_players()
@@ -253,14 +255,18 @@ GameCode:
         cap_hold = 0
     if cap_hold >= 20:
         cap_obj = to_object(cap_station)
-        cap_obj.set_side("tsn")
+        # The captured station joins the capturing player's side (the nearest
+        # player), falling back to the primary player side.
+        _capturer = closest(cap_station, role("__player__"), 12000)
+        cap_side = _capturer.side if _capturer is not None else universe_primary_side()
+        cap_obj.set_side(cap_side)
         universe_sectors = universe_set_system_flag(universe_sectors, cap_i, cap_j, "captured")
         universe_save(universe_seed, universe_i, universe_j, universe_sectors)
         comms_broadcast(role("__player__"), "Starbase captured!", "#0f0")
         # Taking the station also empties its brig: captured Admiralty
         # officers held by this clan walk free (the bloodless rescue raid).
         for _freed_key in officers_captured_by(cap_clan):
-            officer_release("tsn", _freed_key)
+            officer_release(cap_side, _freed_key)
             officer_card(_freed_key, "They left my cell unlocked on the way out. Ready for duty.")
         universe_save_players()
         await task_schedule(docking_standard_player_station)
@@ -857,9 +863,9 @@ GameCode:
             random.seed(key + 1)
             st_type = random.choice(["starbase_command", "starbase_civil", "starbase_science", "starbase_industry"])
             # Clan-owned systems get the clan's station; a captured one flies the
-            # player's flag; otherwise a friendly tsn base.
+            # player's flag; otherwise a friendly base on the primary player side.
             captured = universe_system_flag(universe_sectors, universe_i, universe_j, "captured")
-            st_side = "tsn"
+            st_side = universe_primary_side()
             st_name = "Starbase"
             if owner is not None and not captured:
                 st_side = owner
@@ -872,7 +878,7 @@ GameCode:
                 market_restore(station_id, saved_market)
             else:
                 market_seed(station_id, key)
-            if side_are_enemies(st_side, "tsn"):
+            if universe_hostile_to_players(st_side):
                 # Foe clan home: a defending garrison; clear its space and hold to
                 # capture the station (universe_capture_watch).
                 random.seed(key + 7)
@@ -883,7 +889,7 @@ GameCode:
                 await task_schedule(docking_standard_player_station)
                 # A captured foe-clan station: the clan mounts a re-assault to
                 # retake it. Defend (clear the fleet) to keep it, or it reverts.
-                if captured and owner is not None and side_are_enemies(owner, "tsn"):
+                if captured and owner is not None and universe_hostile_to_players(owner):
                     random.seed(key + 9)
                     rpos = Vec3.rand_in_sphere(15000, 25000, False, True)
                     prefab_spawn(prefab_fleet_raider, {"race": clan_pick_race(clan_get(UNIVERSE_CLANS, owner)), "fleet_difficulty": DIFFICULTY, "ship_roles": owner + ", raider", "START_X": rpos.x, "START_Y": rpos.y, "START_Z": rpos.z})
@@ -922,7 +928,7 @@ GameCode:
     # (universe_systems.py). Deterministic per system; loot/derelicts feed
     # on_collect/on_scan quests, secondary outposts add clan-work givers, and foe
     # territory seeds mine fields. Decided here in Python, spawned here in MAST.
-    owner_foe = owner is not None and side_are_enemies(owner, "tsn")
+    owner_foe = owner is not None and universe_hostile_to_players(owner)
     owner_arch = clan_archetype(UNIVERSE_CLANS, owner)
     for poi in universe_system_deck(key, kind, owner, owner_arch, owner_foe, DIFFICULTY, universe_i, universe_j):
         match poi.type:
@@ -958,8 +964,11 @@ GameCode:
     # through the jump (fleets travel with the flag - universe_fleets.py).
     if admiralty_active():
         worldlets_apply_reserves(universe_system_value(universe_sectors, universe_i, universe_j, "worldlet_reserves", None))
-        admiralty_restore_platforms("tsn", universe_system_value(universe_sectors, universe_i, universe_j, "admiral_platforms", None))
-        fleets_respawn("tsn")
+        # Restore uses the primary side (snapshots are per-primary for now - see
+        # the econ-loop TODO); fleets come back for every player side.
+        admiralty_restore_platforms(universe_primary_side(), universe_system_value(universe_sectors, universe_i, universe_j, "admiral_platforms", None))
+        for _side in universe_player_sides():
+            fleets_respawn(_side)
 
     # Tell the quest driver we've arrived (completes on_reach cargo runs).
     signal_emit("universe_arrived", {"ARRIVE_I": universe_i, "ARRIVE_J": universe_j})
@@ -977,7 +986,7 @@ GameCode:
     # The rescue raid: bringing down a captor clan's station frees every
     # Admiralty officer it holds (the other way out of a ransom).
     for _freed_key in officers_captured_by(get_side(DESTROYED_ID)):
-        officer_release("tsn", _freed_key)
+        officer_release(universe_primary_side(), _freed_key)
         officer_card(_freed_key, "Found my own way out when the walls came down. Nice shooting.")
     universe_save_players()
     ->END
