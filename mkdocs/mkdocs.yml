@@ -26,6 +26,9 @@ repo_name: artemis-sbs/OpenUniverse
 nav:
   - Home: index.md
 
+  - Playing:
+    - How to play the Admiral: playing/admiral.md
+
   - Writing a universe:
     - writing/index.md
     - 1. Getting started: writing/getting-started.md
