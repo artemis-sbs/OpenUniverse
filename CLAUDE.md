@@ -72,6 +72,7 @@ OpenUniverse/
     ├── universe_clan_quests.py   # clan quest pools (jobs)
     ├── universe_systems.py  # keyed POI deck (loot/derelict/outpost/mines)
     ├── universe_standby.py  # engine-network culling (terrain/NPC/POI/fleet)
+    ├── admiral.mast + universe_worldlets/_fleets/_research/_fabricator/_skirmish.py  # the Admiral console (optional; see "The Admiral console")
     ├── universe_regions.py / _landmarks.py / _goods.py  # regions, landmarks, trade goods
     ├── universe_captains.py / _lifeforms.py / _dialogue.py  # named NPCs, cast, dialogue scenes
     ├── universe_amd.py      # the "friendly fact sheet" AMD reader (data_parser)
@@ -83,8 +84,11 @@ OpenUniverse/
     └── captains/ cast/ dialogue/  # per-clan captains, cast, dialogue scenes (spliced via File:)
 ```
 
-Writer-facing docs live in `mkdocs/` (same structure as LegendaryMissions' docs;
-wire into the main site later with an `!import` line in sbs_utils/mkdocs/mkdocs.yml).
+Writer-facing docs live in `mkdocs/` (same structure as LegendaryMissions' docs).
+It's wired into the main sbs_utils site via a multirepo `!import` line (like LM) —
+so pushing OU docs to `origin/v1.4.0_dev` publishes them into the combined site.
+`docs/writing/` is the author walkthrough (incl. `admiralty.md`); `docs/playing/`
+is player-facing (`admiral.md`). GFM tables render by default (Material) — use them.
 Keep the walkthrough + reference in sync with any AMD label changes.
 
 `universe/__init__.mast` import order matters: helpers/clans/reputation/clan_quests/
@@ -120,6 +124,35 @@ LM's working tree. After editing LegendaryMissions, rebuild:
 cd missions
 python sbs.pyz lib LegendaryMissions   # builds v1.4.0 mastlibs (incl. quests) into __lib__/
 ```
+
+---
+
+## The Admiral console (overseer)
+
+A strategic, RTS-flavored console **on the player side** (worldlets -> ore/gas/crew
+economy -> platforms -> fleets -> research), layered on the universe. **Optional:**
+it only wakes up when the universe has an `## Admiralty` chapter (+ `## Worldlets`);
+Silver Reach has none, so it's inert there. Full design + shipped status:
+**`ADMIRAL_CONSOLE.md`** (section 18 = status/commits). Player + author docs:
+`mkdocs/docs/playing/admiral.md` and `mkdocs/docs/writing/admiralty.md`.
+
+Files (`universe/`): **`admiral.mast`** (the console GUIs + every Admiral `//comms`
+route + the server econ/fleet/skirmish/fabricator loops), `universe_worldlets.py`
+(economy, pools, `ADM_PLATFORMS`, build/scan), `universe_fleets.py` (officers,
+fleets, the six orders, veterancy), `universe_research.py` (tech ladder),
+`universe_fabricator.py` (build model B), `universe_skirmish.py` (border raids),
+`universe_regions.py` (antimatter veil).
+
+- **The overseer is the default UI** (`Admiral view: overseer`; `bridge` = the old
+  tab console, still behind the knob). It's a detached camera + comms 2D view where
+  you **select objects to act**: worldlet -> build; fleet hull -> orders; platform
+  -> its actions (Shipyard = commission, Lab = research, HQ = subsidy). The
+  detached-console / comms-refresh / side-wide-scan / role-from-art patterns live in
+  `../sbs_utils/MAST_CLAUDE.md` ("Detached command consoles").
+- **Multi-side rule (will bite you):** derive the side from context
+  (`COMMS_ORIGIN.side`, a platform's `.side`), **never a `"tsn"` literal.** The
+  build path already does; the **server econ loops still assume `"tsn"`** — the one
+  remaining single-side assumption to generalize. Don't add new `"tsn"` literals.
 
 ---
 
@@ -165,5 +198,9 @@ python sbs.pyz lib LegendaryMissions   # builds v1.4.0 mastlibs (incl. quests) i
   not per-mission). Versioned with a `save_version` + `_MIGRATIONS` ladder — bump +
   add a migration when you change the save shape.
 
-## Branches
-- `main` (default) and `v1.4.0_dev`. Do dev work on `v1.4.0_dev`.
+## Branches & push workflow
+- All three repos (OU, LM, **sbs_utils**) work on **`v1.4.0_dev`**; `main` is the
+  default/release branch. (There is no `admiral_dev` anymore — its work was
+  cherry-picked onto `v1.4.0_dev`.)
+- **Push to origin only after the user confirms** — every push, each repo. Never
+  PR/merge to `main`. (See the `feedback-branch-push-workflow` memory for state.)
