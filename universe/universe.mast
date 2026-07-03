@@ -42,10 +42,12 @@ default shared UNIVERSE_CULL_RADIUS = 25000
 # error) the caller - it ends implicitly at the next label, like the LM
 # original.
 //shared/signal/create_sides
+    universe_clear_player_sides()
     prefab_spawn(prefab_side_generic, data={"key":"tsn"})
     side_set_display_name("tsn", "TSN")
     side_set_description("tsn", "The Terran Stellar Navy")
     side_set_icon_color("tsn", "#07F")
+    universe_register_player_side("tsn")
     prefab_spawn(prefab_side_generic, data={"key":"raider", "name": "Raider", "color": "#F00", "desc":"Hostile Aliens"})
     prefab_spawn(prefab_side_generic, data={"key":"civ", "name": "Civ", "color": "white", "desc":"Civilians."})
     side_set_relations("tsn", "raider", sbs.DIPLOMACY.HOSTILE)

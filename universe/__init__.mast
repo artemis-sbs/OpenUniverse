@@ -2,6 +2,7 @@
 # other local addon. Helpers/data first, then the registry, then the map itself
 # (the shared MAST namespace means later files can call the earlier helpers).
 import universe_helpers.py
+import universe_sides.py
 import universe_amd.py
 import universe_clans.py
 import universe_reputation.py
