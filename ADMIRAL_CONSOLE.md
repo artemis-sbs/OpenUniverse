@@ -576,22 +576,170 @@ from section 2 (resource bar; idle-worker button). ALERTS collects skirmish
 warnings and MIA events. The 2D view reuses the console 2D-view widget with
 Admiral-only overlays (yields popup, supply radii, border hatching).
 
-## 18. Next actions
+## 18. Status: shipped work and open items
 
-Completed work - slices 1-4, the consolidation pass, capture/ransom, officer
-voices, fleet chatter, veil avoidance, and subsidy (the full section-7 bridge
-set) - has moved to `ADMIRAL_CONSOLE_DONE.md` (one entry each, with commits and
-verification state). The Admiral is feature-complete against this document.
+The Admiral is **feature-complete against this document.** Everything under
+*Shipped* landed on the `admiral_dev` branch (OpenUniverse, with the market
+subsidy hook in LegendaryMissions), now merged to `v1.4.0_dev`. Each entry is what
+shipped plus its verification/commit; the design rationale for each piece is in
+the numbered sections above.
 
-Open:
+Verification note: 2026-07-01 items were browser-verified as they landed; the
+2026-07-02 items are test-verified (in-process suite) + headless PASS; the overseer
+(below) is partially browser-verified, with a full browser pass still pending.
+
+### Shipped
+
+**AMD strawman moved into default.amd** - `## Worldlets` + `## Admiralty` live in
+default.amd (Officers followed in slice 3).
+
+**Slice 1 - the economy exists** (browser-verified 2026-07-01) - Worldlet
+types/tuning parse via the friendly reader (universe_amd.py); worldlets spawn via
+the POI deck (authored 30%, home system guaranteed a settled type) and as
+`Kind: worldlet` landmarks; side ore/gas/crew pools ride the side agent like
+credits; the Admiral console has the ticker, tabs (Map live), worldlet
+select/inspect, HQ + Extractor builds with costs/prereqs/build-times, a build
+queue line, and the extraction tick. Inert for universes with no Admiralty chapter.
+
+**Slice 2 - the war effort reaches the players** (browser-verified 2026-07-01) -
+Refinery (boosts its worldlet 1.5x, +400 storage) + Shipyard (research site);
+stockpile caps; the Engineering ladder authored as a `## Research` AMD chapter
+(Costs/Time/Requires/Unlocks in plain English), researched one-at-a-time; the
+Requisition tab - upgrade items bought with resources and delivered as REAL items
+beside the player ships with a comms notice.
+
+**Slice 3 - the navy** (browser-verified 2026-07-01) - the Academy trains the
+`## Officers` roster; fleets (2 escorts + 1 line ship) form at the Shipyard for
+resources + one command point; the six orders run as a per-fleet tick
+(target/target_pos, not brains); every non-hold order burns officer-scaled gas and
+dry tanks force hold; salvage strips wrecks; officer trait bonuses derive linearly
+from authored Values; acknowledgments reach the crews as comms; CMD is live. UI
+pattern settled: every repeating list is a scrollable gui_list_box + a
+context/detail panel acting on the selection.
+
+**Consolidation pass** (committed 2ae8540, 2026-07-02) - officer chatter rides
+info-panel cards with cached faces; fleets persist (adm_fleets + fleets_respawn on
+every arrival - the navy travels with the flag); per-system worldlet depletion +
+platforms snapshot into the sectors delta and re-apply on arrival; baseline save at
+map start; pool seeding retried until the side agent exists.
+
+**Slice 4 - the frontier** (f1ea629, 2026-07-02) - **Bastion** (per-worldlet armed
+fort; skirmish raids prefer it); **border skirmishes** (pressure = foe-owned cells
+in the Chebyshev ring; raids once the first fleet exists; `Skirmish pressure: off`
+disables); **MIA captains** (a destroyed fleet drops its officer in a pod; a player
+ship within 1500 rescues before `MIA timer:` lapses; fates persist); **antimatter
+veil** (a `Kind: antimatter` region is survivable only briefly - continuous heat +
+system_damage, tinted nebula, amber chart wash); **Relay Gate** (a gated system
+feeds income at `Relay rate:` while the flag is elsewhere; remote depletion
+simulated).
+
+**Captain capture + ransom; HQ campaign uniqueness** (f6c1e3f, 2026-07-02) - a
+lapsed MIA pod is claimed by a hostile foe clan; the officer becomes their prisoner
+(ransom priced by standing at a captor station, or break them out by
+destroying/capturing a captor station). The HQ is campaign-unique;
+Shipyard/Academy/Relay stay per-system.
+
+**Officer voices** (a02ab16, 2026-07-02) - an officer with a `Scene:` rides their
+flag hull as a hailable cast character (lifeform + //comms/universe_cast); select
+the flag, hail the officer, and their voice is a dialogue scene. The lifeform
+follows the lead hull (dead flag -> next ship) and parks while
+podside/captured/between fleets; their Values are the leans, so crews build
+personal reputation with the captains they fly with.
+
+**Authorable fleet chatter** (eed4545, 2026-07-02) - fleet event lines (order acks,
+gas/salvage blips, pod-away/rescue/capture/lost) are built-in pools with a random
+pick and {ore}/{gas}/{rescuer}/{officer}/{clan} fields; a `## Fleet Chatter` AMD
+section overrides any pool; zero authoring keeps the defaults.
+
+**NPC veil avoidance** (d8ca036, 2026-07-02) - the navy will not operate inside an
+antimatter veil; fleet_tick forces any active fleet to hold and warns once. Same
+commit fixed a QuestState-in-MAST-eval engine error (compare quest state against
+the int 0).
+
+**Subsidy - the resources-to-prices bridge** (LM f219a11 + OU ac6d00f, 2026-07-02)
+- bridge #2 from section 7: one number `market_subsidy` on the side agent that LM
+`items.market_price` reads (backward-compatible ship_id param discounts the buyer
+side's price); the Requisition tab cycles the tier (0/10/20/30%). Every econ tick
+pays the rate's upkeep; a dry pool suspends it (the anti-snowball rail). The LM
+change is generic.
+
+**Lab - concurrent research** (2026-07-02) - research is a list; the side researches
+up to `research_slots(side)` = 1 + each Lab at once. Each Lab (per-worldlet,
+stackable) adds a slot; legacy single-key saves coerce to a list.
+
+**Sensor Relay - command-point expansion** (2026-07-02) - each Sensor Relay
+(per-worldlet, stackable) adds SENSOR_COMMAND_POINTS to the fleet cap via
+`admiralty_command_points(side)`; both the ticker and the fleet-form cap read it.
+
+**Fog of war - Sensor Relay reveal** (2026-07-02) - finishing a Sensor Relay marks
+its system + the 8 neighbours 'sensed' in the sectors delta persistently; the
+galaxy map + nav panel treat a cell as known if visited OR sensed OR Full Chart
+(universe_cell_known). Carried gap: in-system reveal + a visual sensed-vs-visited
+mark.
+
+**Officer veterancy** (2026-07-02) - an officer on an active order accrues service
+each fleet_tick; every VETERAN_STEP is a level (capped) that adds VETERAN_BUMP to
+the Values they were built for and ONLY those. Persists and survives MIA/capture in
+place, so a lost veteran stings.
+
+**Depot - fleet supply anchor** (2026-07-02) - a fleet on an active order within a
+Depot's radius (DEPOT_SUPPLY_RADIUS) burns no gas; extends patrol range on the
+frontier. Per-worldlet build; persists like the others.
+
+**Relay Gate remote depletion** (2026-07-02) - the econ tick snapshots a
+per-worldlet relay plan into the sectors delta; admiralty_relay_tick draws that
+income against the SAME worldlet_reserves arrival re-applies - a gated finite
+worldlet really drains, unlimited (Haven) ones pay on.
+
+**Build menu = scrollable listbox** (browser-verified 2026-07-02) - the Map build
+panel is a scrollable gui_list_box of buildable platforms
+(`admiralty_buildable_items`) + a Build button; only prereq-met platforms list
+(`admiralty_buildable_kinds`), so it unlocks as you build. Validation split into a
+check-only `admiralty_can_build` shared by the list and the action.
+
+**Fabricator - build model B** (2026-07-02) - behind `Build model:` (menu default,
+fabricator = B): one slow unarmed Fabricator ship physically flies to each queued
+worldlet and builds it (universe_fabricator.py); death penalty is TIME not
+resources (the queue survives on adm_fab_queue). Placeholder hull (ART_WANTED).
+
+**Terrain no longer proximity-culls in a system** (a614293, 2026-07-02) - terrain
+stays loaded for the whole visit (no network pop in/out), torn down only on a jump.
+Brained raider fleets still cull as a formation park.
+
+**Overseer console - detached 2D command surface** (23812c8 step 1; 0ea2146 +
+70f8ef8 step 2; 2026-07-02; step 1 + build/order/pan browser-verified) - the
+signature UI shift (section 17 realized as a live command surface). Behind
+`Admiral view:` (bridge = tabs; overseer = default). The Admiral rides a private
+detached camera over the system (GM cambot pattern) with a comms 2D view and
+**commands by selecting objects**: click a worldlet to build, a fleet hull to order
+(the six orders), a platform for its actions - **Shipyard** to commission an
+officer, **Lab** to research, **HQ** to cycle subsidy. Click empty space to pan,
+an object to recenter; a radar zoom control. Supporting work: the building side is
+threaded from the selecting Admiral (`COMMS_ORIGIN.side` -> BUILD_SIDE), not
+hard-coded (multi-side groundwork); a side-wide theatre scan
+(`admiralty_scan_theatre`) so comms enables on the side's own worldlets/platforms/
+fleets; platforms stripped of the engine-derived `station` role so only the Admiral
+menus show; a live resource ticker + a build-queue/action status panel (no info
+panel on this console) + a "no extractors yet" income hint; in-place comms refresh
+on build start/complete (`comms_navigate_override`); start-ore raised 200->300 (the
+HQ+Extractor soft-lock); nebula dialed down for transmit cost; the console named
+`gamemaster_overseer_comms` for the engine's optimized detached-console network.
+Player + author docs shipped (mkdocs `playing/admiral.md` + `writing/admiralty.md`).
+
+### Open
+
 1. Confirm/correct the Siege-worldlet reading (section 15).
-2. Browser-verify the 2026-07-02 features (slice 4, capture/ransom, officer
-   voices, fleet chatter, veil avoidance, subsidy). All are test-verified
-   (in-process suite) + headless PASS; a full browser pass is still pending.
-3. Carried polish (non-blocking):
-   - NPC veil *pathing* - fleets route around a veil, vs today's refuse-and-hold.
-     (Marginal: the veil is whole-system, so refuse-and-hold is arguably correct.)
+2. Full browser pass of the 2026-07-02 features and the overseer economy loop
+   (commission a fleet -> order it; research at a Lab). Most are test-verified
+   (in-process) + headless PASS; build/order/pan are browser-verified.
+3. **Multi-side:** the server economy loops still assume `"tsn"` as the player
+   side; the overseer build path is the reference for deriving side from context.
+   Generalize when rival/co-op Admirals on different sides become real.
+4. Carried polish (non-blocking):
+   - NPC veil *pathing* - fleets route around a veil vs today's refuse-and-hold
+     (marginal: the veil is whole-system, so refuse-and-hold is arguably correct).
    - Event dialogue *scenes* - richer than the authorable canned chatter pools.
+   - Distinct Admiral-platform art (see `ART_WANTED.md`).
 
 ---
 

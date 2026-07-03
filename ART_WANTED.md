@@ -140,5 +140,5 @@ roster more personality. Low priority.
 
 - `ADMIRAL_CONSOLE.md` section 9 (temporary art strategy) and the appendices
   ("worldlet surface knobs", "CQ nebula catalog").
-- `ADMIRAL_CONSOLE_DONE.md` for what each system does, if you need context on a
-  placeholder's role.
+- `ADMIRAL_CONSOLE.md` section 18 (Shipped work) for what each system does, if you
+  need context on a placeholder's role.
