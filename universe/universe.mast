@@ -48,11 +48,19 @@ default shared UNIVERSE_CULL_RADIUS = 25000
     side_set_description("tsn", "The Terran Stellar Navy")
     side_set_icon_color("tsn", "#07F")
     universe_register_player_side("tsn")
+    # A second PLAYER side (a co-op Admiral) - registering it in the roster is all
+    # it takes for the economy/fleet loops + consoles to run for it too. Allied
+    # with TSN here (a universe author sets rival relations below for PvP).
+    prefab_spawn(prefab_side_generic, data={"key":"orion", "name": "Orion", "color": "#0c8", "desc":"The Orion Concord"})
+    universe_register_player_side("orion")
     prefab_spawn(prefab_side_generic, data={"key":"raider", "name": "Raider", "color": "#F00", "desc":"Hostile Aliens"})
     prefab_spawn(prefab_side_generic, data={"key":"civ", "name": "Civ", "color": "white", "desc":"Civilians."})
     side_set_relations("tsn", "raider", sbs.DIPLOMACY.HOSTILE)
     side_set_relations("raider", "civ", sbs.DIPLOMACY.HOSTILE)
     side_set_relations("civ", "tsn", sbs.DIPLOMACY.NEUTRAL)
+    side_set_relations("orion", "raider", sbs.DIPLOMACY.HOSTILE)
+    side_set_relations("orion", "civ", sbs.DIPLOMACY.NEUTRAL)
+    side_set_relations("orion", "tsn", sbs.DIPLOMACY.ALLIED)
     sim.set_diplomacy_color(sbs.DIPLOMACY.HOSTILE, "#F00")
     sim.set_diplomacy_color(sbs.DIPLOMACY.NEUTRAL, "#077")
 

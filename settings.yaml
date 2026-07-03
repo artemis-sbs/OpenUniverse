@@ -65,6 +65,15 @@ PLAYER_LIST:
         ship: "tsn_light_cruiser"
         face: "terran"
 
+    # A ship on the second player side (Orion) so a client can command that
+    # side's Admiral. Hull art is cosmetic; `side` is what makes it Orion. (The
+    # "Side not found: orion" at startup is the same benign pre-create_sides
+    # churn every side logs - tsn included.)
+    -   name: "Orion Vanguard"
+        side: "orion"
+        ship: "tsn_battle_cruiser"
+        face: "terran"
+
     -   name: "Intrepid"
         side: "tsn"
         ship: "tsn_battle_cruiser"
