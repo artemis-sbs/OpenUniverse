@@ -23,28 +23,27 @@ default shared ADM_LAST_MSG = ""
 --- econ_loop
     await delay_sim(6)
     ->END if not UNIVERSE_ACTIVE
-    # Retry seeding until the side agent exists (start-order differences can
-    # beat side creation at map start); persist the campaign when it lands.
-    if admiralty_seed_pools("tsn"):
-        universe_save_players()
-    # Keep the side's own theatre scanned so the overseer can open comms on its
-    # worldlets/stations/fleets (side-wide, one pass - universe_worldlets).
-    admiralty_scan_theatre("tsn")
-    admiralty_extraction_tick("tsn", 6)
-    # Relay Gates (slice 4): every OTHER gated system feeds its last-known
-    # income into the pools at the Relay rate - empire income while away.
-    admiralty_relay_tick("tsn", universe_sectors, universe_i, universe_j, 6)
-    # Crew subsidy upkeep: the active discount drains the stockpiles; a dry
-    # pool suspends it (universe_worldlets). Tell the crews when it lapses.
-    subsidy_lapse = admiralty_subsidy_upkeep("tsn", 6)
-    if subsidy_lapse is not None:
-        universe_info_card(subsidy_lapse, "Admiralty Quartermaster", "#fa4")
-    # Keep this system's persistence delta fresh (worldlet depletion + the
-    # platforms built here + what this system earns per minute) so jumps and
-    # saves carry the infrastructure and the relay knows what to pay.
+    # Per player side: seed pools (retry until the side agent exists at map
+    # start), scan its own theatre for comms, tick extraction/relay income, and
+    # drain the crew subsidy. Iterating the roster is what makes the economy
+    # multi-side; with one player side this runs exactly once (unchanged).
+    for _side in universe_player_sides():
+        if admiralty_seed_pools(_side):
+            universe_save_players()
+        admiralty_scan_theatre(_side)
+        admiralty_extraction_tick(_side, 6)
+        admiralty_relay_tick(_side, universe_sectors, universe_i, universe_j, 6)
+        subsidy_lapse = admiralty_subsidy_upkeep(_side, 6)
+        if subsidy_lapse is not None:
+            universe_info_card(subsidy_lapse, "Admiralty Quartermaster", "#fa4")
+    # Keep this system's persistence delta fresh (worldlet depletion + platforms
+    # built here + per-minute income) so jumps/saves carry the infrastructure.
+    # TODO(multi-side): the platform/relay snapshots are per-primary-side; make
+    # them per-side when >1 player side builds in the same sector.
+    _psnap = universe_primary_side()
     universe_sectors = universe_set_system_value(universe_sectors, universe_i, universe_j, "worldlet_reserves", worldlets_snapshot_reserves())
-    universe_sectors = universe_set_system_value(universe_sectors, universe_i, universe_j, "admiral_platforms", admiralty_snapshot_platforms("tsn"))
-    universe_sectors = universe_set_system_value(universe_sectors, universe_i, universe_j, "adm_relay", admiralty_relay_snapshot("tsn"))
+    universe_sectors = universe_set_system_value(universe_sectors, universe_i, universe_j, "admiral_platforms", admiralty_snapshot_platforms(_psnap))
+    universe_sectors = universe_set_system_value(universe_sectors, universe_i, universe_j, "adm_relay", admiralty_relay_snapshot(_psnap))
     jump econ_loop
 
 
@@ -61,13 +60,14 @@ default shared ADM_LAST_MSG = ""
         fleet_evt = fleet_tick(_fl.key, 3, veiled_now)
         if fleet_evt is not None:
             officer_card(fleet_evt.officer, fleet_evt.text)
-    # MIA captains (slice 4): pod rescues, captures, lapsed beacons. Rescued
-    # officers speak for themselves; captures/losses are Admiralty ops traffic.
-    for mia_evt in officer_mia_tick("tsn", 3, UNIVERSE_CLANS):
-        if mia_evt.officer is None:
-            universe_info_card(mia_evt.text, "Admiralty Operations", "#f66")
-        else:
-            officer_card(mia_evt.officer, mia_evt.text)
+    # MIA captains (slice 4): pod rescues, captures, lapsed beacons - per side.
+    # Rescued officers speak for themselves; captures/losses are Admiralty traffic.
+    for _side in universe_player_sides():
+        for mia_evt in officer_mia_tick(_side, 3, UNIVERSE_CLANS):
+            if mia_evt.officer is None:
+                universe_info_card(mia_evt.text, "Admiralty Operations", "#f66")
+            else:
+                officer_card(mia_evt.officer, mia_evt.text)
     jump fleet_loop
 
 
@@ -79,11 +79,12 @@ default shared ADM_LAST_MSG = ""
 --- skirmish_loop
     await delay_sim(10)
     ->END if not UNIVERSE_ACTIVE
-    raid = skirmish_tick("tsn", UNIVERSE_CLANS, universe_seed, universe_i, universe_j, DANGER, 10)
-    if raid is not None:
-        raid_clan = clan_get(UNIVERSE_CLANS, raid.clan)
-        prefab_spawn(prefab_fleet_raider, {"race": clan_pick_race(raid_clan), "fleet_difficulty": raid.difficulty, "ship_roles": raid.clan + ", raider, skirmish", "START_X": raid.x, "START_Y": raid.y, "START_Z": raid.z})
-        universe_info_card("ALERT - " + clan_name(UNIVERSE_CLANS, raid.clan) + " skirmish raid inbound on " + raid.target + ".", "Admiralty Operations", "#f66")
+    for _side in universe_player_sides():
+        raid = skirmish_tick(_side, UNIVERSE_CLANS, universe_seed, universe_i, universe_j, DANGER, 10)
+        if raid is not None:
+            raid_clan = clan_get(UNIVERSE_CLANS, raid.clan)
+            prefab_spawn(prefab_fleet_raider, {"race": clan_pick_race(raid_clan), "fleet_difficulty": raid.difficulty, "ship_roles": raid.clan + ", raider, skirmish", "START_X": raid.x, "START_Y": raid.y, "START_Z": raid.z})
+            universe_info_card("ALERT - " + clan_name(UNIVERSE_CLANS, raid.clan) + " skirmish raid inbound on " + raid.target + ".", "Admiralty Operations", "#f66")
     jump skirmish_loop
 
 
@@ -95,9 +96,10 @@ default shared ADM_LAST_MSG = ""
 --- fab_loop
     await delay_sim(2)
     ->END if not UNIVERSE_ACTIVE
-    fab_evt = fabricator_tick("tsn", 2)
-    if fab_evt is not None:
-        universe_info_card(fab_evt, "Admiralty Fabricator", "#0cf")
+    for _side in universe_player_sides():
+        fab_evt = fabricator_tick(_side, 2)
+        if fab_evt is not None:
+            universe_info_card(fab_evt, "Admiralty Fabricator", "#0cf")
     jump fab_loop
 
 
@@ -106,7 +108,7 @@ default shared ADM_LAST_MSG = ""
 === admiralty_build_task
     default build_kind = "extractor"
     default build_worldlet_id = None
-    default build_side = "tsn"
+    default build_side = universe_primary_side()
     pdef = admiralty_platform_def(build_kind)
     ->END if pdef is None or build_worldlet_id is None
     build_label = pdef.get("name") + " at " + str(to_object(build_worldlet_id).name)
@@ -137,13 +139,14 @@ default shared ADM_LAST_MSG = ""
 # persist the campaign.
 === admiralty_research_task
     default research_key = None
+    default research_side = universe_primary_side()
     rdef = research_def(research_key)
     ->END if rdef is None
     research_label = "Research - " + rdef.get("name")
     ADM_BUILDS.append(research_label)
     await delay_sim(rdef.get("time"))
     ADM_BUILDS.remove(research_label)
-    research_complete("tsn", research_key)
+    research_complete(research_side, research_key)
     universe_save_players()
     universe_info_card("Research complete: " + rdef.get("name") + ".", "Admiralty", "#0cf")
     ->END
