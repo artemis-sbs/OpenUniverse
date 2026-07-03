@@ -36,6 +36,7 @@ nav:
     - 6. Captains and the cast: writing/people.md
     - 7. Dialogue: writing/dialogue.md
     - 8. The dials: writing/dials.md
+    - 9. The Admiralty - a side to command: writing/admiralty.md
     - The complete example: writing/silver-reach.md
     - Troubleshooting: writing/troubleshooting.md
 
@@ -46,6 +47,7 @@ markdown_extensions:
   - attr_list
   - md_in_html
   - admonition
+  - tables
   - pymdownx.details
   - pymdownx.superfences
   - pymdownx.tabbed:
