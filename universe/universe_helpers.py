@@ -14,7 +14,7 @@ from sbs_utils.fs import get_mission_dir
 from sbs_utils.procedural.terrain import terrain_spawn_field_keyed
 from sbs_utils.procedural.space_objects import delete_objects_box
 from sbs_utils.procedural.roles import role
-from sbs_utils.procedural.query import to_object_list
+from sbs_utils.procedural.query import to_object_list, to_object
 from sbs_utils.procedural.execution import labels_get_type
 from sbs_utils.procedural.inventory import get_inventory_value, set_inventory_value
 from sbs_utils.procedural.sides import to_side_id
@@ -187,6 +187,39 @@ def ship_set_cell(ship_id, i, j):
     """Record which cell a ship is in (used by the per-ship jump + nav console)."""
     set_inventory_value(ship_id, "universe_cell_i", int(i))
     set_inventory_value(ship_id, "universe_cell_j", int(j))
+
+
+def universe_cell_live(i, j):
+    """True if cell (i, j) is currently instantiated (has at least one occupant).
+    A cell despawns when its last occupant leaves, so this is the per-cell answer
+    to 'are we still here?' that replaces the old `== universe_i` global check."""
+    return (int(i), int(j)) in _cell_occupants
+
+
+def universe_cell_at_pos(x, z):
+    """Which live cell's box a world position falls in, as (i, j). Slots are 250k
+    apart and each cell's box is +/-100k, so the boxes never overlap - the answer
+    is unambiguous. Defaults to (0, 0) (slot 0 = origin) if no live cell matches,
+    which keeps the single-cell case behaviour-preserving. Lets a route/watch that
+    holds an OBJECT (a station, a wreck) derive that object's cell from where it
+    sits, without every spawn having to be tagged."""
+    r = UNIVERSE_CELL_CLEAR_R
+    for (i, j) in _cell_slot_of.keys():
+        o = universe_cell_origin(i, j)
+        if abs(x - o.x) <= r and abs(z - o.z) <= r:
+            return (i, j)
+    return (0, 0)
+
+
+def object_cell(obj_id):
+    """The (i, j) cell an object is in, derived from its world position (see
+    universe_cell_at_pos). Use for objects without a ship cell tag - stations,
+    wrecks, worldlets. Returns (0, 0) if the object is gone."""
+    obj = to_object(obj_id)
+    if obj is None:
+        return (0, 0)
+    p = obj.pos
+    return universe_cell_at_pos(p.x, p.z)
 
 
 def universe_generate_system(universe_seed, i, j, terrain_value=2):

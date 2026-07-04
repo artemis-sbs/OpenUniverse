@@ -258,13 +258,17 @@ GameCode:
     default cap_clan = None
     default cap_hold = 0
     ->END if cap_station is None
-    cap_i = universe_i
-    cap_j = universe_j
+    # Multi-cell: the watched station fixes the cell (from its position), not the
+    # shared global. The watch ends when that cell despawns (its last viewer left),
+    # replacing the old "did we jump away" == universe_i check.
+    _cap_cell = object_cell(cap_station)
+    cap_i = _cap_cell[0]
+    cap_j = _cap_cell[1]
 --- cwatch
     await delay_sim(2)
     ->END if not UNIVERSE_ACTIVE
     ->END if not object_exists(cap_station)
-    ->END if cap_i != universe_i or cap_j != universe_j
+    ->END if not universe_cell_live(cap_i, cap_j)
     near = closest(cap_station, role(cap_clan) - role("station"), 12000)
     if near is None:
         cap_hold += 2
@@ -278,7 +282,7 @@ GameCode:
         cap_side = _capturer.side if _capturer is not None else universe_primary_side()
         cap_obj.set_side(cap_side)
         universe_sectors = universe_set_system_flag(universe_sectors, cap_i, cap_j, "captured")
-        universe_save(universe_seed, universe_i, universe_j, universe_sectors)
+        universe_save(universe_seed, cap_i, cap_j, universe_sectors)
         comms_broadcast(role("__player__"), "Starbase captured!", "#0f0")
         # Taking the station also empties its brig: captured Admiralty
         # officers held by this clan walk free (the bloodless rescue raid).
@@ -299,13 +303,15 @@ GameCode:
     default cap_clan = None
     default cap_hold = 0
     ->END if cap_station is None
-    cap_i = universe_i
-    cap_j = universe_j
+    # Multi-cell: cell fixed by the station's position; watch ends when it despawns.
+    _cap_cell = object_cell(cap_station)
+    cap_i = _cap_cell[0]
+    cap_j = _cap_cell[1]
 --- rwatch
     await delay_sim(2)
     ->END if not UNIVERSE_ACTIVE
     ->END if not object_exists(cap_station)
-    ->END if cap_i != universe_i or cap_j != universe_j
+    ->END if not universe_cell_live(cap_i, cap_j)
     # Re-assault repelled once no clan ships remain in the system.
     foes = closest(cap_station, role(cap_clan) - role("station"), 60000)
     ->END if foes is None
@@ -318,7 +324,7 @@ GameCode:
         cap_obj = to_object(cap_station)
         cap_obj.set_side(cap_clan)
         universe_sectors = universe_set_system_flag(universe_sectors, cap_i, cap_j, "captured", False)
-        universe_save(universe_seed, universe_i, universe_j, universe_sectors)
+        universe_save(universe_seed, cap_i, cap_j, universe_sectors)
         comms_broadcast(role("__player__"), "Starbase retaken by the enemy!", "#f00")
         ->END
     jump rwatch
@@ -350,15 +356,19 @@ GameCode:
     ->END
 
 
-# Persist a station's market stock to the sector delta on buy/sell.
+# Persist a station's market stock to the sector delta on buy/sell. Multi-cell:
+# key the save to the STATION'S cell (from its position), not the shared global -
+# a trade in a split-off player's system must land in that system's delta.
 //signal/item_bought if UNIVERSE_ACTIVE
-    universe_sectors = universe_set_system_value(universe_sectors, universe_i, universe_j, "market", market_snapshot(station_id))
-    universe_save(universe_seed, universe_i, universe_j, universe_sectors)
+    mkt_cell = object_cell(station_id)
+    universe_sectors = universe_set_system_value(universe_sectors, mkt_cell[0], mkt_cell[1], "market", market_snapshot(station_id))
+    universe_save(universe_seed, mkt_cell[0], mkt_cell[1], universe_sectors)
     ->END
 
 //signal/item_sold if UNIVERSE_ACTIVE
-    universe_sectors = universe_set_system_value(universe_sectors, universe_i, universe_j, "market", market_snapshot(station_id))
-    universe_save(universe_seed, universe_i, universe_j, universe_sectors)
+    mkt_cell = object_cell(station_id)
+    universe_sectors = universe_set_system_value(universe_sectors, mkt_cell[0], mkt_cell[1], "market", market_snapshot(station_id))
+    universe_save(universe_seed, mkt_cell[0], mkt_cell[1], universe_sectors)
     ->END
 
 
@@ -407,6 +417,13 @@ GameCode:
 # completes the quest (on_reach) and pays out. Persists on the player ship.
 //comms if UNIVERSE_ACTIVE and has_role(COMMS_SELECTED_ID, "station")
     ship_id = COMMS_ORIGIN_ID
+    # Multi-cell: this station is in the HAILING SHIP'S cell, not the shared global
+    # universe_i/j (which tracks the latest jumper - wrong for a player who split off
+    # to another system). Everything keyed to "this system" below (captains, cargo
+    # runs, passengers) reads the ship's own cell.
+    hail_cell = ship_cell(ship_id)
+    h_i = hail_cell[0]
+    h_j = hail_cell[1]
     # Hail: open a conversation (universe_dialogue.py + the //comms/dialogue route)
     # with the station's clan, and with any named captain who roams this system. A
     # captain entry scene is keyed the same way (Speaker = his key, When: comms).
@@ -414,7 +431,7 @@ GameCode:
     hail_entry = dialogue_clan_entry(UNIVERSE_DIALOGUE, hail_clan)
     if hail_entry is not None:
         + "Hail {clan_name(UNIVERSE_CLANS, hail_clan)}" universe_dialogue_start {"scene": hail_entry}
-    for hail_cap in captains_in_system(UNIVERSE_CAPTAINS, universe_i, universe_j):
+    for hail_cap in captains_in_system(UNIVERSE_CAPTAINS, h_i, h_j):
         cap_entry = dialogue_clan_entry(UNIVERSE_DIALOGUE, hail_cap.key)
         if cap_entry is not None:
             + "Hail {captain_full_name(hail_cap)}" universe_dialogue_start {"scene": cap_entry}
@@ -423,9 +440,9 @@ GameCode:
     # loop/task variables and shared-python names (pax, ship_id, QuestState)
     # do not exist -> NameError spam. Gate buttons with plain `if` STATEMENTS
     # (these run only here, in this task) and keep buttons condition-free.
-    if universe_delivery_available(ship_id, universe_i, universe_j):
+    if universe_delivery_available(ship_id, h_i, h_j):
         + "Accept Cargo Run":
-            universe_grant_delivery(ship_id, universe_seed, universe_i, universe_j)
+            universe_grant_delivery(ship_id, universe_seed, h_i, h_j)
             universe_save_players()
             >> "Cargo loaded. The destination is marked on your galaxy map."
     # Passenger transport: authored named passengers waiting here (B), plus a
@@ -437,15 +454,15 @@ GameCode:
     # a Python enum in the .py files but is NOT in the engine's MAST eval
     # globals (the mock's are more permissive, so --test never caught it).
     # QuestState.IDLE == 0; the story_patrol check below already uses 0.
-    for pax in universe_passengers_at(UNIVERSE_LIFEFORMS, universe_i, universe_j):
+    for pax in universe_passengers_at(UNIVERSE_LIFEFORMS, h_i, h_j):
         if quest_get_state(ship_id, "passenger_" + pax.key) == 0:
             pax_label = f"Transport {pax.name} to ({pax.deliver_to[0]}, {pax.deliver_to[1]})  ({pax.pays} cr)"
             + "{pax_label}" universe_accept_passenger {"pax": pax}
-    pax_tij = universe_delivery_target(universe_seed, universe_i, universe_j)
-    if quest_get_state(ship_id, "passenger_traveler_" + str(universe_i) + "_" + str(universe_j)) == 0:
+    pax_tij = universe_delivery_target(universe_seed, h_i, h_j)
+    if quest_get_state(ship_id, "passenger_traveler_" + str(h_i) + "_" + str(h_j)) == 0:
         traveler_label = f"Transport a passenger to ({pax_tij[0]}, {pax_tij[1]})"
         + "{traveler_label}":
-            universe_grant_passenger(ship_id, universe_generic_passenger(universe_i, universe_j, pax_tij[0], pax_tij[1]))
+            universe_grant_passenger(ship_id, universe_generic_passenger(h_i, h_j, pax_tij[0], pax_tij[1]))
             universe_save_players()
             >> "Passenger aboard. Safe travels."
     if quest_get_state(ship_id, "story_patrol") == 0:
@@ -1031,8 +1048,11 @@ GameCode:
 # are stored (see universe_save in universe_helpers.py).
 #
 //damage/destroy if UNIVERSE_ACTIVE and has_role(DESTROYED_ID, "station") and not has_role(DESTROYED_ID, "outpost")
-    universe_sectors = universe_set_system_flag(universe_sectors, universe_i, universe_j, "station_destroyed")
-    universe_save(universe_seed, universe_i, universe_j, universe_sectors)
+    # Key the "station destroyed" delta to the STATION'S cell (from its position),
+    # not the shared global - the station could be in a split-off player's system.
+    dstr_cell = object_cell(DESTROYED_ID)
+    universe_sectors = universe_set_system_flag(universe_sectors, dstr_cell[0], dstr_cell[1], "station_destroyed")
+    universe_save(universe_seed, dstr_cell[0], dstr_cell[1], universe_sectors)
     # The rescue raid: bringing down a captor clan's station frees every
     # Admiralty officer it holds (the other way out of a ransom).
     for _freed_key in officers_captured_by(get_side(DESTROYED_ID)):
@@ -1043,12 +1063,17 @@ GameCode:
 
 
 === universe_watch_enemy_cleared
-    # Mark a sector cleared once its raider ships are gone (and we're still here).
+    # Mark a sector cleared once its raider ships are gone (and the cell is still
+    # live). Scheduled with its own ei/ej, so it survives another ship's jump.
     default ei = universe_i
     default ej = universe_j
 --- wait
     await delay_sim(5)
-    ->END if ei != universe_i or ej != universe_j
+    ->END if not universe_cell_live(ei, ej)
+    # NOTE (Phase 2e follow-up): this raider count is still a GLOBAL role query, so
+    # with two combat systems live it only marks THIS cell cleared once raiders are
+    # gone everywhere (a safe false-negative; delayed clear). Cell-scoping the role
+    # queries is the remaining multi-cell work.
     if len(to_object_list(role("raider") - role("raider_fleet"))) == 0:
         universe_sectors = universe_set_system_flag(universe_sectors, ei, ej, "enemy_cleared")
         universe_save(universe_seed, ei, ej, universe_sectors)
