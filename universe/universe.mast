@@ -650,28 +650,35 @@ GameCode:
     default JUMP_I = "0"
     default JUMP_J = "0"
 --- repaint
+    # This console shows the cell THIS client's ship is in (Model A: ships can be
+    # in different cells at once). cur_i/cur_j replace the old shared universe_i/j.
+    _cc = ship_cell(sbs.get_ship_of_client(client_id))
+    cur_i = _cc[0]
+    cur_j = _cc[1]
     # View center (pan to explore) and selected system - persist across repaints;
     # both start at the current system. _last_cur tracks an actual jump so we can
     # recenter on arrival.
-    default VIEW_I = universe_i
-    default VIEW_J = universe_j
-    default SEL_I = universe_i
-    default SEL_J = universe_j
-    default _last_cur_i = universe_i
-    default _last_cur_j = universe_j
-    if _last_cur_i != universe_i or _last_cur_j != universe_j:
-        VIEW_I = universe_i
-        VIEW_J = universe_j
-        SEL_I = universe_i
-        SEL_J = universe_j
-        _last_cur_i = universe_i
-        _last_cur_j = universe_j
-    prev_i = universe_i
-    prev_j = universe_j
-    cur_owner = universe_system_clan(UNIVERSE_CLANS, universe_seed, universe_i, universe_j, universe_system_kind(universe_seed, universe_i, universe_j, DANGER))[0]
+    default VIEW_I = cur_i
+    default VIEW_J = cur_j
+    default SEL_I = cur_i
+    default SEL_J = cur_j
+    default _last_cur_i = cur_i
+    default _last_cur_j = cur_j
+    if _last_cur_i != cur_i or _last_cur_j != cur_j:
+        VIEW_I = cur_i
+        VIEW_J = cur_j
+        SEL_I = cur_i
+        SEL_J = cur_j
+        _last_cur_i = cur_i
+        _last_cur_j = cur_j
+    prev_i = cur_i
+    prev_j = cur_j
+    cur_res = universe_system_clan(UNIVERSE_CLANS, universe_seed, cur_i, cur_j, universe_system_kind(universe_seed, cur_i, cur_j, DANGER))
+    cur_owner = cur_res[0]
+    cur_kind = cur_res[1]
     sec_name = clan_name(UNIVERSE_CLANS, cur_owner) if cur_owner is not None else ""
     gui_section(style="area: 4, 3, 96, 11; background:#1578;")
-    """justify:center; font:gui-5; $text:System ({universe_i}, {universe_j})  {sec_name}  [{universe_kind}]"""
+    """justify:center; font:gui-5; $text:System ({cur_i}, {cur_j})  {sec_name}  [{cur_kind}]"""
 
     # Galaxy map: a 7x7 grid around the VIEW center (north = +j on top). Click a
     # cell to SELECT it (info on the right) - it does not jump. @ = you are here,
@@ -701,7 +708,7 @@ GameCode:
             if (ci, cj) in quest_targets:
                 cell_bg = "#a60"
             cell_mark = ""
-            if ci == universe_i and cj == universe_j:
+            if ci == cur_i and cj == cur_j:
                 cell_bg = "#0a6"
                 cell_mark = "@"
             if ci == SEL_I and cj == SEL_J:
@@ -740,7 +747,7 @@ GameCode:
     sel_known = universe_cell_known(universe_sectors, SEL_I, SEL_J, MAP_REVEAL)
     info_owner = (clan_name(UNIVERSE_CLANS, sel_owner) if sel_owner is not None else "Unclaimed") if sel_known else "Unknown"
     info_kind = sel_kind if sel_known else "Unknown"
-    sel_dist = abs(SEL_I - universe_i) + abs(SEL_J - universe_j)
+    sel_dist = abs(SEL_I - cur_i) + abs(SEL_J - cur_j)
     gui_section(style="area: 58, 11, 96, 32; background:#1572;")
     gui_row("row-height:1.5em;")
     """justify:center; font:gui-3; $text:Selected System"""
@@ -798,10 +805,10 @@ GameCode:
     gui_row("row-height: 2.2em;")
     recenter_btn = gui_button("$text:Recenter on Me;justify:center;")
     on gui_message(recenter_btn):
-        VIEW_I = universe_i
-        VIEW_J = universe_j
-        SEL_I = universe_i
-        SEL_J = universe_j
+        VIEW_I = cur_i
+        VIEW_J = cur_j
+        SEL_I = cur_i
+        SEL_J = cur_j
         gui_task_jump("repaint")
 
     gui_sub_task_schedule("nav_watch")
@@ -811,7 +818,8 @@ GameCode:
     # Repaint the map when a jump changes our sector.
     await delay_sim(1)
     ->END if not UNIVERSE_ACTIVE
-    if prev_i != universe_i or prev_j != universe_j:
+    _nc = ship_cell(sbs.get_ship_of_client(client_id))
+    if prev_i != _nc[0] or prev_j != _nc[1]:
         gui_task_jump("repaint")
     jump nav_watch
 
