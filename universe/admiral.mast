@@ -36,14 +36,27 @@ default shared ADM_LAST_MSG = ""
         subsidy_lapse = admiralty_subsidy_upkeep(_side, 6)
         if subsidy_lapse is not None:
             universe_info_card(subsidy_lapse, "Admiralty Quartermaster", "#fa4")
-    # Keep this system's persistence delta fresh (worldlet depletion + platforms
-    # built here + per-minute income) so jumps/saves carry the infrastructure.
+    # Keep EACH live system's persistence delta fresh (worldlet depletion +
+    # platforms built there + per-minute income) so jumps/saves carry the
+    # infrastructure. Multi-cell: snapshot every live cell to its OWN (i,j) delta -
+    # the old single global snapshot dumped role("worldlet") (all cells at once)
+    # into one key, corrupting the save when two systems were live.
     # TODO(multi-side): the platform/relay snapshots are per-primary-side; make
     # them per-side when >1 player side builds in the same sector.
     _psnap = universe_primary_side()
-    universe_sectors = universe_set_system_value(universe_sectors, universe_i, universe_j, "worldlet_reserves", worldlets_snapshot_reserves())
-    universe_sectors = universe_set_system_value(universe_sectors, universe_i, universe_j, "admiral_platforms", admiralty_snapshot_platforms(_psnap))
-    universe_sectors = universe_set_system_value(universe_sectors, universe_i, universe_j, "adm_relay", admiralty_relay_snapshot(_psnap))
+    for _lc in universe_live_cells():
+        _lci = _lc[0]
+        _lcj = _lc[1]
+        _lc_res = worldlets_snapshot_reserves(_lci, _lcj)
+        # Skip a cell with no worldlets: either it's still being generated (a jump
+        # marks the cell live BEFORE enter_system spawns its worldlets, and this
+        # tick could race in between) or it genuinely has none - either way there's
+        # nothing to persist, so don't clobber the stored delta with empty lists.
+        if len(_lc_res) == 0:
+            continue
+        universe_sectors = universe_set_system_value(universe_sectors, _lci, _lcj, "worldlet_reserves", _lc_res)
+        universe_sectors = universe_set_system_value(universe_sectors, _lci, _lcj, "admiral_platforms", admiralty_snapshot_platforms(_psnap, _lci, _lcj))
+        universe_sectors = universe_set_system_value(universe_sectors, _lci, _lcj, "adm_relay", admiralty_relay_snapshot(_psnap, _lci, _lcj))
     jump econ_loop
 
 

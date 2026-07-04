@@ -208,10 +208,17 @@ def worldlet_info(obj_or_id):
 
 
 def worldlets_in_system():
-    """All live worldlet objects (the current system - only one system exists),
-    in creation order (sorted ids) so persistence snapshots line up with the
-    deterministic spawn order."""
+    """All live worldlet objects across every live cell, in creation order (sorted
+    ids). Multi-cell: prefer worldlets_in_cell(i, j) for per-cell persistence -
+    this bare form spans cells (fine only when one cell is live)."""
     return sorted(to_object_list(role("worldlet")), key=lambda o: o.id)
+
+
+def worldlets_in_cell(i, j):
+    """Live worldlets physically inside cell (i, j), in creation order (sorted ids)
+    so a per-cell snapshot lines up with that cell's deterministic spawn order.
+    objects_in_cell is a sibling helper (shared MAST namespace)."""
+    return sorted(objects_in_cell(to_object_list(role("worldlet")), i, j), key=lambda o: o.id)
 
 
 # --- Per-system persistence (the universe_sectors delta) --------------------------
@@ -219,25 +226,27 @@ def worldlets_in_system():
 # worldlet depletion and the platforms built there. Snapshotted on the economy
 # tick (admiral.mast) into universe_sectors; re-applied on arrival
 # (universe.mast enter_system). Order-based: spawn order is deterministic.
-def worldlets_snapshot_reserves():
-    """[reserve or None per worldlet, creation order] for the sectors delta."""
-    return [w.get_inventory_value("worldlet_reserve") for w in worldlets_in_system()]
+def worldlets_snapshot_reserves(i, j):
+    """[reserve or None per worldlet, creation order] for cell (i, j)'s delta."""
+    return [w.get_inventory_value("worldlet_reserve") for w in worldlets_in_cell(i, j)]
 
 
-def worldlets_apply_reserves(saved):
-    """Re-apply saved depletion to the freshly regenerated worldlets."""
+def worldlets_apply_reserves(saved, i, j):
+    """Re-apply saved depletion to cell (i, j)'s freshly regenerated worldlets."""
     if not isinstance(saved, list):
         return
-    for w, r in zip(worldlets_in_system(), saved):
+    for w, r in zip(worldlets_in_cell(i, j), saved):
         if r is not None:
             w.set_inventory_value("worldlet_reserve", r)
 
 
-def admiralty_snapshot_platforms(side):
-    """[{k: kind, w: worldlet index}] for the sectors delta."""
-    order = {w.id: i for i, w in enumerate(worldlets_in_system())}
+def admiralty_snapshot_platforms(side, i, j):
+    """[{k: kind, w: worldlet index}] for cell (i, j)'s delta. Both the worldlet
+    index map and the platform list are confined to the cell, so a second live
+    system's platforms never bleed into this cell's save."""
+    order = {w.id: idx for idx, w in enumerate(worldlets_in_cell(i, j))}
     out = []
-    for plat in to_object_list(role("admiral_platform") & role(side)):
+    for plat in objects_in_cell(to_object_list(role("admiral_platform") & role(side)), i, j):
         widx = order.get(plat.get_inventory_value("worldlet_id"))
         kind = plat.get_inventory_value("admiral_kind")
         if widx is not None and kind:
@@ -245,11 +254,11 @@ def admiralty_snapshot_platforms(side):
     return out
 
 
-def admiralty_restore_platforms(side, saved):
-    """Respawn this system's platforms from the sectors delta (arrival)."""
+def admiralty_restore_platforms(side, saved, i, j):
+    """Respawn cell (i, j)'s platforms from the sectors delta (arrival)."""
     if not isinstance(saved, list):
         return
-    worldlets = worldlets_in_system()
+    worldlets = worldlets_in_cell(i, j)
     for rec in saved:
         widx = rec.get("w")
         kind = rec.get("k")
@@ -353,17 +362,17 @@ def admiralty_extraction_tick(side, dt_seconds):
             wobj.set_inventory_value("worldlet_reserve", max(0, reserve))
 
 
-def admiralty_relay_snapshot(side):
-    """Per extractor-fed worldlet: {w: creation-order index, rate: {res: per_min}}
-    - the income a Relay Gate keeps pulling after the flag leaves. Stored in the
-    sectors delta each econ tick, keyed by worldlet index (same order as
-    worldlets_snapshot_reserves) so the relay draws it against that system's
-    stored worldlet_reserves list - the one arrival re-applies - and a gated
-    FINITE worldlet really runs dry while unlimited ones pay on."""
-    order = {w.id: i for i, w in enumerate(worldlets_in_system())}
+def admiralty_relay_snapshot(side, i, j):
+    """Per extractor-fed worldlet in cell (i, j): {w: creation-order index, rate:
+    {res: per_min}} - the income a Relay Gate keeps pulling after the flag leaves.
+    Stored in the sectors delta each econ tick, keyed by worldlet index (same order
+    as worldlets_snapshot_reserves) so the relay draws it against that system's
+    stored worldlet_reserves list - the one arrival re-applies - and a gated FINITE
+    worldlet really runs dry while unlimited ones pay on."""
+    order = {w.id: idx for idx, w in enumerate(worldlets_in_cell(i, j))}
     mult = float(research_extraction_mult(side))
     out = []
-    for plat in to_object_list(role("admiral_extractor")):
+    for plat in objects_in_cell(to_object_list(role("admiral_extractor")), i, j):
         if not has_role(plat.id, side):
             continue
         wid = plat.get_inventory_value("worldlet_id")
@@ -394,9 +403,14 @@ def admiralty_relay_tick(side, sectors, cur_i, cur_j, dt_seconds):
     if rate <= 0:
         return
     scale = float(dt_seconds) / 60.0 * rate
-    here = f"{cur_i},{cur_j}"
     for skey, sval in sectors.items():
-        if skey == here or not isinstance(sval, dict):
+        if not isinstance(sval, dict):
+            continue
+        # Skip any LIVE cell, not just the flag's current one: a live system pays via
+        # its own extraction tick, so relaying it too would double-pay it. With
+        # several cells live at once, cur_i/cur_j alone would miss the others.
+        _sc = skey.split(",")
+        if len(_sc) == 2 and universe_cell_live(int(_sc[0]), int(_sc[1])):
             continue
         plats = sval.get("admiral_platforms")
         if not isinstance(plats, list) or not any(

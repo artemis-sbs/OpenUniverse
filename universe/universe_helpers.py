@@ -196,6 +196,13 @@ def universe_cell_live(i, j):
     return (int(i), int(j)) in _cell_occupants
 
 
+def universe_live_cells():
+    """The (i, j) of every currently instantiated cell. The economy tick snapshots
+    each live cell's worldlets/platforms to its OWN sector delta, instead of dumping
+    whatever role("worldlet") returns (all cells at once) into the global (i, j)."""
+    return list(_cell_occupants.keys())
+
+
 def universe_cell_at_pos(x, z):
     """Which live cell's box a world position falls in, as (i, j). Slots are 250k
     apart and each cell's box is +/-100k, so the boxes never overlap - the answer

@@ -1028,17 +1028,17 @@ GameCode:
         else:
             npc_spawn(lmpos[0], lmpos[1], lmpos[2], lm.name, lm.side + ", station, landmark", universe_landmark_art(lm), "behav_station")
 
-    # Admiralty persistence: re-apply this system's worldlet depletion and
-    # respawn its platforms from the sectors delta, then bring the navy
-    # through the jump (fleets travel with the flag - universe_fleets.py).
-    # Phase-2 TODO (multi-cell): admiralty_restore_platforms / fleets_respawn spawn
-    # at the origin internally; they'll need the cell offset (co) once cells
-    # coexist. Fine at slot 0 (co = origin) today.
+    # Admiralty persistence: re-apply THIS cell's worldlet depletion and respawn its
+    # platforms from the sectors delta (both scoped to (ei, ej) - restore spawns each
+    # platform beside its own worldlet, which already sits at the cell offset), then
+    # bring the navy through the jump (fleets travel with the flag).
+    # Phase 2e TODO: fleets_respawn still spawns at the origin internally, not the
+    # cell offset (co) - a fleet concern, tracked separately from this econ persistence.
     if admiralty_active():
-        worldlets_apply_reserves(universe_system_value(universe_sectors, ei, ej, "worldlet_reserves", None))
+        worldlets_apply_reserves(universe_system_value(universe_sectors, ei, ej, "worldlet_reserves", None), ei, ej)
         # Restore uses the primary side (snapshots are per-primary for now - see
         # the econ-loop TODO); fleets come back for every player side.
-        admiralty_restore_platforms(universe_primary_side(), universe_system_value(universe_sectors, ei, ej, "admiral_platforms", None))
+        admiralty_restore_platforms(universe_primary_side(), universe_system_value(universe_sectors, ei, ej, "admiral_platforms", None), ei, ej)
         for _side in universe_player_sides():
             fleets_respawn(_side)
 
