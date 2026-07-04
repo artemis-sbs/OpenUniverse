@@ -68,6 +68,34 @@ Then `story.json` is the manifest: **D and B load `universe_core` (skip
 `admiral`); A and C load both.** This split is the difference between "a
 foundation" and "a big mission other missions awkwardly clone."
 
+#### Subsystem membership (the physical-split blueprint)
+
+Audited 2026-07-04. The file boundary is cleaner than expected — worldlets are
+admiral content (the generation `worldlet` chance is `0.0` unless the admiral is
+active, so no worldlets spawn without it), so an entire set of files is `admiral`:
+
+| Belongs to | Files |
+|---|---|
+| **`admiral`** | `universe_worldlets.py` (economy + worldlet spawn), `universe_fleets.py`, `universe_skirmish.py`, `universe_fabricator.py`, `universe_research.py`, `admiral.mast` |
+| **`universe_core`** | `universe.mast`, `universe_helpers.py`, `universe_sides.py`, `universe_clans.py`, `universe_regions.py`, `universe_systems.py`, `universe_landmarks.py`, `universe_dialogue.py`, captains/passengers/quests-glue |
+| **parser (core, knows admiral vocab)** | `universe_amd.py` |
+
+**The addon boundary = these cross-references, all already gated by
+`admiralty_active()`** (which Phase 1's `Mode.admiral` folds into):
+- `universe.mast` schedules the four admiralty loops + seeds pools *(gated, line 165)*,
+  runs `fleets_respawn` at startup *(gated, 214)*, and restores platforms/fleets on
+  arrival *(gated, 1036)*;
+- `admiral.mast`'s `@console/admiral` is gated (`... and admiralty_active()`), and its
+  comms routes only fire for the admiral cam, which only spawns from that console;
+- `universe_amd.py` parses the admiral AMD vocab (`Mode`, `Economy pace`, `Worldlet
+  chance`, the `## Admiralty`/`## Worldlets`/`## Research` chapters).
+
+So **the runtime split already works** (Mode `campaign`/`story` → zero admiral code:
+no loops, no console, no worldlets, no restore). The *physical* split (Phase 2b) is
+mechanical: move the six `admiral` files into their own `.mastlib`, and turn the
+core→admiral cross-refs into an optional-addon boundary (core calls the admiral entry
+points only when the addon is present / `admiralty_active()`).
+
 ### 3c. Layer 3 — the mission
 Content and shape authored declaratively; `story.json` picks the addons; MAST is a
 thin harness. Python is touched only to invent a genuinely new mechanic.
@@ -108,8 +136,13 @@ multiplayer/PvP shapes need an in-engine playtest.
   wired to the levers that already exist (economy pace, skirmish on/off, and an
   `admiral on/off` gate so `story`/`campaign` run no RTS). Establishes the keystone
   abstraction; explicit dials override; `sandbox` == today. **← starting here.**
-- **Phase 2 — addon split.** Carve `admiral` out of `universe_core` behind the
-  `Mode.admiral` gate; `story.json` manifests. No behavior change for `sandbox`.
+- **Phase 2a — logical split.** *(done 2026-07-04)* Audit + document the subsystem
+  seam (see §3b); confirm the `Mode.admiral` gate fully dormant-izes the admiral
+  subsystem (no loops / console / worldlets / restore when off). No behaviour change
+  for `sandbox`. The runtime split works today; only the packaging is still one addon.
+- **Phase 2b — physical split.** Move the six `admiral` files into their own
+  `.mastlib`; turn the core→admiral cross-refs into an optional-addon boundary;
+  `story.json` manifests. Needs a story-mode test mission for the core-only smoke.
 - **Phase 3 — relations + victory.** Player-side hostile relations + a declarative
   victory/defeat set; `Mode` picks defaults (skirmish/war → raze HQ; story →
   story goal; campaign → endless).
