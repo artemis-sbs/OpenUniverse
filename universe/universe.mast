@@ -649,6 +649,15 @@ GameCode:
     " Galaxy map and jump drive (only shown in the universe map).
     default JUMP_I = "0"
     default JUMP_J = "0"
+    jump universe_galaxy_map_gui
+
+
+# Shared galaxy map + jump drive. Used by the player Navigation console AND the
+# Admiral overseer's Galaxy view - the jump acts on the client's assigned ship (a
+# player ship, or the Admiral's camera), so both reuse one map. GALAXY_BACK, when
+# set (the overseer sets it), shows a "Command" button that returns there.
+=== universe_galaxy_map_gui
+    default GALAXY_BACK = None
 --- repaint
     # This console shows the cell THIS client's ship is in (Model A: ships can be
     # in different cells at once). cur_i/cur_j replace the old shared universe_i/j.
@@ -810,6 +819,13 @@ GameCode:
         SEL_I = cur_i
         SEL_J = cur_j
         gui_task_jump("repaint")
+    # Embedded as the Admiral overseer's Galaxy view: a way back to the command
+    # console (GALAXY_BACK = the caller's label). Absent for the player Navigation.
+    if GALAXY_BACK is not None:
+        gui_row("row-height: 2.2em;")
+        cmd_back_btn = gui_button("$text:< Command View;justify:center;", style="background:#048;")
+        on gui_message(cmd_back_btn):
+            gui_task_jump(GALAXY_BACK)
 
     gui_sub_task_schedule("nav_watch")
     await gui()
@@ -1088,7 +1104,8 @@ GameCode:
     # Move this ship to the destination cell's origin.
     ship_set_cell(warp_ship, ti, tj)
     dco = universe_cell_origin(ti, tj)
-    sobj.pos = Vec3(dco.x + 2000.0, 0.0, dco.z)
+    # Preserve height: players sit at y=0, the Admiral camera rides at y=1000.
+    sobj.pos = Vec3(dco.x + 2000.0, sobj.pos.y, dco.z)
 
     # Keep the shared "server view" pointed at the latest jumper's cell so the
     # long-tail readers (damage/saves/chatter) stay sensible; per-ship reads use
