@@ -222,6 +222,24 @@ def object_cell(obj_id):
     return universe_cell_at_pos(p.x, p.z)
 
 
+def objects_in_cell(objs, i, j):
+    """Filter an object list to those physically inside cell (i, j)'s box. This is
+    how an UNBOUNDED role query (role("raider"), role("__player__")) is confined to
+    one cell now that several are live at once - a radius-bounded closest() is
+    already cell-safe (cells are 250k apart), but a bare role enumeration spans
+    them all. Pass to_object_list(role(...))."""
+    o = universe_cell_origin(i, j)
+    r = UNIVERSE_CELL_CLEAR_R
+    out = []
+    for obj in objs:
+        if obj is None:
+            continue
+        p = obj.pos
+        if abs(p.x - o.x) <= r and abs(p.z - o.z) <= r:
+            out.append(obj)
+    return out
+
+
 def universe_generate_system(universe_seed, i, j, terrain_value=2):
     """Spawn a sector's keyed asteroid/nebula field at the cell's live slot.
 

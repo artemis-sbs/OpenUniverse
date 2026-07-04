@@ -243,10 +243,15 @@ GameCode:
 # Started by enter_system on arrival in a veiled cell; ends itself after a
 # jump out (region_veil_tick returns False when the system is clear).
 === universe_veil_loop
+    # Scheduled per-enter for the veiled cell it belongs to (vi, vj) - not the shared
+    # global, so it keeps heating this cell's crews after another ship jumps elsewhere.
+    default vi = universe_i
+    default vj = universe_j
 --- veil_loop
     await delay_sim(3)
     ->END if not UNIVERSE_ACTIVE
-    ->END if not region_veil_tick(UNIVERSE_REGIONS, universe_i, universe_j, 3)
+    ->END if not universe_cell_live(vi, vj)
+    ->END if not region_veil_tick(UNIVERSE_REGIONS, vi, vj, 3)
     jump veil_loop
 
 
@@ -910,7 +915,7 @@ GameCode:
         for _v in range(5):
             vpos = Vec3.rand_in_sphere(6000, 28000, False, True)
             terrain_spawn_nebula_sphere(vpos.x + co.x, co.y, vpos.z + co.z, radius=8000, density_scale=2.5, density=2, height=24000, cluster_color="red", selectable=False)
-        task_schedule(universe_veil_loop)
+        task_schedule(universe_veil_loop, {"vi": ei, "vj": ej})
         universe_info_card("ANTIMATTER VEIL - continuous hull heating in every section. Do not linger.", "Science Advisory", "#f80")
 
     # Terrain (denser in nebula sectors)
@@ -1070,11 +1075,9 @@ GameCode:
 --- wait
     await delay_sim(5)
     ->END if not universe_cell_live(ei, ej)
-    # NOTE (Phase 2e follow-up): this raider count is still a GLOBAL role query, so
-    # with two combat systems live it only marks THIS cell cleared once raiders are
-    # gone everywhere (a safe false-negative; delayed clear). Cell-scoping the role
-    # queries is the remaining multi-cell work.
-    if len(to_object_list(role("raider") - role("raider_fleet"))) == 0:
+    # Raiders confined to THIS cell (objects_in_cell) - a bare role("raider") spans
+    # every live combat system, so two of them would keep each other from clearing.
+    if len(objects_in_cell(to_object_list(role("raider") - role("raider_fleet")), ei, ej)) == 0:
         universe_sectors = universe_set_system_flag(universe_sectors, ei, ej, "enemy_cleared")
         universe_save(universe_seed, ei, ej, universe_sectors)
         ->END

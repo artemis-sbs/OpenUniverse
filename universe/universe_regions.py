@@ -124,7 +124,10 @@ def region_veil_tick(regions, i, j, dt):
         return False
     heat = _veil_rate(rgn.get("heat"), VEIL_HEAT_PER_S) * float(dt)
     dmg = _veil_rate(rgn.get("damage"), VEIL_DAMAGE_PER_S) * float(dt)
-    for p in to_object_list(role("__player__")):
+    # Only players actually IN cell (i, j) heat - not everyone in the galaxy.
+    # objects_in_cell is a sibling helper resolved through the shared MAST namespace
+    # (like region_for_system used in universe_helpers.py).
+    for p in objects_in_cell(to_object_list(role("__player__")), i, j):
         for idx in range(VEIL_SYSTEM_COUNT):
             cur = get_data_set_value(p.id, "system_cur_heat", idx)
             if cur is None:
