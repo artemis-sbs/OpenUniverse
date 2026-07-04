@@ -169,6 +169,8 @@ default shared ADM_LAST_MSG = ""
 # (build / fleet orders) and comms come next.
 === admiral_overseer_gui
     default ADM_MSG = ""
+    default ADM_JUMP_I = "0"
+    default ADM_JUMP_J = "0"
     # The camera the Admiral rides: invisible, sees all friendlies (has_science_scan
     # + extra_scan_source), tagged `admiral` so the comms routes recognise it as an
     # Admiral origin (LM give-orders + OU routes guard on that role). No "admiral"
@@ -186,7 +188,16 @@ default shared ADM_LAST_MSG = ""
         # primary player side) - not a hard-coded literal.
         adm_cam.side = universe_console_side(client_id)
         adm_cam.data_set.set("ship_base_scan_range", 40000, 0)
+        # Model A: the overseer camera starts on the current cell.
+        ship_set_cell(adm_cam_id, universe_i, universe_j)
     sbs.assign_client_to_ship(client_id, adm_cam_id)
+    # Register the camera as an occupant of its cell (idempotent) and place it at
+    # that cell's world slot, so the cell lifecycle counts the overseer as a
+    # viewer (its system stays live; an empty one it leaves despawns).
+    adm_cell = ship_cell(adm_cam_id)
+    universe_cell_enter(adm_cell[0], adm_cell[1], adm_cam_id)
+    adm_co = universe_cell_origin(adm_cell[0], adm_cell[1])
+    adm_cam.pos = Vec3(adm_co.x, 1000, adm_co.z)
     set_comms_selection(adm_cam_id, adm_cam_id)
     # This overseer's side (the flag camera's side); its //comms handlers thread
     # it from COMMS_ORIGIN.side, the tab body reads adm_side directly.
@@ -223,6 +234,16 @@ default shared ADM_LAST_MSG = ""
     # progress, confirmations and rejection reasons live here (ADM_BUILDS +
     # ADM_LAST_MSG, both shared). The on-change watcher repaints when either changes.
     gui_section(style="area: 72, 67, 100, 100; background:#0234;")
+    # Overseer self-jump: relocate the command camera to another system.
+    gui_row("row-height: 1.4em;")
+    """justify:center; font:gui-2; $text:Jump View to (i, j)"""
+    gui_row("row-height: 2em;")
+    aji = gui_input("desc: i;", var="ADM_JUMP_I")
+    ajj = gui_input("desc: j;", var="ADM_JUMP_J")
+    aj_go = gui_button("$text:Jump View;justify:center;", style="background:#0a6;")
+    on gui_message(aj_go):
+        task_schedule(universe_admiral_jump, {"ti": safe_int(ADM_JUMP_I), "tj": safe_int(ADM_JUMP_J), "cam_id": adm_cam_id})
+    gui_row()
     adm_bwidget = gui_text("$text:" + admiralty_status_line(ADM_BUILDS, ADM_LAST_MSG) + ";justify:center;font:gui-2;color:#8cf")
     on change str(len(ADM_BUILDS)) + "|" + ADM_LAST_MSG:
         adm_bwidget.update("text:" + admiralty_status_line(ADM_BUILDS, ADM_LAST_MSG) + ";justify:center;font:gui-2;color:#8cf")
@@ -232,6 +253,34 @@ default shared ADM_LAST_MSG = ""
     # for the whole side - science data is stored per-side, not per-console).
     admiralty_scan_theatre(adm_side)
     await gui()
+
+
+# Overseer self-jump (Model A): relocate the command camera to another system.
+# Reuses the per-ship cell lifecycle with the camera as the occupant - the
+# destination spawns if the cam is its first occupant, the source despawns if the
+# cam was its last. Points the economy's universe_i/j at the watched system so
+# build/research/fabrication follow the camera. (Shared with players today - a
+# fully per-overseer economy is later work.)
+=== universe_admiral_jump
+    default ti = universe_i
+    default tj = universe_j
+    default cam_id = 0
+    ->END if cam_id == 0
+    cam = to_object(cam_id)
+    ->END if cam is None
+    asrc = ship_cell(cam_id)
+    ->END if ti == asrc[0] and tj == asrc[1]
+    if universe_cell_enter(ti, tj, cam_id):
+        await task_schedule(universe_enter_system, {"ei": ti, "ej": tj})
+    if universe_cell_leave(asrc[0], asrc[1], cam_id):
+        standby_cull_clear()
+        universe_clear_cell(asrc[0], asrc[1])
+    ship_set_cell(cam_id, ti, tj)
+    aco = universe_cell_origin(ti, tj)
+    cam.pos = Vec3(aco.x, 1000.0, aco.z)
+    universe_i = ti
+    universe_j = tj
+    ->END
 
 
 === admiral_console_gui
