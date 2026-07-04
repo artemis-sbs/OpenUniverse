@@ -738,6 +738,14 @@ Player + author docs shipped (mkdocs `playing/admiral.md` + `writing/admiralty.m
    side; the overseer build path is the reference for deriving side from context.
    Generalize when rival/co-op Admirals on different sides become real.
 4. Carried polish (non-blocking):
+   - **Build queue LIST** (playtest 2026-07-04) - the overseer status panel shows
+     builds as one concatenated `admiralty_status_line` string; with several
+     platforms building in parallel it's confusing *what* is building, *where*, and
+     *how close*. Replace with a real queue list (a `gui_list_box`/`gui_text_area`
+     in the status panel, area 72,67,100,100): one row per in-progress build - name +
+     worldlet + a time-remaining/progress readout. Needs per-build start/eta tracking
+     (today `admiralty_build_task` only append/removes a label to `ADM_BUILDS`, no
+     progress). The Fabricator queue (`fabricator_queue`) is a second source to fold in.
    - NPC veil *pathing* - fleets route around a veil vs today's refuse-and-hold
      (marginal: the veil is whole-system, so refuse-and-hold is arguably correct).
    - Event dialogue *scenes* - richer than the authorable canned chatter pools.
