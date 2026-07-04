@@ -40,10 +40,9 @@ default shared ADM_LAST_MSG = ""
     # platforms built there + per-minute income) so jumps/saves carry the
     # infrastructure. Multi-cell: snapshot every live cell to its OWN (i,j) delta -
     # the old single global snapshot dumped role("worldlet") (all cells at once)
-    # into one key, corrupting the save when two systems were live.
-    # TODO(multi-side): the platform/relay snapshots are per-primary-side; make
-    # them per-side when >1 player side builds in the same sector.
-    _psnap = universe_primary_side()
+    # into one key, corrupting the save when two systems were live. Platform/relay
+    # snapshots are per-SIDE (the _all wrappers), so a second player side's works in
+    # the same cell aren't clobbered by the primary side's empty snapshot.
     for _lc in universe_live_cells():
         _lci = _lc[0]
         _lcj = _lc[1]
@@ -55,8 +54,8 @@ default shared ADM_LAST_MSG = ""
         if len(_lc_res) == 0:
             continue
         universe_sectors = universe_set_system_value(universe_sectors, _lci, _lcj, "worldlet_reserves", _lc_res)
-        universe_sectors = universe_set_system_value(universe_sectors, _lci, _lcj, "admiral_platforms", admiralty_snapshot_platforms(_psnap, _lci, _lcj))
-        universe_sectors = universe_set_system_value(universe_sectors, _lci, _lcj, "adm_relay", admiralty_relay_snapshot(_psnap, _lci, _lcj))
+        universe_sectors = universe_set_system_value(universe_sectors, _lci, _lcj, "admiral_platforms", admiralty_snapshot_platforms_all(_lci, _lcj))
+        universe_sectors = universe_set_system_value(universe_sectors, _lci, _lcj, "adm_relay", admiralty_relay_snapshot_all(_lci, _lcj))
     jump econ_loop
 
 
@@ -95,12 +94,16 @@ default shared ADM_LAST_MSG = ""
 --- skirmish_loop
     await delay_sim(10)
     ->END if not UNIVERSE_ACTIVE
+    # Per side, per LIVE cell: each frontier the side holds paces its own raids from
+    # its own border (skirmish_tick keeps a countdown per (side,cell)). Raids only
+    # ever spawn in a live cell, so no raiders appear in a despawned system.
     for _side in universe_player_sides():
-        raid = skirmish_tick(_side, UNIVERSE_CLANS, universe_seed, universe_i, universe_j, DANGER, 10)
-        if raid is not None:
-            raid_clan = clan_get(UNIVERSE_CLANS, raid.clan)
-            prefab_spawn(prefab_fleet_raider, {"race": clan_pick_race(raid_clan), "fleet_difficulty": raid.difficulty, "ship_roles": raid.clan + ", raider, skirmish", "START_X": raid.x, "START_Y": raid.y, "START_Z": raid.z})
-            universe_info_card("ALERT - " + clan_name(UNIVERSE_CLANS, raid.clan) + " skirmish raid inbound on " + raid.target + ".", "Admiralty Operations", "#f66")
+        for _skc in universe_live_cells():
+            raid = skirmish_tick(_side, UNIVERSE_CLANS, universe_seed, _skc[0], _skc[1], DANGER, 10)
+            if raid is not None:
+                raid_clan = clan_get(UNIVERSE_CLANS, raid.clan)
+                prefab_spawn(prefab_fleet_raider, {"race": clan_pick_race(raid_clan), "fleet_difficulty": raid.difficulty, "ship_roles": raid.clan + ", raider, skirmish", "START_X": raid.x, "START_Y": raid.y, "START_Z": raid.z})
+                universe_info_card("ALERT - " + clan_name(UNIVERSE_CLANS, raid.clan) + " skirmish raid inbound on " + raid.target + ".", "Admiralty Operations", "#f66")
     jump skirmish_loop
 
 

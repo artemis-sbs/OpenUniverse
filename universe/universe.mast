@@ -1035,9 +1035,9 @@ GameCode:
     # THIS cell's world origin, ei/ej).
     if admiralty_active():
         worldlets_apply_reserves(universe_system_value(universe_sectors, ei, ej, "worldlet_reserves", None), ei, ej)
-        # Restore uses the primary side (snapshots are per-primary for now - see
-        # the econ-loop TODO); fleets come back for every player side.
-        admiralty_restore_platforms(universe_primary_side(), universe_system_value(universe_sectors, ei, ej, "admiral_platforms", None), ei, ej)
+        # Restore every side's platforms from the per-side delta (legacy flat-list
+        # saves fall back to the primary side); fleets come back for every side.
+        admiralty_restore_platforms_all(universe_system_value(universe_sectors, ei, ej, "admiral_platforms", None), ei, ej)
         for _side in universe_player_sides():
             fleets_respawn(_side, ei, ej)
 

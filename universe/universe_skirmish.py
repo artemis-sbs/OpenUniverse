@@ -26,7 +26,7 @@ from sbs_utils.procedural.query import to_object_list
 from sbs_utils.procedural.sides import to_side_id, side_are_enemies
 
 # Live per-load state (reset by skirmish_reset on universe load).
-_SKIRMISH = {}   # side -> {"armed": bool, "countdown": float}
+_SKIRMISH = {}   # (side, i, j) -> {"armed": bool, "countdown": float}
 
 
 def skirmish_reset():
@@ -77,20 +77,22 @@ def skirmish_tick(side, clans, seed, i, j, danger, dt_seconds):
     mode = str(admiralty_tuning("skirmish_pressure", "border") or "").strip().lower()
     if mode in ("", "off", "none"):
         return None
-    st = _SKIRMISH.setdefault(side, {
+    # Per (side, cell) countdown: each live frontier the side holds paces its own
+    # raids from its own border pressure - a side spread across two systems is
+    # pressured in both, not just wherever the flag happens to be.
+    st = _SKIRMISH.setdefault((side, int(i), int(j)), {
         "armed": False,
         "countdown": float(admiralty_tuning("skirmish_interval", 240))})
     if not st["armed"]:
         # Economy peace until the first fleet forms (decision: border defense
-        # is `patrol` first - raids arrive once the answer to them exists).
+        # is `patrol` first - raids arrive once the answer to them exists). The
+        # navy is counted side-wide - any fleet means this frontier can be raided.
         if fleet_count() <= 0:
             return None
         st["armed"] = True
     # Target platforms IN cell (i, j) - the same cell the pressure is computed for
     # (objects_in_cell is a sibling free global). Without this the raid could spawn
     # on a platform in another live system while reading THIS cell's foe border.
-    # (Full per-cell skirmish - a countdown per live cell - is a later refinement;
-    # today one stream follows the flag's cell, which is what the loop passes.)
     plats = objects_in_cell(to_object_list(role("admiral_platform") & role(side)), i, j)
     if not plats:
         return None

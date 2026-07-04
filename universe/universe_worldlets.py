@@ -390,6 +390,57 @@ def admiralty_relay_snapshot(side, i, j):
     return out
 
 
+# --- Per-side persistence wrappers (multi-side in one cell) ----------------------
+# admiral_platforms / adm_relay are stored PER SIDE ({side: [...]}) so a second
+# player side's infrastructure in the same cell is never clobbered by the primary
+# side's (empty) snapshot. Both readers accept the legacy FLAT LIST too (= the
+# primary side's), so a dev save written before this still loads.
+def _adm_platforms_for_side(stored, side):
+    if isinstance(stored, dict):
+        return stored.get(side) or []
+    if isinstance(stored, list):
+        return stored if side == universe_primary_side() else []
+    return []
+
+
+def _adm_relay_for_side(stored, side):
+    if isinstance(stored, dict):
+        return stored.get(side)
+    if isinstance(stored, list):
+        return stored if side == universe_primary_side() else None
+    return None
+
+
+def admiralty_snapshot_platforms_all(i, j):
+    """{side: [{k,w}]} for every player side with platforms in cell (i, j)."""
+    out = {}
+    for s in universe_player_sides():
+        p = admiralty_snapshot_platforms(s, i, j)
+        if p:
+            out[s] = p
+    return out
+
+
+def admiralty_relay_snapshot_all(i, j):
+    """{side: [{w,rate}]} for every player side's extractors in cell (i, j)."""
+    out = {}
+    for s in universe_player_sides():
+        r = admiralty_relay_snapshot(s, i, j)
+        if r:
+            out[s] = r
+    return out
+
+
+def admiralty_restore_platforms_all(saved, i, j):
+    """Respawn cell (i, j)'s platforms for EVERY side in the per-side save (accepts
+    the legacy flat list = the primary side)."""
+    if isinstance(saved, dict):
+        for s, plats in saved.items():
+            admiralty_restore_platforms(s, plats, i, j)
+    elif isinstance(saved, list):
+        admiralty_restore_platforms(universe_primary_side(), saved, i, j)
+
+
 def admiralty_relay_tick(side, sectors, cur_i, cur_j, dt_seconds):
     """Remote income (slice 4): every OTHER system whose sectors delta shows a
     Relay Gate feeds the pools at the Relay rate, drawn against that system's
@@ -412,15 +463,18 @@ def admiralty_relay_tick(side, sectors, cur_i, cur_j, dt_seconds):
         _sc = skey.split(",")
         if len(_sc) == 2 and universe_cell_live(int(_sc[0]), int(_sc[1])):
             continue
-        plats = sval.get("admiral_platforms")
-        if not isinstance(plats, list) or not any(
-                isinstance(p, dict) and p.get("k") == "relay" for p in plats):
+        # This SIDE's platforms/relay in the stored cell (per-side dict, or legacy
+        # flat list = primary side). A side only earns from relays IT built.
+        side_plats = _adm_platforms_for_side(sval.get("admiral_platforms"), side)
+        if not any(isinstance(p, dict) and p.get("k") == "relay" for p in side_plats):
             continue
-        relay = sval.get("adm_relay")
+        relay = _adm_relay_for_side(sval.get("adm_relay"), side)
         if not isinstance(relay, list):
-            # Pre-depletion save: pay the frozen aggregate, no drawdown.
-            for res, per_min in (sval.get("adm_income") or {}).items():
-                _pool_add_f(side, res, float(per_min) * scale)
+            # Pre-depletion save: pay the frozen aggregate, no drawdown (legacy
+            # single-side saves only - gated to the primary side).
+            if side == universe_primary_side():
+                for res, per_min in (sval.get("adm_income") or {}).items():
+                    _pool_add_f(side, res, float(per_min) * scale)
             continue
         reserves = sval.get("worldlet_reserves")
         have_res = isinstance(reserves, list)
