@@ -222,6 +222,34 @@ GameCode:
     for _p in to_object_list(role("__player__")):
         universe_cell_enter(universe_i, universe_j, _p.id)
         ship_set_cell(_p.id, universe_i, universe_j)
+    # PvP (skirmish/war): each side deserves its OWN home system, not a shared brawl
+    # at the origin. Keep the primary side at (universe_i, universe_j); move every
+    # other player side to its own generated cell (spread along the i axis), so sides
+    # build up apart and jump toward each other to fight. New Game only - a Continue
+    # already carries each ship's saved cell.
+    if universe_mode_is_pvp() and START_MODE != "Continue":
+        pvp_slot = 1
+        for pvp_side in universe_player_sides():
+            if pvp_side == universe_primary_side():
+                continue
+            pvp_ships = to_object_list(role("__player__") & role(pvp_side))
+            if len(pvp_ships) == 0:
+                pvp_slot += 1
+                continue
+            pvp_ci = pvp_slot * 3
+            pvp_cj = 0
+            # Generate the side's home system on first entry, then relocate its ships.
+            if universe_cell_enter(pvp_ci, pvp_cj, pvp_ships[0].id):
+                await task_schedule(universe_enter_system, {"ei": pvp_ci, "ej": pvp_cj})
+            pvp_co = universe_cell_origin(pvp_ci, pvp_cj)
+            pvp_n = 0
+            for pvp_ship in pvp_ships:
+                universe_cell_enter(pvp_ci, pvp_cj, pvp_ship.id)
+                universe_cell_leave(universe_i, universe_j, pvp_ship.id)
+                ship_set_cell(pvp_ship.id, pvp_ci, pvp_cj)
+                pvp_ship.pos = Vec3(pvp_co.x + 2000 + pvp_n * 1500, pvp_ship.pos.y, pvp_co.z)
+                pvp_n = pvp_n + 1
+            pvp_slot += 1
     # Continue restores the saved campaign; a New Game initializes fresh and
     # must NOT inherit the old save's credits/items/admiralty (restore=False).
     universe_load_players(START_MODE == "Continue")

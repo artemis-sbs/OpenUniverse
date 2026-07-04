@@ -206,8 +206,12 @@ default shared ADM_LAST_MSG = ""
         # primary player side) - not a hard-coded literal.
         adm_cam.side = universe_console_side(client_id)
         adm_cam.data_set.set("ship_base_scan_range", 40000, 0)
-        # Model A: the overseer camera starts on the current cell.
-        ship_set_cell(adm_cam_id, universe_i, universe_j)
+        # Model A: the overseer camera starts on the console's OWN ship's cell - so a
+        # second-side Admiral (PvP) oversees ITS system, not the global/primary cell.
+        # (Runs before assign_client_to_ship below, so the client is still on its ship.)
+        adm_own_ship = sbs.get_ship_of_client(client_id)
+        adm_home = ship_cell(adm_own_ship) if adm_own_ship else (universe_i, universe_j)
+        ship_set_cell(adm_cam_id, adm_home[0], adm_home[1])
     sbs.assign_client_to_ship(client_id, adm_cam_id)
     # Register the camera as an occupant of its cell (idempotent) and place it at
     # that cell's world slot, so the cell lifecycle counts the overseer as a
