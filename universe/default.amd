@@ -312,9 +312,16 @@ Palette: base #2f6e3a, clouds #ffffff
 ---
 A small settled world. People, modest industry, and somewhere to come from.
 
-## Admiralty
+## Scenario
 ---
 Mode: sandbox
+---
+The mission's shape. `sandbox` = the full living universe (the default); `skirmish`
+/ `war` add PvP + last-standing victory; `campaign` = a persistent solo epic;
+`story` = a bounded narrative with the Admiral economy off.
+
+## Admiralty
+---
 Economy pace: standard
 Worldlet chance: 30%
 Start ore: 300

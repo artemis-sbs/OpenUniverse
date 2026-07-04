@@ -202,7 +202,17 @@ The older tabbed "bridge" console has been retired.
 
 `Mode` picks the **kind** of mission and sets sensible defaults for the dials below
 (any dial you set explicitly still wins). It's the keystone the Open Universe
-foundation grows on (see `FOUNDATION_PLAN.md`).
+foundation grows on (see `FOUNDATION_PLAN.md`). Author it in a mission-level
+**`## Scenario`** chapter — so a `story` universe needs no `## Admiralty` block at all:
+
+```
+## Scenario
+---
+Mode: story
+---
+```
+
+(`Mode:` is still accepted inside `## Admiralty` for older universes.)
 
 | Mode | Admiral RTS | Economy | Skirmish | For |
 |---|---|---|---|---|

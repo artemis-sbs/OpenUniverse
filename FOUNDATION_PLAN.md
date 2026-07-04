@@ -172,6 +172,9 @@ multiplayer/PvP shapes need an in-engine playtest.
 - **PvP relations don't exist yet** (co-op today) — Phase 3 is the real new work.
 - **D risks over-engineering** without the addon split (Phase 2 fixes it).
 - **"Endless" (B) is a content problem**, not a mechanism one — Phase 5.
-- **`Mode` placement is provisional** — it lives in the Admiralty chapter for
-  Phase 1 (its first levers are admiralty tunings); it likely graduates to a
-  mission-level `## Scenario` chapter once it gates subsystems beyond the admiral.
+- **`Mode` now lives in a mission-level `## Scenario` chapter** *(done)* — a `story`
+  universe needs no `## Admiralty` block at all (`universe_admiralty_cfg` merges the
+  Scenario `Mode:`); `Mode:` inside `## Admiralty` still works for older universes.
+  The first mission authored on the foundation, **`scout_signal.amd` ("The Fading
+  Signal")** — a `story` universe selectable from the Universe dropdown — is the
+  worked proof + the core-only consumer Phase 2b will validate against.

@@ -11,13 +11,13 @@ Display: The Fading Signal
 A single scout, a beacon that should be dead, and a long quiet run to whatever
 is still transmitting from the edge of the chart.
 
-## Admiralty
+## Scenario
 ---
 Mode: story
 ---
-// This chapter exists ONLY to carry `Mode: story`, which switches the Admiral
-// economy off (a story universe has no worldlets or war of its own). When Mode
-// graduates to a mission-level chapter this Admiralty block goes away.
+// The mission's shape. `Mode: story` = a single-ship narrative with the Admiral
+// economy off; no ## Admiralty or ## Worldlets chapter needed. (skirmish / war turn
+// on PvP + the RTS; campaign = a persistent solo epic; sandbox = the full universe.)
 
 ## Narrative
 

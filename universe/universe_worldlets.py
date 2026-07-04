@@ -116,17 +116,28 @@ def worldlets_configure(types):
 
 
 def universe_admiralty_cfg(doc):
-    """The `## Admiralty` chapter's tuning dict, or None when absent. Also
-    carries any generation keys authored there (Worldlet chance)."""
+    """The `## Admiralty` chapter's tuning dict, or None when absent. Also carries
+    any generation keys authored there (Worldlet chance), and the mission-shape
+    `Mode:` - which belongs in a mission-level `## Scenario` chapter (so a story
+    universe needs no Admiralty block just to carry it) but is still accepted inside
+    `## Admiralty` for older universes. Returns non-None whenever EITHER chapter has
+    content, so `Mode: story` alone (Scenario, no Admiralty) still configures."""
     section = universe_section(doc, "admiralty")
-    if section is None:
-        return None
-    data = section.get("data") or {}
-    cfg = dict(data.get("admiralty") or {})
-    gen = data.get("generation") or {}
-    if "worldlet" in gen:
-        cfg["worldlet_chance"] = gen["worldlet"]
-    return cfg
+    cfg = {}
+    if section is not None:
+        data = section.get("data") or {}
+        cfg = dict(data.get("admiralty") or {})
+        gen = data.get("generation") or {}
+        if "worldlet" in gen:
+            cfg["worldlet_chance"] = gen["worldlet"]
+    # Prefer Mode from a mission-level ## Scenario chapter; the label routes to the
+    # "admiralty" sub-dict of whatever chapter holds it (see universe_amd.py).
+    scen = universe_section(doc, "scenario")
+    if scen is not None:
+        smode = ((scen.get("data") or {}).get("admiralty") or {}).get("mode")
+        if smode is not None:
+            cfg["mode"] = smode
+    return cfg or None
 
 
 def admiralty_configure(cfg):
