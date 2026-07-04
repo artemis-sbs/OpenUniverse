@@ -19,7 +19,7 @@ from sbs_utils.mast.mast_node import MastDataObject
 from sbs_utils.procedural.spawn import terrain_spawn, npc_spawn
 from sbs_utils.procedural.inventory import get_inventory_value, set_inventory_value
 from sbs_utils.procedural.sides import to_side_id
-from sbs_utils.procedural.roles import role, has_role, remove_role
+from sbs_utils.procedural.roles import role, has_role, remove_role, add_role
 from sbs_utils.procedural.query import to_object_list, to_object
 from sbs_utils.procedural.science import science_set_scan_data
 from sbs_utils.procedural.gui import gui_row, gui_text
@@ -939,4 +939,12 @@ def universe_platform_spawn(kind, side, worldlet_obj):
     py = co.py_object
     py.set_inventory_value("worldlet_id", worldlet_obj.id)
     py.set_inventory_value("admiral_kind", kind)
+    # The side's FIRST HQ is its capital (FIXED - decapitation targets this one):
+    # tag it admiral_home_hq + a side-specific <side>_capital role so a victory quest
+    # can target it directly (`destroy 1 orion_capital` = the quick-win shortcut).
+    # The watcher's elimination is a separate, HQ-count-based conquest condition, so
+    # losing the capital is only decisive if an author wrote a decapitation quest.
+    if kind == "hq" and len(to_object_list(role("admiral_home_hq") & role(side))) == 0:
+        add_role(py, "admiral_home_hq")
+        add_role(py, side + "_capital")
     return py

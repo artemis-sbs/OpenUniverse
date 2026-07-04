@@ -218,6 +218,32 @@ unknown or omitted mode is `sandbox`. (More of the mission shape — hostile sid
 relations, victory/defeat conditions, which subsystems load — folds into `Mode` in
 later phases; today it drives the admiral/economy/skirmish switches.)
 
+### Victory & defeat (via quests + the Mode default)
+
+Victory conditions are **authored as quests**, not a separate config block — a quest
+with `Win: yes` that completes ends the game in victory (`Lose: yes` in defeat). The
+war Modes also come with a built-in default so a PvP match ends on its own.
+
+- **Last side standing** *(skirmish/war default)* — a player side is eliminated when
+  it holds no Headquarters (conquest); when one side remains it wins. No authoring
+  needed; it just works in `skirmish`/`war`.
+- **Decapitation quick-win** — a side's **first HQ is its capital**, tagged with a
+  `<side>_capital` role. Capturing/destroying it is a normal quest:
+
+  ```
+  # [Take the Orion capital](win_decap)
+  When: destroy 1 orion_capital
+  Win: yes
+  ```
+
+- **Story / objective wins** — any quest with `Win:`/`Lose:` (reach a sector, recover
+  an item, etc.) ends the game, so a `story` mission's victory is just its final quest.
+
+Under the hood a war-state watcher emits `side_eliminated` and `last_side_standing`
+signals; game end sets the shared `UNIVERSE_GAME_OVER`. (Hooking those signals from an
+*authored* quest — conquest-as-quest — needs an `on_signal` quest trigger that isn't in
+yet; the last-standing default covers it meanwhile.)
+
 ### Economy pace — one dial for game length
 
 Base resources accumulate slowly on purpose (an anti-snowball economy: single-digit

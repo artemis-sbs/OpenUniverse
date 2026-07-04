@@ -18,6 +18,7 @@ import universe_research.py
 import universe_fleets.py
 import universe_skirmish.py
 import universe_fabricator.py
+import universe_warstate.py
 import universe_systems.py
 import universe_codex.mast
 import universes.mast

@@ -119,13 +119,26 @@ line, then overrides individual dials. It grows as the layers below it grow.
 
 ## 5. The one genuinely-new subsystem: relations + victory
 
-The biggest gap across A/C is that OU is **co-op today**. Needed:
-- **Side relations model** — hostile PvP relations between *player* sides, not just
-  player-vs-clan. Symmetric starts.
-- **Victory / defeat conditions** — declarative end states (raze the enemy HQ,
-  hold N systems, survive the timer, complete the story goal). A generic
-  `game_end_condition`-style layer already exists in sbs_utils; wire OU shapes onto
-  it and let `Mode` pick the default set.
+The biggest gap across A/C is that OU is **co-op today**. Two parts:
+
+- **Side relations** *(done, Phase 3a)* — `Mode` skirmish/war make the player sides
+  mutually hostile (`universe_mode_is_pvp`); sandbox/campaign/story stay co-op.
+- **Victory / defeat** *(Phase 3b — decision: express it through QUESTS, not a
+  separate Rules chapter)*. The quest engine already turns `Win:`/`Lose:` goals into
+  `universe_victory`/`universe_defeat`. Building blocks added:
+  - **Capital tag** — a side's first HQ gets `admiral_home_hq` + a `<side>_capital`
+    role, so a **decapitation quick-win is an ordinary quest** with no new syntax:
+    `When: destroy 1 <enemy>_capital` + `Win: yes`.
+  - **War-state watcher** (`universe_warstate.py`) — reports `side_eliminated`
+    (held an HQ, now holds none = conquest) and `last_side_standing` as **signals**,
+    so victory policy stays declarative. `//signal/last_side_standing` gives
+    skirmish/war a built-in **last-standing** win (the Mode default); `//signal/
+    quest_finished` handles authored quest wins. Both set the shared
+    `UNIVERSE_GAME_OVER` and re-use the (previously dangling) victory/defeat signals.
+  - **Still to add:** an **`on_signal` quest trigger** so authored quests can hook
+    `side_eliminated`/`last_side_standing` directly (conquest-as-quest). Touches the
+    sbs_utils quest engine, so it's a separate, confirm-worthy step. Decapitation and
+    the last-standing default work without it.
 
 ## 6. Phased plan
 

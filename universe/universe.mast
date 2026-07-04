@@ -171,6 +171,7 @@ GameCode:
         await prefab_spawn(prefab_side_generic, {"key": _clan.key, "name": _clan.name, "desc": _clan.desc, "color": _clan.color, "enemies": _clan_enemies})
     # Seed the Admiral side's starting stockpiles (guarded - once per campaign)
     # and start the extraction economy + the fleet order loop (admiral.mast).
+    default shared UNIVERSE_GAME_OVER = False
     if admiralty_active():
         for _side in universe_player_sides():
             admiralty_seed_pools(_side)
@@ -180,6 +181,12 @@ GameCode:
         task_schedule(admiralty_fleet_loop)
         task_schedule(admiralty_skirmish_loop)
         task_schedule(admiralty_fabricator_loop)
+        # War-state watcher (Foundation Phase 3): with >=2 player sides it reports
+        # eliminations + last-side-standing as signals; victory policy is quests or
+        # the Mode default (//signal/last_side_standing). Needs HQs, so admiral-only.
+        if len(universe_player_sides()) >= 2:
+            warstate_reset()
+            task_schedule(universe_warstate_loop)
     shared universe_terrain_value = terrain_to_value(TERRAIN_SELECT)
     # Continue loads the saved universe (seed + position + deltas); New Game
     # starts fresh from the Seed property (0 = random) and overwrites the save.
@@ -396,11 +403,47 @@ GameCode:
     # is announced on the info panel and broadcast as a signal so an end screen (or
     # any addon) can hook it; the goal's own prose is the citation.
     if DATA.get("win"):
+        UNIVERSE_GAME_OVER = True
         universe_info_card(DATA.get("citation", "The frontier is yours."), title="VICTORY")
         signal_emit("universe_victory", DATA)
     if DATA.get("lose"):
+        UNIVERSE_GAME_OVER = True
         universe_info_card(DATA.get("citation", "The frontier is lost."), title="DEFEAT")
         signal_emit("universe_defeat", DATA)
+
+
+# War-state watcher loop (Foundation Phase 3): reports eliminations + last-side-
+# standing as signals so victory POLICY can live in quests or the Mode default. A
+# side is "eliminated" once it has held an HQ and then holds none (conquest); the
+# decapitation quick-win is an authored quest against the <side>_capital role.
+=== universe_warstate_loop
+--- ws_loop
+    await delay_sim(4)
+    ->END if not UNIVERSE_ACTIVE
+    ->END if UNIVERSE_GAME_OVER
+    for _wev in warstate_tick():
+        match _wev.type:
+            case "eliminated":
+                signal_emit("side_eliminated", {"SIDE": _wev.side})
+                universe_info_card(_wev.side + " has lost its last Headquarters.", "War Room", "#f66")
+            case "last_standing":
+                signal_emit("last_side_standing", {"WIN_SIDE": _wev.side if _wev.side is not None else ""})
+    ->END if warstate_done()
+    jump ws_loop
+
+
+# Mode default win: skirmish/war end when one player side remains. An authored
+# victory QUEST (e.g. `destroy 1 <enemy>_capital` for a decapitation win) fires
+# universe_victory earlier via //signal/quest_finished; this is the fallback
+# conquest win. Only PvP Modes act on it - co-op ignores last-standing.
+//signal/last_side_standing if universe_mode_is_pvp()
+    UNIVERSE_GAME_OVER = True
+    if WIN_SIDE == "":
+        universe_info_card("The war ends in mutual destruction - a draw.", "War Room", "#fa4")
+    else:
+        comms_broadcast(role("__player__"), WIN_SIDE + " stands victorious - the last side in command.", "#0f0")
+        universe_info_card("VICTORY - " + WIN_SIDE + " is the last side standing.", "War Room", "#0f0")
+    signal_emit("universe_victory", {"citation": "Last side standing.", "win": True, "WIN_SIDE": WIN_SIDE})
     ->END
 
 
