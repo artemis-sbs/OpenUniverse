@@ -69,14 +69,72 @@ def universe_system_key(universe_seed, i, j):
     return scatter._mix(int(universe_seed), int(i), int(j))
 
 
+# --- Multi-cell coordinate slots (Model A) -----------------------------------
+# The galaxy is endless: a cell's identity (i, j) is unbounded and used for seed
+# / save / map. But the sim's usable space is bounded (~+-1M before float
+# precision + radar bleed bite), so cells CANNOT sit at (i*spacing, j*spacing) -
+# a cell at i=100 would be 25M units out. Identity is therefore decoupled from
+# position: a live cell is assigned a transient SLOT (a world origin inside the
+# budget) when it spawns and frees it when it despawns. Only ~30-50 cells are
+# ever live at once, so a bounded pool of slots covers it. Slot 0 is the origin,
+# so a single live cell reproduces today's at-origin layout exactly.
+UNIVERSE_CELL_SPACING = 250_000        # center-to-center; 50k-radius cells -> ~150k gap
+_UNIVERSE_MAX_LIVE_CELLS = 64          # pool size within +-1M
+
+_cell_slot_offsets = None              # slot index -> Vec3 (nearest-first, [0] = origin)
+_cell_slot_of = {}                     # (i, j) -> slot index
+_cell_slot_used = set()                # allocated slot indices
+
+
+def _universe_slot_offsets():
+    global _cell_slot_offsets
+    if _cell_slot_offsets is not None:
+        return _cell_slot_offsets
+    coords = [(0, 0)]
+    ring = 1
+    while len(coords) < _UNIVERSE_MAX_LIVE_CELLS:
+        for di in range(-ring, ring + 1):
+            for dj in range(-ring, ring + 1):
+                if max(abs(di), abs(dj)) == ring:
+                    coords.append((di, dj))
+        ring += 1
+    _cell_slot_offsets = [Vec3(di * UNIVERSE_CELL_SPACING, 0, dj * UNIVERSE_CELL_SPACING)
+                          for (di, dj) in coords[:_UNIVERSE_MAX_LIVE_CELLS]]
+    return _cell_slot_offsets
+
+
+def universe_cell_origin(i, j):
+    """World-space origin (Vec3) of live cell (i, j), allocating a slot on first
+    use. Slot 0 is (0,0,0), so one live cell reproduces today's origin layout
+    (Phase-0 behaviour-preserving). Endless (i,j) identity is decoupled from
+    bounded world position - see the module note above."""
+    slot = _cell_slot_of.get((int(i), int(j)))
+    if slot is None:
+        offsets = _universe_slot_offsets()
+        slot = next((k for k in range(len(offsets)) if k not in _cell_slot_used), None)
+        if slot is None:
+            slot = 0   # pool exhausted (shouldn't happen at ~30-50 live); fall back to origin
+        _cell_slot_used.add(slot)
+        _cell_slot_of[(int(i), int(j))] = slot
+    return _universe_slot_offsets()[slot]
+
+
+def universe_cell_release(i, j):
+    """Free cell (i, j)'s world slot when it despawns, so it can be reused."""
+    slot = _cell_slot_of.pop((int(i), int(j)), None)
+    if slot is not None:
+        _cell_slot_used.discard(slot)
+
+
 def universe_generate_system(universe_seed, i, j, terrain_value=2):
-    """Spawn a sector's keyed asteroid/nebula field at the origin.
+    """Spawn a sector's keyed asteroid/nebula field at the cell's live slot.
 
     Pure function of (universe_seed, i, j): the same sector always regenerates
     the same field. Features (stations, enemies, anomalies) come in a later step.
     """
     key = universe_system_key(universe_seed, i, j)
     r = UNIVERSE_SYSTEM_R
+    co = universe_cell_origin(i, j)
     # Nebula clouds are the heaviest terrain for the engine to transmit, so the
     # per-cell chance is kept low (dialled down from 0.0012). Ramp back up if the
     # universe wants thicker nebulae and the client can carry them.
@@ -84,7 +142,11 @@ def universe_generate_system(universe_seed, i, j, terrain_value=2):
     asteroid_chance = terrain_value * 0.0010
     # marker=False: no per-nebula map markers in the universe (they clutter /
     # misbehave on the galaxy-scale map; the field itself is enough).
-    terrain_spawn_field_keyed(key, 1000, -r, -r, r, r, terrain_value,
+    # Position-keyed field: offsetting the box to the cell's slot shifts which
+    # window of the (key-seeded) field shows, so a cell's asteroid pattern can
+    # differ by slot across visits - acceptable (flavor). Slot 0 = origin, so
+    # single-cell is unchanged; identity content is key-seeded + co-translated.
+    terrain_spawn_field_keyed(key, 1000, co.x - r, co.z - r, co.x + r, co.z + r, terrain_value,
                               nebula_chance, asteroid_chance, marker=False)
 
 

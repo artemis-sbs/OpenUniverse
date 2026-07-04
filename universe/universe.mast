@@ -819,6 +819,10 @@ GameCode:
 #
 === universe_enter_system
     key = universe_system_key(universe_seed, universe_i, universe_j)
+    # Cell world origin (Model A): slot 0 = (0,0,0) so a single live cell is
+    # unchanged. Spawns below are offset by co so the cell materializes at its
+    # allocated slot instead of always at the origin.
+    co = universe_cell_origin(universe_i, universe_j)
     # Passenger delivery: any aboard passenger bound for this system disembarks
     # (the on_reach quest pays the fare separately). Reuses the lifeform substrate.
     for _pax_id in universe_passengers_destined(universe_i, universe_j):
@@ -857,7 +861,7 @@ GameCode:
         random.seed(key + 11)
         for _v in range(5):
             vpos = Vec3.rand_in_sphere(6000, 28000, False, True)
-            terrain_spawn_nebula_sphere(vpos.x, 0, vpos.z, radius=8000, density_scale=2.5, density=2, height=24000, cluster_color="red", selectable=False)
+            terrain_spawn_nebula_sphere(vpos.x + co.x, co.y, vpos.z + co.z, radius=8000, density_scale=2.5, density=2, height=24000, cluster_color="red", selectable=False)
         task_schedule(universe_veil_loop)
         universe_info_card("ANTIMATTER VEIL - continuous hull heating in every section. Do not linger.", "Science Advisory", "#f80")
 
@@ -881,7 +885,7 @@ GameCode:
             if owner is not None and not captured:
                 st_side = owner
                 st_name = clan_name(UNIVERSE_CLANS, owner)
-            station = npc_spawn(0, 0, 0, st_name, f"{st_side}, station", st_type, "behav_station")
+            station = npc_spawn(co.x, co.y, co.z, st_name, f"{st_side}, station", st_type, "behav_station")
             station_id = to_id(station)
             # Market: restore this sector's saved stock, else seed deterministically.
             saved_market = universe_system_value(universe_sectors, universe_i, universe_j, "market", None)
@@ -894,7 +898,7 @@ GameCode:
                 # capture the station (universe_capture_watch).
                 random.seed(key + 7)
                 gpos = Vec3.rand_in_sphere(4000, 9000, False, True)
-                prefab_spawn(prefab_fleet_raider, {"race": clan_pick_race(clan_get(UNIVERSE_CLANS, owner)), "fleet_difficulty": DIFFICULTY, "ship_roles": owner + ", raider", "START_X": gpos.x, "START_Y": gpos.y, "START_Z": gpos.z})
+                prefab_spawn(prefab_fleet_raider, {"race": clan_pick_race(clan_get(UNIVERSE_CLANS, owner)), "fleet_difficulty": DIFFICULTY, "ship_roles": owner + ", raider", "START_X": gpos.x + co.x, "START_Y": gpos.y + co.y, "START_Z": gpos.z + co.z})
                 task_schedule(universe_capture_watch, {"cap_station": station_id, "cap_clan": owner})
             else:
                 await task_schedule(docking_standard_player_station)
@@ -903,7 +907,7 @@ GameCode:
                 if captured and owner is not None and universe_hostile_to_players(owner):
                     random.seed(key + 9)
                     rpos = Vec3.rand_in_sphere(15000, 25000, False, True)
-                    prefab_spawn(prefab_fleet_raider, {"race": clan_pick_race(clan_get(UNIVERSE_CLANS, owner)), "fleet_difficulty": DIFFICULTY, "ship_roles": owner + ", raider", "START_X": rpos.x, "START_Y": rpos.y, "START_Z": rpos.z})
+                    prefab_spawn(prefab_fleet_raider, {"race": clan_pick_race(clan_get(UNIVERSE_CLANS, owner)), "fleet_difficulty": DIFFICULTY, "ship_roles": owner + ", raider", "START_X": rpos.x + co.x, "START_Y": rpos.y + co.y, "START_Z": rpos.z + co.z})
                     task_schedule(universe_recapture_watch, {"cap_station": station_id, "cap_clan": owner})
     elif kind == "enemy":
         # Skip enemies in a sector the players have already cleared (persisted).
@@ -924,11 +928,11 @@ GameCode:
                 ship_roles = owner + ", raider"
             for n in range(count):
                 pos = Vec3.rand_in_sphere(near, far, False, True)
-                prefab_spawn(prefab_fleet_raider, {"race": clan_pick_race(enemy_clan), "fleet_difficulty": DIFFICULTY, "ship_roles": ship_roles, "START_X": pos.x, "START_Y": pos.y, "START_Z": pos.z})
+                prefab_spawn(prefab_fleet_raider, {"race": clan_pick_race(enemy_clan), "fleet_difficulty": DIFFICULTY, "ship_roles": ship_roles, "START_X": pos.x + co.x, "START_Y": pos.y + co.y, "START_Z": pos.z + co.z})
             task_schedule(universe_watch_enemy_cleared, {"ei": universe_i, "ej": universe_j})
     elif kind == "anomaly":
         random.seed(key + 4)
-        terrain_spawn_black_holes(1 + int(DIFFICULTY / 4))
+        terrain_spawn_black_holes(1 + int(DIFFICULTY / 4), center=co)
         # The anomaly beams a signal: offer each player the mystery once.
         for p in to_object_list(role("__player__")):
             if universe_mystery_available(p.id, universe_i, universe_j):
@@ -944,24 +948,25 @@ GameCode:
     for poi in universe_system_deck(key, kind, owner, owner_arch, owner_foe, DIFFICULTY, universe_i, universe_j):
         match poi.type:
             case "loot":
-                item_spawn(poi.item_key, poi.x, poi.y, poi.z)
+                item_spawn(poi.item_key, poi.x + co.x, poi.y + co.y, poi.z + co.z)
             case "derelict":
-                terrain_spawn(poi.x, poi.y, poi.z, "Derelict", "wreck, universe_derelict", "wreck", "behav_wreck")
+                terrain_spawn(poi.x + co.x, poi.y + co.y, poi.z + co.z, "Derelict", "wreck, universe_derelict", "wreck", "behav_wreck")
             case "outpost":
-                npc_spawn(poi.x, poi.y, poi.z, clan_name(UNIVERSE_CLANS, poi.side) + " Outpost", poi.side + ", station, outpost", poi.art, "behav_station")
+                npc_spawn(poi.x + co.x, poi.y + co.y, poi.z + co.z, clan_name(UNIVERSE_CLANS, poi.side) + " Outpost", poi.side + ", station, outpost", poi.art, "behav_station")
             case "mines":
                 for _m in range(poi.count):
                     moff = Vec3.rand_in_sphere(600, 2500, False, True)
-                    mine = terrain_spawn(poi.x + moff.x, poi.y, poi.z + moff.z, None, None, "danger_1a", "behav_mine")
+                    mine = terrain_spawn(poi.x + moff.x + co.x, poi.y + co.y, poi.z + moff.z + co.z, None, None, "danger_1a", "behav_mine")
                     mine.data_set.set("damage_done", 8)
                     mine.data_set.set("blast_radius", 900)
             case "worldlet":
-                universe_worldlet_spawn(poi.worldlet_type, poi.x, poi.y, poi.z, poi.radius)
+                universe_worldlet_spawn(poi.worldlet_type, poi.x + co.x, poi.y + co.y, poi.z + co.z, poi.radius)
 
     # Landmarks: named hand-placed stations/wrecks/beacons pinned to this system,
     # layered on top of the procedural content (universe_landmarks.py).
     for lm in universe_landmarks_in_system(UNIVERSE_LANDMARKS, universe_i, universe_j):
         lmpos = universe_landmark_pos(key, lm)
+        lmpos = (lmpos[0] + co.x, lmpos[1] + co.y, lmpos[2] + co.z)
         if lm.kind == "derelict":
             terrain_spawn(lmpos[0], lmpos[1], lmpos[2], lm.name, "wreck, universe_derelict, landmark", universe_landmark_art(lm), "behav_wreck")
         elif lm.kind == "worldlet":
@@ -973,6 +978,9 @@ GameCode:
     # Admiralty persistence: re-apply this system's worldlet depletion and
     # respawn its platforms from the sectors delta, then bring the navy
     # through the jump (fleets travel with the flag - universe_fleets.py).
+    # Phase-2 TODO (multi-cell): admiralty_restore_platforms / fleets_respawn spawn
+    # at the origin internally; they'll need the cell offset (co) once cells
+    # coexist. Fine at slot 0 (co = origin) today.
     if admiralty_active():
         worldlets_apply_reserves(universe_system_value(universe_sectors, universe_i, universe_j, "worldlet_reserves", None))
         # Restore uses the primary side (snapshots are per-primary for now - see
