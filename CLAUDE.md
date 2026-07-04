@@ -143,10 +143,12 @@ fleets, the six orders, veterancy), `universe_research.py` (tech ladder),
 `universe_fabricator.py` (build model B), `universe_skirmish.py` (border raids),
 `universe_regions.py` (antimatter veil).
 
-- **The overseer is the default UI** (`Admiral view: overseer`; `bridge` = the old
-  tab console, still behind the knob). It's a detached camera + comms 2D view where
+- **The overseer is the Admiral UI** (the old tabbed `bridge` console was retired).
+  It's a detached camera + comms 2D view where
   you **select objects to act**: worldlet -> build; fleet hull -> orders; platform
-  -> its actions (Shipyard = commission, Lab = research, HQ = subsidy). The
+  -> its actions (Shipyard = commission, Lab = research, HQ = subsidy + requisition).
+  A Galaxy top tab (the `//gui/tab` framework) reuses the player Navigation console's
+  galaxy map for jumping between systems. The
   detached-console / comms-refresh / side-wide-scan / role-from-art patterns live in
   `../sbs_utils/MAST_CLAUDE.md` ("Detached command consoles").
 - **Multi-side rule (will bite you):** derive the side from context

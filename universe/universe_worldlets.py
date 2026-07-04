@@ -42,7 +42,6 @@ _ADM_DEFAULTS = {
     "subsidy_max": 0.3,         # cap on the crew price subsidy (fraction off)
     "subsidy_step": 0.1,        # tier size the console cycles through
     "build_model": "menu",      # "menu" (instant/parallel) or "fabricator" (A/B)
-    "admiral_view": "bridge",   # "bridge" (tab console) or "overseer" (2D command view, A/B)
     "research_pace": "campaign",
 }
 

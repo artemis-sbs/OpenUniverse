@@ -708,8 +708,10 @@ Brained raider fleets still cull as a formation park.
 
 **Overseer console - detached 2D command surface** (23812c8 step 1; 0ea2146 +
 70f8ef8 step 2; 2026-07-02; step 1 + build/order/pan browser-verified) - the
-signature UI shift (section 17 realized as a live command surface). Behind
-`Admiral view:` (bridge = tabs; overseer = default). The Admiral rides a private
+signature UI shift (section 17 realized as a live command surface). Now the only
+Admiral UI - the old tabbed `bridge` console and the `Admiral view:` A/B knob were
+retired (2026-07-04) once the overseer reached economy parity (build, fleet orders,
+research, requisition, subsidy). The Admiral rides a private
 detached camera over the system (GM cambot pattern) with a comms 2D view and
 **commands by selecting objects**: click a worldlet to build, a fleet hull to order
 (the six orders), a platform for its actions - **Shipyard** to commission an

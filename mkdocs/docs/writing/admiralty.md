@@ -185,7 +185,6 @@ Storage: 600              // per-resource cap; Refineries and Research raise it
 Command points: 3         // how many fleets at once; Sensor Relays add more
 Fleet gas burn: 2         // gas per minute a fleet burns on an active order
 Requisition budget: 800 credits   // starting funds for the Requisition catalog
-Admiral view: overseer    // overseer (the 2D map) or bridge (the old tab console)
 Build model: menu         // menu (instant) or fabricator (a builder ship flies out)
 Skirmish pressure: border // where border raids come from (border, or none)
 Skirmish interval: 240    // seconds between border raids
@@ -194,8 +193,9 @@ Relay rate: 50%           // income a Relay Gate keeps paying from a system you 
 Research pace: campaign   // how quickly the tech ladder is meant to be climbed
 ```
 
-Leave `Admiral view` as `overseer` - that is the map-and-click console this page
-described. `bridge` is the older tabbed version.
+The Admiral commands from the **overseer**: a detached camera over a system-wide 2D
+map where you select objects to act (worldlet build, fleet orders, platform actions).
+The older tabbed "bridge" console has been retired.
 
 !!! note "It's multi-side, for free"
     Everything on this page is written **once** and runs for **every**
