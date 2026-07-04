@@ -86,7 +86,12 @@ def skirmish_tick(side, clans, seed, i, j, danger, dt_seconds):
         if fleet_count() <= 0:
             return None
         st["armed"] = True
-    plats = to_object_list(role("admiral_platform") & role(side))
+    # Target platforms IN cell (i, j) - the same cell the pressure is computed for
+    # (objects_in_cell is a sibling free global). Without this the raid could spawn
+    # on a platform in another live system while reading THIS cell's foe border.
+    # (Full per-cell skirmish - a countdown per live cell - is a later refinement;
+    # today one stream follows the flag's cell, which is what the loop passes.)
+    plats = objects_in_cell(to_object_list(role("admiral_platform") & role(side)), i, j)
     if not plats:
         return None
     pressure, foes = skirmish_pressure(clans, seed, i, j, danger, side)

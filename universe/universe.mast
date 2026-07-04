@@ -213,7 +213,7 @@ GameCode:
     # it, so bring the saved navy back now. Idempotent: no-op on a New Game.
     if admiralty_active():
         for _side in universe_player_sides():
-            fleets_respawn(_side)
+            fleets_respawn(_side, universe_i, universe_j)
     # Baseline save so the campaign (players, credits, admiralty pools) is
     # durable even if the crew never jumps this session.
     universe_save_players()
@@ -1031,16 +1031,15 @@ GameCode:
     # Admiralty persistence: re-apply THIS cell's worldlet depletion and respawn its
     # platforms from the sectors delta (both scoped to (ei, ej) - restore spawns each
     # platform beside its own worldlet, which already sits at the cell offset), then
-    # bring the navy through the jump (fleets travel with the flag).
-    # Phase 2e TODO: fleets_respawn still spawns at the origin internally, not the
-    # cell offset (co) - a fleet concern, tracked separately from this econ persistence.
+    # bring the navy through the jump (fleets travel with the flag - respawned at
+    # THIS cell's world origin, ei/ej).
     if admiralty_active():
         worldlets_apply_reserves(universe_system_value(universe_sectors, ei, ej, "worldlet_reserves", None), ei, ej)
         # Restore uses the primary side (snapshots are per-primary for now - see
         # the econ-loop TODO); fleets come back for every player side.
         admiralty_restore_platforms(universe_primary_side(), universe_system_value(universe_sectors, ei, ej, "admiral_platforms", None), ei, ej)
         for _side in universe_player_sides():
-            fleets_respawn(_side)
+            fleets_respawn(_side, ei, ej)
 
     # Tell the quest driver we've arrived (completes on_reach cargo runs).
     signal_emit("universe_arrived", {"ARRIVE_I": ei, "ARRIVE_J": ej})
@@ -1131,9 +1130,10 @@ GameCode:
     # Preserve height: players sit at y=0, the Admiral camera rides at y=1000.
     sobj.pos = Vec3(dco.x + 2000.0, sobj.pos.y, dco.z)
 
-    # Keep the shared "server view" pointed at the latest jumper's cell so the
-    # long-tail readers (damage/saves/chatter) stay sensible; per-ship reads use
-    # ship_cell. (Per-cell damage/saves + full per-ship nav view are a later step.)
+    # Point the shared "server focus" at the latest jumper's cell. Economy, damage,
+    # saves, veil and fleet orders are all per-cell now (Phase 2e); this global only
+    # still drives the skirmish-pressure cell, ambient chatter, and the default
+    # skybox - the "where is the story looking" pointer, not a correctness input.
     universe_i = ti
     universe_j = tj
     universe_save(universe_seed, ti, tj, universe_sectors)

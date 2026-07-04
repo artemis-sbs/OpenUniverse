@@ -68,9 +68,12 @@ default shared ADM_LAST_MSG = ""
 --- fleet_loop
     await delay_sim(3)
     ->END if not UNIVERSE_ACTIVE
-    veiled_now = region_is_veiled(UNIVERSE_REGIONS, universe_i, universe_j)
+    # Veil is per-cell: ask each fleet's OWN cell whether it's veiled (a fleet in a
+    # clear system must not freeze because the shared-global cell happens to be veiled).
     for _fl in fleet_list():
-        fleet_evt = fleet_tick(_fl.key, 3, veiled_now)
+        _flc = fleet_cell(_fl.key)
+        _fl_veiled = region_is_veiled(UNIVERSE_REGIONS, _flc[0], _flc[1])
+        fleet_evt = fleet_tick(_fl.key, 3, _fl_veiled)
         if fleet_evt is not None:
             officer_card(fleet_evt.officer, fleet_evt.text)
     # MIA captains (slice 4): pod rescues, captures, lapsed beacons - per side.
@@ -276,9 +279,9 @@ default shared ADM_LAST_MSG = ""
 # Overseer self-jump (Model A): relocate the command camera to another system.
 # Reuses the per-ship cell lifecycle with the camera as the occupant - the
 # destination spawns if the cam is its first occupant, the source despawns if the
-# cam was its last. Points the economy's universe_i/j at the watched system so
-# build/research/fabrication follow the camera. (Shared with players today - a
-# fully per-overseer economy is later work.)
+# cam was its last. Economy/fleets/saves are per-cell now (Phase 2e), so this only
+# points the shared "server focus" universe_i/j (skirmish-pressure cell + chatter +
+# default skybox) at the watched system - it no longer drives the economy.
 === universe_admiral_jump
     default ti = universe_i
     default tj = universe_j

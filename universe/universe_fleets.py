@@ -458,6 +458,17 @@ def fleet_ships(fleet_key):
     return to_object_list(role("adm_" + fleet_key))
 
 
+def fleet_cell(fleet_key):
+    """The (i, j) cell a fleet is in, from its lead hull's position. (0, 0) if the
+    fleet has no live ships. The fleet loop reads this to ask the veil per-fleet,
+    instead of the one global universe_i/j. universe_cell_at_pos is a free global."""
+    ships = fleet_ships(fleet_key)
+    if not ships:
+        return (0, 0)
+    p = ships[0].pos
+    return universe_cell_at_pos(p.x, p.z)
+
+
 def fleet_of_ship(ship_id):
     """The fleet key a selected hull belongs to (via its adm_<key> role), or None.
     The overseer's comms route uses this: click a fleet ship on the 2D view, look
@@ -544,12 +555,14 @@ def fleet_try_form(side, officer_key):
     return None
 
 
-def fleets_respawn(side):
-    """Bring the navy along: after a jump (or a restored save) the system has
-    no NPCs, so re-instantiate every surviving fleet's hulls near the arrival
-    point. Rebuilds the live registry from side inventory when empty (fresh
-    session with a saved campaign)."""
+def fleets_respawn(side, i, j):
+    """Bring the navy along: after a jump (or a restored save) the arrival cell
+    has no NPCs, so re-instantiate every surviving fleet's hulls near cell (i, j)'s
+    world origin - NOT the galaxy origin, which would strand the navy in whatever
+    sits at slot 0. Rebuilds the live registry from side inventory when empty (fresh
+    session with a saved campaign). universe_cell_origin is a sibling free global."""
     global _FLEETS
+    fco = universe_cell_origin(i, j)
     _officers_restore(side)
     if not _FLEETS:
         recs = get_inventory_value(to_side_id(side), "adm_fleets", []) or []
@@ -569,7 +582,7 @@ def fleets_respawn(side):
         if alive > 0 and len(fleet_ships(f.get("key"))) == 0:
             ang = n * 1.3
             _fleet_spawn_ships(side, f.get("key"),
-                               4200 * math.cos(ang), 4200 * math.sin(ang), alive)
+                               fco.x + 4200 * math.cos(ang), fco.z + 4200 * math.sin(ang), alive)
         # The officer rides the flag through the jump too.
         rs_ships = fleet_ships(f.get("key"))
         if rs_ships:
@@ -590,9 +603,10 @@ def fleet_set_order(fleet_key, order):
     return fleet_line("ack_" + order)
 
 
-def _fleet_home_pos(side):
-    """Where withdraw goes: the HQ, else origin."""
-    hqs = to_object_list(role("admiral_hq") & role(side))
+def _fleet_home_pos(side, i, j):
+    """Where withdraw goes: an HQ in the fleet's OWN cell (i, j), else None (a
+    fleet can't withdraw to a base in a different system - it just holds)."""
+    hqs = objects_in_cell(to_object_list(role("admiral_hq") & role(side)), i, j)
     return hqs[0].pos if hqs else None
 
 
@@ -625,6 +639,12 @@ def fleet_tick(fleet_key, dt_seconds, veiled=False):
     setattr(f, "lz", lead0.pos.z)
     _officer_cast_host(okey, lead0.id)
     order = f.get("order", "hold")
+    # This fleet's cell (from its lead hull): patrol/escort/strike/salvage/withdraw
+    # confine to it, so a fleet never walks its ring - or chases a target - into
+    # another live system 250k away. universe_cell_* + objects_in_cell are sibling
+    # free globals; UNIVERSE_CELL_CLEAR_R (~100k) is a cell's half-extent.
+    fcell = universe_cell_at_pos(lead0.pos.x, lead0.pos.z)
+    fco = universe_cell_origin(fcell[0], fcell[1])
 
     # The antimatter veil denies the navy: the whole system is unsurvivable to
     # linger in, so a fleet cannot hold formation or run an order here. Force
@@ -670,7 +690,7 @@ def fleet_tick(fleet_key, dt_seconds, veiled=False):
     hostiles = role("raider")
 
     if order == "escort":
-        players = to_object_list(role("__player__"))
+        players = objects_in_cell(to_object_list(role("__player__")), fcell[0], fcell[1])
         if not players:
             return None
         ward = players[0]
@@ -685,15 +705,15 @@ def fleet_tick(fleet_key, dt_seconds, veiled=False):
         if threat is not None:
             target(ids, threat.id, True, 1.0)
         else:
-            # Walk a wide ring around the system origin.
+            # Walk a wide ring around THIS cell's origin (not the galaxy origin).
             leg = f.get("patrol_leg", 0)
-            wx = 20000.0 * math.cos(leg * math.pi / 3.0)
-            wz = 20000.0 * math.sin(leg * math.pi / 3.0)
+            wx = fco.x + 20000.0 * math.cos(leg * math.pi / 3.0)
+            wz = fco.z + 20000.0 * math.sin(leg * math.pi / 3.0)
             if ((lead.pos.x - wx) ** 2 + (lead.pos.z - wz) ** 2) < 4000.0 ** 2:
                 setattr(f, "patrol_leg", (leg + 1) % 6)
             target_pos(ids, wx, 0.0, wz, 0.8, stop_dist=500)
     elif order == "strike":
-        threat = closest_object(lead, hostiles)
+        threat = closest_object(lead, hostiles, max_dist=UNIVERSE_CELL_CLEAR_R)
         if threat is not None:
             target(ids, threat.id, True, 1.0)
         else:
@@ -701,7 +721,7 @@ def fleet_tick(fleet_key, dt_seconds, veiled=False):
             _fleets_sync(side)
             return _evt(okey, fleet_line("strike_clear"))
     elif order == "salvage":
-        wreck = closest_object(lead, role("universe_derelict"))
+        wreck = closest_object(lead, role("universe_derelict"), max_dist=UNIVERSE_CELL_CLEAR_R)
         if wreck is None:
             setattr(f, "order", "hold")
             _fleets_sync(side)
@@ -717,7 +737,7 @@ def fleet_tick(fleet_key, dt_seconds, veiled=False):
             return _evt(okey, fleet_line("salvage_haul", ore=ore_v, gas=gas_v))
         target_pos(ids, wreck.pos.x, wreck.pos.y, wreck.pos.z, 0.9, stop_dist=1000)
     elif order == "withdraw":
-        home = _fleet_home_pos(side)
+        home = _fleet_home_pos(side, fcell[0], fcell[1])
         if home is None:
             setattr(f, "order", "hold")
             return None
