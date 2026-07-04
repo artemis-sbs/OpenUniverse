@@ -235,6 +235,12 @@ def universe_worldlet_spawn(type_key, x, y, z, radius=None):
     if sim is not None:
         ds.set("planet_last_changed", sim.time_tick_counter, 0)
     ds.set("planet_radius", r / 2.0, 0)
+    # A worldlet is the whole point of the Admiral's map, so make it read from a
+    # distance on the 2D command view: a larger icon + a warm radar tint. (These are
+    # 2D-view knobs; the 3D planet keeps its palette above. Tune icon_scale to taste -
+    # needs an in-engine eye, per object_data_documentation.txt.)
+    ds.set("icon_scale", 2.5, 0)
+    ds.set("radar_color_override", "#ffcf8c", 0)
     pal = wt.get("palette") or {}
     _set_planet_color(ds, "planet_baseColor", pal.get("base"))
     _set_planet_color(ds, "planet_emissiveColor", pal.get("emissive"))

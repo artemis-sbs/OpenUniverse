@@ -215,7 +215,18 @@ default shared ADM_LAST_MSG = ""
     adm_cell = ship_cell(adm_cam_id)
     universe_cell_enter(adm_cell[0], adm_cell[1], adm_cam_id)
     adm_co = universe_cell_origin(adm_cell[0], adm_cell[1])
-    adm_cam.pos = Vec3(adm_co.x, 1000, adm_co.z)
+    # Open the overseer looking at something worth commanding, not empty space at the
+    # cell origin: the side's own HQ if it has built one, else the nearest worldlet in
+    # this cell (the first thing you build an Extractor on, and easy to lose on the map
+    # otherwise), else the cell origin. Saves a long pan hunting for the economy.
+    adm_focus_hq = to_object_list(role("admiral_hq") & role(adm_cam.side))
+    adm_focus_wl = worldlets_in_cell(adm_cell[0], adm_cell[1])
+    if len(adm_focus_hq) > 0:
+        adm_cam.pos = Vec3(adm_focus_hq[0].pos.x, 1000, adm_focus_hq[0].pos.z)
+    elif len(adm_focus_wl) > 0:
+        adm_cam.pos = Vec3(adm_focus_wl[0].pos.x, 1000, adm_focus_wl[0].pos.z)
+    else:
+        adm_cam.pos = Vec3(adm_co.x, 1000, adm_co.z)
     set_comms_selection(adm_cam_id, adm_cam_id)
     # This overseer's side (the flag camera's side); its //comms handlers thread
     # it from COMMS_ORIGIN.side, the tab body reads adm_side directly.
