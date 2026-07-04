@@ -246,13 +246,24 @@ war Modes also come with a built-in default so a PvP match ends on its own.
   Win: yes
   ```
 
+- **Conquest as a quest** — to make "wipe out a *specific* side" an authored objective
+  (not just the automatic last-standing), hook the war-state milestone signal:
+
+  ```
+  # [Break the Orion Concord](win_conquest)
+  When: signal eliminated_orion
+  Win: yes
+  ```
+
+  The war-state watcher fires `eliminated_<side>` when a side loses its last HQ (and
+  `last_side_standing` when one remains); `When: signal <name>` completes the quest via
+  the quest driver's generic `on_signal` hook.
 - **Story / objective wins** — any quest with `Win:`/`Lose:` (reach a sector, recover
   an item, etc.) ends the game, so a `story` mission's victory is just its final quest.
 
-Under the hood a war-state watcher emits `side_eliminated` and `last_side_standing`
-signals; game end sets the shared `UNIVERSE_GAME_OVER`. (Hooking those signals from an
-*authored* quest — conquest-as-quest — needs an `on_signal` quest trigger that isn't in
-yet; the last-standing default covers it meanwhile.)
+Under the hood a war-state watcher emits `side_eliminated` / `last_side_standing`
+(and mirrors them to the quest `quest_signal` hook); game end sets the shared
+`UNIVERSE_GAME_OVER`.
 
 ### Economy pace — one dial for game length
 

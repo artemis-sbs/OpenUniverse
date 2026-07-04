@@ -453,9 +453,14 @@ GameCode:
         match _wev.type:
             case "eliminated":
                 signal_emit("side_eliminated", {"SIDE": _wev.side})
+                # Also fire the quest escape hatch so an authored CONQUEST quest can
+                # hook it: `When: signal eliminated_<side>` + `Win: true` (LM quest_
+                # driver.quest_on_signal). This is conquest-as-quest (Foundation 3c).
+                signal_emit("quest_signal", {"SIGNAL_NAME": "eliminated_" + _wev.side})
                 universe_info_card(_wev.side + " has lost its last Headquarters.", "War Room", "#f66")
             case "last_standing":
                 signal_emit("last_side_standing", {"WIN_SIDE": _wev.side if _wev.side is not None else ""})
+                signal_emit("quest_signal", {"SIGNAL_NAME": "last_side_standing"})
     ->END if warstate_done()
     jump ws_loop
 

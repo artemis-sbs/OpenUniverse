@@ -23,6 +23,10 @@ _TRIGGER_VERBS = {
     "scan": ("on_scan", "role"),      "survey": ("on_scan", "role"),
     "dock": ("on_dock", "role"),
     "reach": ("on_reach", "sector"),  "travel": ("on_reach", "sector"),
+    # Generic named trigger (LM quest_driver.quest_on_signal escape hatch): a quest
+    # completes when signal_emit("quest_signal", {"SIGNAL_NAME": <name>}) fires. Lets
+    # authors hook war-state / mission milestones - e.g. `When: signal eliminated_orion`.
+    "signal": ("on_signal", "name"),
 }
 
 # Generation knobs (the `generation:` block): friendly label -> internal key.
@@ -53,6 +57,13 @@ def _f_trigger(s):
     data = {}
     if kind == "sector":
         data["sector"] = amd_coords(target)
+    elif kind == "name":
+        # A single-token signal name (matched exactly by quest_on_signal); lowercase
+        # + underscores so `signal Eliminated Orion` and `signal eliminated_orion` agree.
+        if target:
+            data["name"] = target.strip().lower().replace(" ", "_")
+        if count is not None:
+            data["count"] = count
     elif kind == "key":
         if target:
             data["key"] = amd_norm(target)

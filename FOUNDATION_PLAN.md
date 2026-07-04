@@ -135,20 +135,17 @@ The biggest gap across A/C is that OU is **co-op today**. Two parts:
     skirmish/war a built-in **last-standing** win (the Mode default); `//signal/
     quest_finished` handles authored quest wins. Both set the shared
     `UNIVERSE_GAME_OVER` and re-use the (previously dangling) victory/defeat signals.
-  - **Still to add:** an **`on_signal` quest trigger** so authored quests can hook
-    `side_eliminated`/`last_side_standing` directly (conquest-as-quest). Touches the
-    sbs_utils quest engine, so it's a separate, confirm-worthy step. Decapitation and
-    the last-standing default work without it.
-    **Driver investigation (2026-07-04, remote):** the quest-trigger *completion*
-    mechanism is genuinely opaque - `on_reach`/`on_kill`/`on_collect` are written by
-    OU's amd parser and read for **map markers** (`universe_quest_target_sectors`),
-    but I found **no code that matches them to COMPLETE a quest**: `signal_emit(
-    "universe_arrived")` (universe.mast) has **no handler**, and sbs_utils has zero
-    `on_reach`/`on_kill` references. So `on_signal` is NOT a quick OU-local add - it
-    needs Doug to point at where quest triggers actually fire, or an engine trace to
-    observe it. **Open question this raises:** does OU's `on_reach`/`scan` completion
-    even work in-engine? That's exactly the untested path for the "The Fading Signal"
-    win (`scan 1 derelict`) and cargo-run/passenger quests - worth checking directly.
+  - **Conquest-as-quest via `on_signal` - UNBLOCKED (Doug: "did you check LM?").**
+    The quest driver is **`LegendaryMissions/quests/quest_driver.{py,mast}`** (I'd
+    missed it - it's an LM mastlib, not sbs_utils/OU). It hooks existing signals:
+    `//signal/universe_arrived`->`on_reach`, `//damage/destroy`->`on_kill`,
+    `//science`->`on_scan`, `//signal/ship_docked`->`on_dock`, and crucially a generic
+    **`//signal/quest_signal`->`quest_on_signal`** escape hatch that already advances
+    any quest with `on_signal {name}`/`on_comms {option}` data. So `on_reach`/`scan`
+    completion works (and `derelict`->`universe_derelict` via `_ROLE_ALIASES`, so the
+    "Fading Signal" scan-win is real). **`on_signal` needs NO driver change** - just
+    two OU-local bits (done in Phase 3c below): an AMD `signal` verb + bridging the
+    war-state milestones to `quest_signal`.
 
 ## 6. Phased plan
 
