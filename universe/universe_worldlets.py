@@ -693,10 +693,16 @@ def admiralty_scan_theatre(side):
     (universe: side-wide scan), so ONE pass here covers every console on the side -
     no per-client loop. Any tsn object serves as origin; the home starbase always
     qualifies. Stopgap until the engine can mark a side's own objects known."""
-    origins = to_object_list(role(side))
-    if not origins:
+    # role(side) also contains console clients (base Agents that carry the side
+    # role but have no .side - e.g. the server, Agent 0). Don't assume origins[0]
+    # is a sided space object; use the first member that actually has a side.
+    origin = None
+    for _o in to_object_list(role(side)):
+        if getattr(_o, "side", None) is not None:
+            origin = _o
+            break
+    if origin is None:
         return
-    origin = origins[0]
     targets = to_object_list(role("worldlet"))
     targets += to_object_list(role("adm_fleet") & role(side))
     targets += to_object_list(role("admiral_platform") & role(side))
