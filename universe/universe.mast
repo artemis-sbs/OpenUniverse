@@ -200,6 +200,12 @@ GameCode:
 
     await task_schedule(universe_enter_system)
     await task_schedule(spawn_players)
+    # Model A: register each player ship as an occupant of the start cell so the
+    # per-ship jump lifecycle knows it's occupied (New Game -> (0,0); Continue ->
+    # the restored current cell).
+    for _p in to_object_list(role("__player__")):
+        universe_cell_enter(universe_i, universe_j, _p.id)
+        ship_set_cell(_p.id, universe_i, universe_j)
     # Continue restores the saved campaign; a New Game initializes fresh and
     # must NOT inherit the old save's credits/items/admiralty (restore=False).
     universe_load_players(START_MODE == "Continue")
@@ -782,7 +788,7 @@ GameCode:
     gui_row("row-height: 2.2em;")
     go_btn = gui_button("$text:Jump Here;justify:center;", style="background:#0a6;")
     on gui_message(go_btn):
-        task_schedule(universe_jump_to, {"ti": SEL_I, "tj": SEL_J})
+        task_schedule(universe_jump_to, {"ti": SEL_I, "tj": SEL_J, "warp_ship": sbs.get_ship_of_client(client_id)})
     gui_row("row-height: 2.2em;")
     center_btn = gui_button("$text:Center on Selected;justify:center;")
     on gui_message(center_btn):
@@ -1037,35 +1043,58 @@ GameCode:
 === universe_jump_to
     default ti = universe_i
     default tj = universe_j
-    ->END if ti == universe_i and tj == universe_j
+    default warp_ship = 0
+    # Per-ship jump (Model A): the nav console passes warp_ship (its client's
+    # ship) so a ship jumps to its own cell without disturbing others. A legacy
+    # caller passes none -> fall back to the first player so old call sites work.
+    if warp_ship == 0:
+        _pl = to_object_list(role("__player__"))
+        warp_ship = _pl[0].id if len(_pl) > 0 else 0
+    ->END if warp_ship == 0
+    sobj = to_object(warp_ship)
+    ->END if sobj is None
+    src = ship_cell(warp_ship)
+    ->END if ti == src[0] and tj == src[1]
 
-    # Hyperspace screen on for every console. role("console") is normally console
-    # objects (with .client_id) but can be a raw client id; normalize either way.
-    for c in to_object_list(role("console")):
-        co = to_object(c)
-        cid = co.client_id if co is not None else c
-        ship = to_object(sbs.get_ship_of_client(cid))
-        hull = ship.art_id if ship is not None else ""
+    # Hyperspace screen on for THIS ship's consoles only.
+    for c in to_object_list(linked_to(warp_ship, "consoles")):
+        cobj = to_object(c)
+        cid = cobj.client_id if cobj is not None else c
+        hull = sobj.art_id if sobj is not None else ""
         sbs.super_hyper_warp_mode(cid, hull, 1)
 
     await delay_sim(2)
 
-    # Recenter on the destination sector (generated at the origin)
+    # Enter the destination cell; generate it if this ship is its first occupant
+    # (a cell already live because another ship is there is simply re-used).
+    dest_new = universe_cell_enter(ti, tj, warp_ship)
+    if dest_new:
+        await task_schedule(universe_enter_system, {"ei": ti, "ej": tj})
+
+    # Leave the source cell; if this ship was its last occupant, despawn it
+    # (return parked terrain first so the scoped box-delete sees it).
+    if universe_cell_leave(src[0], src[1], warp_ship):
+        standby_cull_clear()
+        universe_clear_cell(src[0], src[1])
+
+    # Move this ship to the destination cell's origin.
+    ship_set_cell(warp_ship, ti, tj)
+    dco = universe_cell_origin(ti, tj)
+    sobj.pos = Vec3(dco.x + 2000.0, 0.0, dco.z)
+
+    # Keep the shared "server view" pointed at the latest jumper's cell so the
+    # long-tail readers (damage/saves/chatter) stay sensible; per-ship reads use
+    # ship_cell. (Per-cell damage/saves + full per-ship nav view are a later step.)
     universe_i = ti
     universe_j = tj
-    # Return parked terrain to normal space so it gets despawned with the rest.
-    standby_cull_clear()
-    universe_clear_system()
-    await task_schedule(universe_enter_system)
-    universe_reposition_players()
-    universe_save(universe_seed, universe_i, universe_j, universe_sectors)
+    universe_save(universe_seed, ti, tj, universe_sectors)
     universe_save_players()
 
     await delay_sim(1)
 
-    # Hyperspace screen off
-    for c in to_object_list(role("console")):
-        co = to_object(c)
-        cid = co.client_id if co is not None else c
+    # Hyperspace screen off for this ship's consoles.
+    for c in to_object_list(linked_to(warp_ship, "consoles")):
+        cobj = to_object(c)
+        cid = cobj.client_id if cobj is not None else c
         sbs.super_hyper_warp_mode(cid, "", 0)
     ->END

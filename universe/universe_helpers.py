@@ -126,6 +126,69 @@ def universe_cell_release(i, j):
         _cell_slot_used.discard(slot)
 
 
+# --- Cell occupancy + lifecycle (Model A, Phase 2) ---------------------------
+# Which occupants (player ships / admiral cams) are in each live cell. A cell
+# spawns on its first occupant and despawns (clear + slot release) when the last
+# one leaves, so a cell with a viewer stays resident and empty ones stop costing
+# the engine. This replaces the old wipe-on-jump.
+_cell_occupants = {}   # (i, j) -> set(occupant_id)
+
+# A cell's clear-box half-extent: covers all cell content (fleets out to ~49k,
+# POIs/landmarks within ~50k) with margin, while staying well inside the 250k
+# slot spacing so it never reaches a neighbouring live cell.
+UNIVERSE_CELL_CLEAR_R = 100_000
+
+
+def universe_cell_enter(i, j, occ_id):
+    """Register occ_id as present in cell (i, j) (allocating its slot). Returns
+    True if the cell was empty before - the caller must then generate it."""
+    key = (int(i), int(j))
+    occ = _cell_occupants.get(key)
+    was_empty = not occ
+    if occ is None:
+        occ = set()
+        _cell_occupants[key] = occ
+    occ.add(occ_id)
+    universe_cell_origin(i, j)   # ensure a world slot is allocated
+    return was_empty
+
+
+def universe_cell_leave(i, j, occ_id):
+    """Remove occ_id from cell (i, j). Returns True if the cell is now empty
+    (the caller should clear + release it)."""
+    key = (int(i), int(j))
+    occ = _cell_occupants.get(key)
+    if not occ:
+        return True
+    occ.discard(occ_id)
+    if occ:
+        return False
+    _cell_occupants.pop(key, None)
+    return True
+
+
+def universe_clear_cell(i, j):
+    """Despawn a cell's content (terrain + NPCs; players excluded via broad_type)
+    and free its world slot. Scoped to the cell's box, so other live cells are
+    untouched - unlike the legacy universe_clear_system 1M box."""
+    co = universe_cell_origin(i, j)
+    r = UNIVERSE_CELL_CLEAR_R
+    delete_objects_box(co.x, co.y, co.z, r, r, r, broad_type=0x1F)
+    universe_cell_release(i, j)
+
+
+def ship_cell(ship_id):
+    """The (i, j) cell a ship is currently in (defaults to (0, 0))."""
+    return (get_inventory_value(ship_id, "universe_cell_i", 0),
+            get_inventory_value(ship_id, "universe_cell_j", 0))
+
+
+def ship_set_cell(ship_id, i, j):
+    """Record which cell a ship is in (used by the per-ship jump + nav console)."""
+    set_inventory_value(ship_id, "universe_cell_i", int(i))
+    set_inventory_value(ship_id, "universe_cell_j", int(j))
+
+
 def universe_generate_system(universe_seed, i, j, terrain_value=2):
     """Spawn a sector's keyed asteroid/nebula field at the cell's live slot.
 
