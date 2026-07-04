@@ -283,6 +283,29 @@ default shared ADM_LAST_MSG = ""
     ->END
 
 
+# Bridge Admiralty focus-jump (Model A): the tab console has no camera - it
+# commands the "current" cell (universe_i/j). The Galaxy tab's selection relocates
+# that focus: spawn the destination (if the Admiralty is its first occupant),
+# despawn the old focus (if the Admiralty was its last), and repoint universe_i/j
+# so every economy tab operates on the chosen system. occ = the admiral client id.
+=== universe_admiral_focus
+    default ti = universe_i
+    default tj = universe_j
+    default occ = 0
+    ->END if occ == 0
+    ->END if ti == universe_i and tj == universe_j
+    _fsrc_i = universe_i
+    _fsrc_j = universe_j
+    if universe_cell_enter(ti, tj, occ):
+        await task_schedule(universe_enter_system, {"ei": ti, "ej": tj})
+    if universe_cell_leave(_fsrc_i, _fsrc_j, occ):
+        standby_cull_clear()
+        universe_clear_cell(_fsrc_i, _fsrc_j)
+    universe_i = ti
+    universe_j = tj
+    ->END
+
+
 === admiral_console_gui
     default SEL_WORLDLET = None
     default BUILD_SEL = None
@@ -290,6 +313,13 @@ default shared ADM_LAST_MSG = ""
     default OFFICER_SEL = None
     default REQ_SEL = None
     default ADM_MSG = ""
+    default ADM_VIEW_I = universe_i
+    default ADM_VIEW_J = universe_j
+    default ADM_SEL_I = universe_i
+    default ADM_SEL_J = universe_j
+    # The bridge Admiralty commands a focus cell (universe_i/j), not a ship. Count
+    # it as an occupant of that cell so the per-cell lifecycle keeps it alive.
+    universe_cell_enter(universe_i, universe_j, client_id)
     # The side this console commands = the client's own ship side (falls back to
     # the primary player side). The action handlers below run in this same gui
     # task, so they inherit adm_side - no per-handler re-derivation needed.
@@ -303,7 +333,7 @@ default shared ADM_LAST_MSG = ""
     # Tab strip - Map is live; the rest arrive in later slices.
     gui_section(style="area: 2, 10, 98, 17;")
     gui_row("row-height: 2em;")
-    admiral_tabs = [["map","Map"], ["system","System"], ["research","Research"], ["fleets","Fleets"], ["requisition","Requisition"]]
+    admiral_tabs = [["map","Map"], ["galaxy","Galaxy"], ["system","System"], ["research","Research"], ["fleets","Fleets"], ["requisition","Requisition"]]
     gui_screen_tabs(admiral_tabs, ADMIRAL_TAB, "admiral_set_tab")
 
     if ADMIRAL_TAB == "map":
@@ -350,6 +380,58 @@ default shared ADM_LAST_MSG = ""
         if ADM_MSG != "":
             gui_row("row-height: 2em;")
             """$text:{ADM_MSG};color:#fa4"""
+    elif ADMIRAL_TAB == "galaxy":
+        # 7x7 sector grid around the view center (north = +j on top). Click a cell
+        # to select it, then Jump Command relocates the Admiralty focus there.
+        gui_section(style="area: 2, 18, 58, 82;")
+        for gdj in [3, 2, 1, 0, -1, -2, -3]:
+            gui_row("row-height: 2em;")
+            for gdi in [-3, -2, -1, 0, 1, 2, 3]:
+                gci = ADM_VIEW_I + gdi
+                gcj = ADM_VIEW_J + gdj
+                gtxt = universe_map_cell_text(universe_seed, gci, gcj, DANGER, universe_sectors, MAP_REVEAL)
+                gbg = "#0006"
+                if gci == universe_i and gcj == universe_j:
+                    gbg = "#0a6"
+                if gci == ADM_SEL_I and gcj == ADM_SEL_J:
+                    gbg = "#cc0"
+                gcell = gui_button(f"$text:{gtxt};font:gui-1;justify:center;", style=f"background:{gbg};", data={"gsi": gci, "gsj": gcj})
+                on gui_message(gcell):
+                    ADM_SEL_I = gsi
+                    ADM_SEL_J = gsj
+                    jump admiral_console_gui
+        gui_section(style="area: 60, 18, 98, 44; background:#1572;")
+        gui_row("row-height:1.6em;")
+        """justify:center; font:gui-3; $text:Selected ({ADM_SEL_I}, {ADM_SEL_J})"""
+        gui_row("row-height:2.2em;")
+        adm_gjump = gui_button("$text:Jump Command Here;justify:center;", style="background:#0a6;")
+        on gui_message(adm_gjump):
+            task_schedule(universe_admiral_focus, {"ti": ADM_SEL_I, "tj": ADM_SEL_J, "occ": client_id})
+        gui_row("row-height:2.2em;")
+        adm_grecenter = gui_button("$text:Recenter on Command;justify:center;")
+        on gui_message(adm_grecenter):
+            ADM_VIEW_I = universe_i
+            ADM_VIEW_J = universe_j
+            jump admiral_console_gui
+        gui_section(style="area: 60, 45, 98, 56;")
+        gui_row("row-height:2.2em;")
+        adm_gw = gui_button("$text:< W;justify:center;")
+        on gui_message(adm_gw):
+            ADM_VIEW_I = ADM_VIEW_I - 3
+            jump admiral_console_gui
+        adm_ge = gui_button("$text:E >;justify:center;")
+        on gui_message(adm_ge):
+            ADM_VIEW_I = ADM_VIEW_I + 3
+            jump admiral_console_gui
+        gui_row("row-height:2.2em;")
+        adm_gn = gui_button("$text:N ^;justify:center;")
+        on gui_message(adm_gn):
+            ADM_VIEW_J = ADM_VIEW_J + 3
+            jump admiral_console_gui
+        adm_gs = gui_button("$text:S v;justify:center;")
+        on gui_message(adm_gs):
+            ADM_VIEW_J = ADM_VIEW_J - 3
+            jump admiral_console_gui
     elif ADMIRAL_TAB == "research":
         # The tech ladder (## Research): scrollable list, actions on the
         # selection (the Map tab's list+context pattern).
