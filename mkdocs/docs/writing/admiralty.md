@@ -177,6 +177,7 @@ The whole game above ran on defaults. When you want to reshape it, the
 `## Admiralty` fence takes dials - **all optional, each line skippable**:
 
 ```
+Economy pace: standard    // brisk | standard | epic - scales the dials below together
 Worldlet chance: 30%      // chance a NON-home system holds a worldlet
 Start ore: 300            // opening stockpiles (mind the warning in step 2)
 Start gas: 100
@@ -196,6 +197,24 @@ Research pace: campaign   // how quickly the tech ladder is meant to be climbed
 The Admiral commands from the **overseer**: a detached camera over a system-wide 2D
 map where you select objects to act (worldlet build, fleet orders, platform actions).
 The older tabbed "bridge" console has been retired.
+
+### Economy pace — one dial for game length
+
+Base resources accumulate slowly on purpose (an anti-snowball economy: single-digit
+per-minute yields against 60–400-ore platforms, capped by Storage). Rather than
+hand-tune Yields, Reserve, Storage and Start separately, pick a **pace** — it scales
+all four together (as multipliers on whatever you authored):
+
+| Pace | Yield | Reserve | Storage | Start | For |
+|---|---|---|---|---|---|
+| `brisk` | ×2.0 | ×2.0 | ×1.5 | ×1.5 | a punchy ~1-hour session |
+| `standard` | ×1.0 | ×1.0 | ×1.0 | ×1.0 | today's balance (default) |
+| `epic` | ×1.0 | ×5.0 | ×3.0 | ×1.5 | a long / persistent game |
+
+`brisk` speeds the whole curve; `epic` keeps the same per-hour ramp but makes finite
+worldlets last far longer and lets you bank much more for late infrastructure. You can
+still set explicit `Yields` / `Reserve` / `Storage` / `Start` values — the pace scales
+those. An unknown pace (or omitting the line) is `standard`.
 
 !!! note "It's multi-side, for free"
     Everything on this page is written **once** and runs for **every**

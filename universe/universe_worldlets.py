@@ -43,6 +43,23 @@ _ADM_DEFAULTS = {
     "subsidy_step": 0.1,        # tier size the console cycles through
     "build_model": "menu",      # "menu" (instant/parallel) or "fabricator" (A/B)
     "research_pace": "campaign",
+    "economy_pace": "standard", # brisk | standard | epic (scales the dials below)
+}
+
+# Economy pace presets: one authored line ("Economy pace: brisk") scales the four
+# throughput/longevity dials together, instead of hand-tuning Yields/Reserve/Storage/
+# Start separately. Multipliers on the AUTHORED base values (so an author can still
+# set explicit numbers AND pick a pace - the pace scales whatever they set):
+#   yield   - per-minute extraction + relay throughput
+#   reserve - how long a FINITE worldlet lasts before drying up (unlimited stays so)
+#   storage - the pool ceiling
+#   start   - the opening stockpile
+# brisk = a punchy ~1h session; standard = today's balance; epic = a long/persistent
+# game (same per-hour ramp, but worldlets last far longer and you can bank much more).
+ECONOMY_PACE = {
+    "brisk":    {"yield": 2.0, "reserve": 2.0, "storage": 1.5, "start": 1.5},
+    "standard": {"yield": 1.0, "reserve": 1.0, "storage": 1.0, "start": 1.0},
+    "epic":     {"yield": 1.0, "reserve": 5.0, "storage": 3.0, "start": 1.5},
 }
 
 # Per-minute resource upkeep of a FULL (100%) subsidy - the actual drain scales
@@ -121,6 +138,15 @@ def admiralty_tuning(name, default=None):
     return _ADM.get(name, _ADM_DEFAULTS.get(name, default))
 
 
+def economy_pace_mult(dim):
+    """The active Economy pace preset's multiplier for one dial (yield / reserve /
+    storage / start); 1.0 for an unknown pace or dial. Applied at the read sites
+    (extraction, reserve spawn, pool cap, seed) so it scales the authored base."""
+    preset = ECONOMY_PACE.get(str(admiralty_tuning("economy_pace", "standard")).strip().lower(),
+                              ECONOMY_PACE["standard"])
+    return float(preset.get(dim, 1.0))
+
+
 def worldlet_type(key):
     return _WORLDLET_TYPES.get(key)
 
@@ -173,7 +199,12 @@ def universe_worldlet_spawn(type_key, x, y, z, radius=None):
     py.set_inventory_value("worldlet_type", type_key)
     py.set_inventory_value("worldlet_radius", r)
     py.set_inventory_value("worldlet_yields", dict(wt.get("yields") or {}))
-    py.set_inventory_value("worldlet_reserve", wt.get("reserve"))
+    # Finite reserves scale with the Economy pace (epic worldlets last far longer);
+    # an unlimited (None) reserve stays unlimited.
+    base_reserve = wt.get("reserve")
+    if base_reserve is not None:
+        base_reserve = int(round(float(base_reserve) * economy_pace_mult("reserve")))
+    py.set_inventory_value("worldlet_reserve", base_reserve)
     return co
 
 
@@ -278,7 +309,7 @@ def admiralty_pool_cap(side, res):
     """Stockpile cap: the Storage tuning + each Refinery's silos + research
     ('storage N' unlocks; research_storage_bonus is a shared-namespace call
     into universe_research.py)."""
-    cap = int(admiralty_tuning("storage", 600))
+    cap = int(admiralty_tuning("storage", 600) * economy_pace_mult("storage"))
     cap += REFINERY_STORAGE_BONUS * len(to_object_list(role("admiral_refinery") & role(side)))
     cap += int(research_storage_bonus(side))
     return cap
@@ -306,8 +337,9 @@ def admiralty_seed_pools(side):
     if sid is None or get_inventory_value(sid, "adm_seeded", False):
         return False
     set_inventory_value(sid, "adm_seeded", True)
+    start_mult = economy_pace_mult("start")
     for res in ADM_RESOURCES:
-        admiralty_pool_set(side, res, admiralty_tuning("start_" + res, 0))
+        admiralty_pool_set(side, res, int(admiralty_tuning("start_" + res, 0) * start_mult))
     return True
 
 
@@ -337,7 +369,7 @@ def admiralty_extraction_tick(side, dt_seconds):
     Called from admiral.mast."""
     if not _ADM_ACTIVE:
         return
-    scale = float(dt_seconds) / 60.0 * float(research_extraction_mult(side))
+    scale = float(dt_seconds) / 60.0 * float(research_extraction_mult(side)) * economy_pace_mult("yield")
     for plat in to_object_list(role("admiral_extractor")):
         if not has_role(plat.id, side):
             continue
@@ -370,7 +402,8 @@ def admiralty_relay_snapshot(side, i, j):
     stored worldlet_reserves list - the one arrival re-applies - and a gated FINITE
     worldlet really runs dry while unlimited ones pay on."""
     order = {w.id: idx for idx, w in enumerate(worldlets_in_cell(i, j))}
-    mult = float(research_extraction_mult(side))
+    # Include the pace yield multiplier so relay income matches live extraction.
+    mult = float(research_extraction_mult(side)) * economy_pace_mult("yield")
     out = []
     for plat in objects_in_cell(to_object_list(role("admiral_extractor")), i, j):
         if not has_role(plat.id, side):
