@@ -24,3 +24,14 @@ display: The Silver Reach
 universe: silver_reach.amd
 ```
     ->END
+
+# Archetype D (FOUNDATION_PLAN.md): a minimal single-ship STORY universe -
+# Mode: story (RTS off), a distress beacon, a win on scanning the derelict.
+=== universe_scout_signal
+metadata:``` yaml
+type: universe/scout_signal
+key: scout_signal
+display: The Fading Signal
+universe: scout_signal.amd
+```
+    ->END

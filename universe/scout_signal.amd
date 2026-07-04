@@ -1,0 +1,67 @@
+// The Fading Signal - a minimal single-ship STORY universe (archetype D of
+// FOUNDATION_PLAN.md): no admiral economy, no war - just a distress beacon, three
+// jumps of dark, and a derelict with an answer. `Mode: story` turns the RTS off;
+// the win is a plain quest (scan the derelict). Registered in universes.mast.
+// Copy this file to start a story of your own.
+
+# The Fading Signal
+---
+Display: The Fading Signal
+---
+A single scout, a beacon that should be dead, and a long quiet run to whatever
+is still transmitting from the edge of the chart.
+
+## Admiralty
+---
+Mode: story
+---
+// This chapter exists ONLY to carry `Mode: story`, which switches the Admiral
+// economy off (a story universe has no worldlets or war of its own). When Mode
+// graduates to a mission-level chapter this Admiralty block goes away.
+
+## Narrative
+
+### A Voice in the Static (signal_1)
+---
+Scope: shared
+State: active
+When: reach 3, -2
+Then: reveal signal_2
+---
+Deep-range sensors keep catching the same clipped distress loop from sector
+(3, -2) - a Terran registry that went dark eleven years ago. Command wants eyes
+on it. Engage the jump drive on Navigation and make the run.
+
+### The Long Quiet (signal_2)
+---
+Scope: shared
+State: secret
+When: scan 1 derelict
+Pays: 300 credits
+---
+The signal's source is a cold hulk adrift off the lane - no power, no life, and
+a beacon that should have died with its batteries a decade ago. Bring the science
+array to bear and find out what is still talking out here.
+
+## Goals
+
+### Answer the Signal (goal_answer)
+---
+Scope: shared
+State: active
+When: scan 1 derelict
+Win: true
+Citation: The beacon's last log finally has a listener. Whatever the Fading Signal was calling into the dark for eleven years, this scout answered it - and flew home with the story.
+---
+Reach the derelict at (3, -2) and read what its beacon has been repeating into
+the static since before you had a commission.
+
+## Landmarks
+
+### The Long Quiet (long_quiet)
+---
+At: 3, -2
+Kind: derelict
+---
+A Terran survey ship a decade adrift, running lights long cold - and one
+stubborn beacon still whispering into the static.
