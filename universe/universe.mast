@@ -818,20 +818,25 @@ GameCode:
 # revisited sector regenerates its station/enemies (deltas come in 3c).
 #
 === universe_enter_system
-    key = universe_system_key(universe_seed, universe_i, universe_j)
+    # Cell being entered: defaults to the global (single-cell / party jump); a
+    # per-ship jump passes {"ei":.., "ej":..} to generate a specific cell so cells
+    # can coexist. Everything below uses ei/ej, never the global - cell-agnostic.
+    default ei = universe_i
+    default ej = universe_j
+    key = universe_system_key(universe_seed, ei, ej)
     # Cell world origin (Model A): slot 0 = (0,0,0) so a single live cell is
     # unchanged. Spawns below are offset by co so the cell materializes at its
     # allocated slot instead of always at the origin.
-    co = universe_cell_origin(universe_i, universe_j)
+    co = universe_cell_origin(ei, ej)
     # Passenger delivery: any aboard passenger bound for this system disembarks
     # (the on_reach quest pays the fare separately). Reuses the lifeform substrate.
-    for _pax_id in universe_passengers_destined(universe_i, universe_j):
+    for _pax_id in universe_passengers_destined(ei, ej):
         comms_broadcast(role("__player__"), universe_deliver_passenger(_pax_id) + " delivered safely.", "#0f0")
     # Base kind (clan-agnostic) + clan overlay: a clan home -> that clan + a
     # station; a keyed enemy system -> a foe clan. Map and spawn use the same
     # helper so they agree.
-    base_kind = universe_system_kind(universe_seed, universe_i, universe_j, DANGER)
-    res = universe_system_clan(UNIVERSE_CLANS, universe_seed, universe_i, universe_j, base_kind)
+    base_kind = universe_system_kind(universe_seed, ei, ej, DANGER)
+    res = universe_system_clan(UNIVERSE_CLANS, universe_seed, ei, ej, base_kind)
     owner = res[0]
     kind = res[1]
     universe_kind = kind
@@ -842,11 +847,11 @@ GameCode:
         if arrival_chatter:
             universe_chatter_card(arrival_clan, arrival_chatter)
     # Remember we've been here (drives the galaxy-map fog of war).
-    universe_sectors = universe_set_system_flag(universe_sectors, universe_i, universe_j, "visited")
+    universe_sectors = universe_set_system_flag(universe_sectors, ei, ej, "visited")
 
     # Region identity: a named area (regions section) sets the sky + music; cells no
     # region claims keep whatever's current (basic_random_skybox's default).
-    arrival_region = region_for_system(UNIVERSE_REGIONS, universe_i, universe_j)
+    arrival_region = region_for_system(UNIVERSE_REGIONS, ei, ej)
     if arrival_region is not None:
         if arrival_region.skybox is not None:
             skybox_schedule(arrival_region.skybox)
@@ -857,7 +862,7 @@ GameCode:
     # only briefly - tinted nebula volume for the eye, continuous heat/system
     # damage for the teeth (universe_regions.region_veil_tick). The chart's
     # amber wash is the wall; this is what ignoring it costs.
-    if region_is_veiled(UNIVERSE_REGIONS, universe_i, universe_j):
+    if region_is_veiled(UNIVERSE_REGIONS, ei, ej):
         random.seed(key + 11)
         for _v in range(5):
             vpos = Vec3.rand_in_sphere(6000, 28000, False, True)
@@ -869,17 +874,17 @@ GameCode:
     tv = universe_terrain_value
     if kind == "nebula":
         tv = max(tv, 4)
-    universe_generate_system(universe_seed, universe_i, universe_j, tv)
+    universe_generate_system(universe_seed, ei, ej, tv)
 
     # Features, each re-seeded from the sector key for determinism
     if kind == "home" or kind == "station":
         # Skip a station the players have destroyed (persisted).
-        if not universe_system_flag(universe_sectors, universe_i, universe_j, "station_destroyed"):
+        if not universe_system_flag(universe_sectors, ei, ej, "station_destroyed"):
             random.seed(key + 1)
             st_type = random.choice(["starbase_command", "starbase_civil", "starbase_science", "starbase_industry"])
             # Clan-owned systems get the clan's station; a captured one flies the
             # player's flag; otherwise a friendly base on the primary player side.
-            captured = universe_system_flag(universe_sectors, universe_i, universe_j, "captured")
+            captured = universe_system_flag(universe_sectors, ei, ej, "captured")
             st_side = universe_primary_side()
             st_name = "Starbase"
             if owner is not None and not captured:
@@ -888,7 +893,7 @@ GameCode:
             station = npc_spawn(co.x, co.y, co.z, st_name, f"{st_side}, station", st_type, "behav_station")
             station_id = to_id(station)
             # Market: restore this sector's saved stock, else seed deterministically.
-            saved_market = universe_system_value(universe_sectors, universe_i, universe_j, "market", None)
+            saved_market = universe_system_value(universe_sectors, ei, ej, "market", None)
             if saved_market is not None:
                 market_restore(station_id, saved_market)
             else:
@@ -911,7 +916,7 @@ GameCode:
                     task_schedule(universe_recapture_watch, {"cap_station": station_id, "cap_clan": owner})
     elif kind == "enemy":
         # Skip enemies in a sector the players have already cleared (persisted).
-        if not universe_system_flag(universe_sectors, universe_i, universe_j, "enemy_cleared"):
+        if not universe_system_flag(universe_sectors, ei, ej, "enemy_cleared"):
             random.seed(key + 3)
             enemy_clan = clan_get(UNIVERSE_CLANS, owner)
             count = 1 + int(DIFFICULTY / 3)
@@ -929,14 +934,14 @@ GameCode:
             for n in range(count):
                 pos = Vec3.rand_in_sphere(near, far, False, True)
                 prefab_spawn(prefab_fleet_raider, {"race": clan_pick_race(enemy_clan), "fleet_difficulty": DIFFICULTY, "ship_roles": ship_roles, "START_X": pos.x + co.x, "START_Y": pos.y + co.y, "START_Z": pos.z + co.z})
-            task_schedule(universe_watch_enemy_cleared, {"ei": universe_i, "ej": universe_j})
+            task_schedule(universe_watch_enemy_cleared, {"ei": ei, "ej": ej})
     elif kind == "anomaly":
         random.seed(key + 4)
         terrain_spawn_black_holes(1 + int(DIFFICULTY / 4), center=co)
         # The anomaly beams a signal: offer each player the mystery once.
         for p in to_object_list(role("__player__")):
-            if universe_mystery_available(p.id, universe_i, universe_j):
-                universe_grant_mystery(p.id, universe_seed, universe_i, universe_j)
+            if universe_mystery_available(p.id, ei, ej):
+                universe_grant_mystery(p.id, universe_seed, ei, ej)
         universe_save_players()
 
     # Richer systems: a keyed POI deck layered on the template core above
@@ -945,7 +950,7 @@ GameCode:
     # territory seeds mine fields. Decided here in Python, spawned here in MAST.
     owner_foe = owner is not None and universe_hostile_to_players(owner)
     owner_arch = clan_archetype(UNIVERSE_CLANS, owner)
-    for poi in universe_system_deck(key, kind, owner, owner_arch, owner_foe, DIFFICULTY, universe_i, universe_j):
+    for poi in universe_system_deck(key, kind, owner, owner_arch, owner_foe, DIFFICULTY, ei, ej):
         match poi.type:
             case "loot":
                 item_spawn(poi.item_key, poi.x + co.x, poi.y + co.y, poi.z + co.z)
@@ -964,7 +969,7 @@ GameCode:
 
     # Landmarks: named hand-placed stations/wrecks/beacons pinned to this system,
     # layered on top of the procedural content (universe_landmarks.py).
-    for lm in universe_landmarks_in_system(UNIVERSE_LANDMARKS, universe_i, universe_j):
+    for lm in universe_landmarks_in_system(UNIVERSE_LANDMARKS, ei, ej):
         lmpos = universe_landmark_pos(key, lm)
         lmpos = (lmpos[0] + co.x, lmpos[1] + co.y, lmpos[2] + co.z)
         if lm.kind == "derelict":
@@ -982,15 +987,15 @@ GameCode:
     # at the origin internally; they'll need the cell offset (co) once cells
     # coexist. Fine at slot 0 (co = origin) today.
     if admiralty_active():
-        worldlets_apply_reserves(universe_system_value(universe_sectors, universe_i, universe_j, "worldlet_reserves", None))
+        worldlets_apply_reserves(universe_system_value(universe_sectors, ei, ej, "worldlet_reserves", None))
         # Restore uses the primary side (snapshots are per-primary for now - see
         # the econ-loop TODO); fleets come back for every player side.
-        admiralty_restore_platforms(universe_primary_side(), universe_system_value(universe_sectors, universe_i, universe_j, "admiral_platforms", None))
+        admiralty_restore_platforms(universe_primary_side(), universe_system_value(universe_sectors, ei, ej, "admiral_platforms", None))
         for _side in universe_player_sides():
             fleets_respawn(_side)
 
     # Tell the quest driver we've arrived (completes on_reach cargo runs).
-    signal_emit("universe_arrived", {"ARRIVE_I": universe_i, "ARRIVE_J": universe_j})
+    signal_emit("universe_arrived", {"ARRIVE_I": ei, "ARRIVE_J": ej})
     ->END
 
 
