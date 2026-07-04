@@ -3,12 +3,14 @@
 Brainstorm note. **No engine changes assumed** — this is about what the current
 Cosmos engine + sbs_utils primitives already allow, and where the real work lives.
 
-Status: feasibility largely established. Perf spike **done** (real-engine
-`perf_probe` run, 2026-07-03 — see "Measured" section); one spike (coordinate
-precision) remains. Target scope defined (**Model A — coexisting systems, faking B**;
-see "Target scope"). Next phase: pursue a real multi-cell universe — first build item
-is **jump control** (per-ship jump + admiral self-jump; today all ships jump together
-to one origin cell).
+Status: feasibility established + **Model A shipping in OU**. Perf spike done
+(real-engine `perf_probe`, 2026-07-03); one spike (coordinate precision) remains.
+Multi-cell build (**Model A — coexisting systems, faking B**) **Phase 0–2d done and
+ENGINE-VERIFIED (2026-07-03): two player ships jumped to different systems at once,
+each Navigation console showed its own cell.** Cells coexist at distinct world slots,
+per-ship jump, per-ship nav view. Remaining: Phase 2e/3 — per-cell damage/saves/
+watches/captains + admiral self-jump (still keyed to the shared global). See
+`universe/universe_helpers.py` (slot allocator + occupancy) and `universe/universe.mast`.
 
 ---
 
