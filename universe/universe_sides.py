@@ -61,3 +61,12 @@ def universe_hostile_to_players(side):
     this a foe of the player faction(s)'). Diplomacy-driven, so it respects
     whatever relations the universe configured (co-op or rival)."""
     return any(side_are_enemies(side, ps) for ps in _PLAYER_SIDES)
+
+
+def universe_mode_is_pvp():
+    """True when the active mission Mode makes the PLAYER sides mutually hostile -
+    skirmish and war (the PvP archetypes). sandbox/campaign/story keep whatever
+    co-op/ally relations the universe authored. mission_mode is a sibling free
+    global (universe_worldlets.py); the caller applies the relation in MAST where
+    sbs.DIPLOMACY lives. See FOUNDATION_PLAN.md (Phase 3)."""
+    return mission_mode() in ("skirmish", "war")

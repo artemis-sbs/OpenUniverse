@@ -61,6 +61,15 @@ default shared UNIVERSE_CULL_RADIUS = 25000
     side_set_relations("orion", "raider", sbs.DIPLOMACY.HOSTILE)
     side_set_relations("orion", "civ", sbs.DIPLOMACY.NEUTRAL)
     side_set_relations("orion", "tsn", sbs.DIPLOMACY.ALLIED)
+    # Mode-driven PvP (Foundation Phase 3): skirmish/war make the PLAYER sides
+    # mutually HOSTILE, overriding the co-op relations above. sandbox/campaign/story
+    # leave them as authored. Applied last so the Mode wins; a free-for-all default
+    # (every player side hostile to every other) - explicit teams come later.
+    if universe_mode_is_pvp():
+        for _pa in universe_player_sides():
+            for _pb in universe_player_sides():
+                if _pa != _pb:
+                    side_set_relations(_pa, _pb, sbs.DIPLOMACY.HOSTILE)
     sim.set_diplomacy_color(sbs.DIPLOMACY.HOSTILE, "#F00")
     sim.set_diplomacy_color(sbs.DIPLOMACY.NEUTRAL, "#077")
 
