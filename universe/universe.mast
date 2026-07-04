@@ -242,6 +242,9 @@ GameCode:
             if universe_cell_enter(pvp_ci, pvp_cj, pvp_ships[0].id):
                 await task_schedule(universe_enter_system, {"ei": pvp_ci, "ej": pvp_cj})
             pvp_co = universe_cell_origin(pvp_ci, pvp_cj)
+            # (Could be `for pvp_n, pvp_ship in enumerate(...)` - MAST now supports tuple
+            # unpacking - but OU stays index-based so it keeps compiling against the
+            # PACKAGED sbslib until that's rebuilt with the feature.)
             pvp_n = 0
             for pvp_ship in pvp_ships:
                 universe_cell_enter(pvp_ci, pvp_cj, pvp_ship.id)
