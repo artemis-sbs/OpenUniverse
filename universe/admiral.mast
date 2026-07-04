@@ -130,10 +130,13 @@ default shared ADM_LAST_MSG = ""
     default build_side = universe_primary_side()
     pdef = admiralty_platform_def(build_kind)
     ->END if pdef is None or build_worldlet_id is None
-    build_label = pdef.get("name") + " at " + str(to_object(build_worldlet_id).name)
-    ADM_BUILDS.append(build_label)
+    # A rich queue record (name + worldlet + eta) so the overseer can show what's
+    # building where and roughly how close, with several builds at once. Removed by
+    # identity when this build finishes.
+    build_rec = admiralty_build_record(build_kind, build_worldlet_id)
+    ADM_BUILDS.append(build_rec)
     await delay_sim(pdef.get("build_time"))
-    ADM_BUILDS.remove(build_label)
+    ADM_BUILDS.remove(build_rec)
     built_plat = admiralty_build_done(build_kind, build_side, build_worldlet_id)
     # Completion lands on the overseer status line (the platform also appears on the
     # 2D view); keeps the "did it finish?" question answered.

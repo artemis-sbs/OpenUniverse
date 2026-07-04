@@ -820,13 +820,39 @@ def admiralty_command_points(side):
     return base + relays * SENSOR_COMMAND_POINTS
 
 
+def admiralty_build_record(kind, worldlet_id):
+    """A build-queue entry the overseer can read cleanly: name + where + eta (sim
+    seconds at completion). Replaces the old bare 'Name at Where' string so the queue
+    can show per-build progress with several builds running at once."""
+    pdef = ADM_PLATFORMS.get(kind) or {}
+    wobj = to_object(worldlet_id)
+    where = str(wobj.name) if (wobj is not None and wobj.name) else "the works"
+    return MastDataObject({"name": pdef.get("name", kind), "where": where,
+                           "eta": FrameContext.sim_seconds + float(pdef.get("build_time", 0))})
+
+
+def admiralty_build_queue_text(builds, now):
+    """A clear multi-build queue readout - 'Building 2: Extractor - Cinder World
+    (12s), Refinery - Veiled Giant (5s)' - with each build's name, worldlet, and
+    time remaining. Pure (now = sim seconds passed in) so it unit-tests; the panel
+    reads FrameContext.sim_seconds. Tolerates legacy bare-string entries."""
+    rows = []
+    for b in builds:
+        if isinstance(b, str):
+            rows.append(b)
+            continue
+        rem = int(max(0, float(b.get("eta", now)) - now))
+        rows.append(b.get("name", "?") + " - " + b.get("where", "?") + " (" + str(rem) + "s)")
+    return "Building " + str(len(rows)) + ": " + ", ".join(rows)
+
+
 def admiralty_status_line(builds, last_msg):
     """The overseer's status/queue line. Active builds take priority (a live queue -
     what the yards are working on); else the last action result (a build/commission
     confirmation or a rejection reason); else idle. `builds` is the shared ADM_BUILDS
     list, `last_msg` the shared ADM_LAST_MSG - passed in so this stays pure Python."""
     if builds:
-        return "Under construction: " + ", ".join(builds)
+        return admiralty_build_queue_text(builds, FrameContext.sim_seconds)
     # No income source is worth flagging over a stale last-action line: the HQ is
     # only a hub, the Extractor is what actually produces (the discoverability gap
     # that had ore/gas going nowhere). Clears itself once an extractor exists.
