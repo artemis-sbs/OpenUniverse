@@ -15,6 +15,8 @@ shared ADM_BUILDS = []
 # info panel; also mirrored to info cards for the tab console / other consoles.
 default shared ADM_LAST_MSG = ""
 
+#gui_tab_add_top("galaxy")
+
 
 # Started by @map/universe when the universe has an Admiralty chapter. One
 # global task: every tick, extractor platforms pull their worldlet's yields
@@ -211,7 +213,7 @@ default shared ADM_LAST_MSG = ""
     # Top tabs (the //gui/tab framework, like the hangar's Casino tab): enable the
     # Galaxy tab here; its click is handled by //gui/tab/galaxy. gui_tab_back sets
     # the framework-provided back tab to this console, so the galaxy view returns.
-    CONSOLE_SELECT = "admiral"
+    #CONSOLE_SELECT = "admiral"
     gui_tab_enable("galaxy")
     gui_tab_back(CONSOLE_SELECT)
     gui_section(style="area: 2, 2, 98, 8; background:#1578;")
@@ -250,14 +252,14 @@ default shared ADM_LAST_MSG = ""
     admiralty_scan_theatre(adm_side)
     await gui()
 
+//gui/tab/admiral
+    jump console_selected 
 
 # Galaxy top tab (//gui/tab framework, like the hangar's Casino). Enabled on the
 # Admiral overseer; its click shows the shared galaxy map (the same one the player
 # Navigation console uses). "Child knows its parent": set the framework's back tab
 # to the console that opened us (CONSOLE_SELECT) so the map can return.
-//gui/tab/galaxy
-    gui_tab_back(CONSOLE_SELECT)
-    gui_tab_enable("galaxy")
+//gui/tab/galaxy if CONSOLE_SELECT == "admiral"
     jump universe_galaxy_map_gui
 
 

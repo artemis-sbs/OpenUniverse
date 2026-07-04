@@ -659,6 +659,9 @@ GameCode:
 === universe_galaxy_map_gui
     default GALAXY_BACK = None
 --- repaint
+    gui_tab_back(CONSOLE_SELECT)
+    gui_tab_enable("galaxy")
+
     # This console shows the cell THIS client's ship is in (Model A: ships can be
     # in different cells at once). cur_i/cur_j replace the old shared universe_i/j.
     _cc = ship_cell(sbs.get_ship_of_client(client_id))
