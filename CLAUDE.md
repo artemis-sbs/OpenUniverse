@@ -45,12 +45,15 @@ missions/
 - Reusable addon behavior (consoles, comms, prefabs, quests, …) → **LegendaryMissions**, then **rebuild the mastlibs** (below).
 - **Concurrency:** other agents may be editing sbs_utils / LM at the same time.
 
-> **SEARCH DISCIPLINE (learned the hard way):** when tracing how a mechanic works and
-> you can't find it here, it's almost certainly in **LegendaryMissions** (the shared
-> drivers — quest completion, docking, fleets, comms, consoles — live in LM mastlibs,
-> NOT here or in sbs_utils). **Grep all three (`../sbs_utils`, `../LegendaryMissions`,
-> here) before concluding a mechanic is missing/opaque/broken.** e.g. the quest
-> driver is `../LegendaryMissions/quests/quest_driver.{py,mast}`.
+> **SEARCH DISCIPLINE — check dependencies first (learned the hard way):** this
+> mission's **`story.json`** lists everything it loads (`sbslib` + the LM `mastlib`
+> list) — that's the map of where its mechanics live. When a mechanic isn't found
+> here, **search the dependencies it declares**, especially **LegendaryMissions** (the
+> shared drivers — quest completion, docking, fleets, comms, consoles — live in LM
+> mastlibs, NOT here or in sbs_utils). **Grep all of `story.json`'s deps
+> (`../sbs_utils`, `../LegendaryMissions`, here) before concluding a mechanic is
+> missing/opaque/broken.** e.g. the quest driver is
+> `../LegendaryMissions/quests/quest_driver.{py,mast}`.
   Keep edits to those repos minimal and coordinated; one owner per sbs_utils push
   at a time (a branch+tag name collision once broke pushes). Stay inside this repo
   when you can.
