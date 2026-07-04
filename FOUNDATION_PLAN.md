@@ -139,6 +139,16 @@ The biggest gap across A/C is that OU is **co-op today**. Two parts:
     `side_eliminated`/`last_side_standing` directly (conquest-as-quest). Touches the
     sbs_utils quest engine, so it's a separate, confirm-worthy step. Decapitation and
     the last-standing default work without it.
+    **Driver investigation (2026-07-04, remote):** the quest-trigger *completion*
+    mechanism is genuinely opaque - `on_reach`/`on_kill`/`on_collect` are written by
+    OU's amd parser and read for **map markers** (`universe_quest_target_sectors`),
+    but I found **no code that matches them to COMPLETE a quest**: `signal_emit(
+    "universe_arrived")` (universe.mast) has **no handler**, and sbs_utils has zero
+    `on_reach`/`on_kill` references. So `on_signal` is NOT a quick OU-local add - it
+    needs Doug to point at where quest triggers actually fire, or an engine trace to
+    observe it. **Open question this raises:** does OU's `on_reach`/`scan` completion
+    even work in-engine? That's exactly the untested path for the "The Fading Signal"
+    win (`scan 1 derelict`) and cargo-run/passenger quests - worth checking directly.
 
 ## 6. Phased plan
 
