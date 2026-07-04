@@ -819,13 +819,6 @@ GameCode:
         SEL_I = cur_i
         SEL_J = cur_j
         gui_task_jump("repaint")
-    # Embedded as the Admiral overseer's Galaxy view: a way back to the command
-    # console (GALAXY_BACK = the caller's label). Absent for the player Navigation.
-    if GALAXY_BACK is not None:
-        gui_row("row-height: 2.2em;")
-        cmd_back_btn = gui_button("$text:< Command View;justify:center;", style="background:#048;")
-        on gui_message(cmd_back_btn):
-            gui_task_jump(GALAXY_BACK)
 
     gui_sub_task_schedule("nav_watch")
     await gui()
