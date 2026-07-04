@@ -44,6 +44,22 @@ _ADM_DEFAULTS = {
     "build_model": "menu",      # "menu" (instant/parallel) or "fabricator" (A/B)
     "research_pace": "campaign",
     "economy_pace": "standard", # brisk | standard | epic (scales the dials below)
+    "mode": "sandbox",          # mission-shape preset (see MODE_PRESETS / FOUNDATION_PLAN.md)
+}
+
+# Mission-shape presets (the `Mode` dial - see FOUNDATION_PLAN.md). Each preset just
+# provides DEFAULTS for a few dials; a dial the author sets explicitly always wins.
+# `admiral` gates whether the RTS economy runs at all (a story/campaign mission runs
+# none even if a Worldlets/Admiralty chapter is present). This is the keystone
+# abstraction the foundation grows on - Phase 1 wires the levers that exist today
+# (economy pace, skirmish, admiral on/off); relations/victory/subsystem gating land
+# in later phases.
+MODE_PRESETS = {
+    "sandbox":  {"admiral": True,  "economy_pace": "standard", "skirmish_pressure": "border"},
+    "skirmish": {"admiral": True,  "economy_pace": "brisk",    "skirmish_pressure": "border"},
+    "war":      {"admiral": True,  "economy_pace": "epic",     "skirmish_pressure": "border"},
+    "campaign": {"admiral": False, "economy_pace": "epic",     "skirmish_pressure": "off"},
+    "story":    {"admiral": False, "economy_pace": "standard", "skirmish_pressure": "off"},
 }
 
 # Economy pace presets: one authored line ("Economy pace: brisk") scales the four
@@ -128,6 +144,18 @@ def admiralty_configure(cfg):
                 _ADM[k] = v
         if _ADM_ACTIVE and "worldlet_chance" in cfg:
             generation_set("worldlet", cfg["worldlet_chance"])
+    # Mission-shape Mode: fill in DEFAULTS for any dial the author did not set
+    # explicitly (explicit cfg value wins), and honour the mode's `admiral` gate -
+    # a story/campaign mission runs no RTS economy even with a Worldlets chapter.
+    preset = MODE_PRESETS.get(str(_ADM.get("mode", "sandbox")).strip().lower())
+    if preset is not None:
+        for k, v in preset.items():
+            if k == "admiral":
+                continue
+            if cfg is None or k not in cfg:
+                _ADM[k] = v
+        if not preset.get("admiral", True):
+            _ADM_ACTIVE = False
 
 
 def admiralty_active():
@@ -145,6 +173,13 @@ def economy_pace_mult(dim):
     preset = ECONOMY_PACE.get(str(admiralty_tuning("economy_pace", "standard")).strip().lower(),
                               ECONOMY_PACE["standard"])
     return float(preset.get(dim, 1.0))
+
+
+def mission_mode():
+    """The active mission-shape Mode (sandbox | skirmish | war | campaign | story).
+    The keystone dial - see FOUNDATION_PLAN.md. Its defaults are already baked into
+    the tuning by admiralty_configure; this is for introspection / later gating."""
+    return str(admiralty_tuning("mode", "sandbox")).strip().lower()
 
 
 def worldlet_type(key):

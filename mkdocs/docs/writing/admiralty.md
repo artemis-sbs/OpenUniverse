@@ -198,6 +198,26 @@ The Admiral commands from the **overseer**: a detached camera over a system-wide
 map where you select objects to act (worldlet build, fleet orders, platform actions).
 The older tabbed "bridge" console has been retired.
 
+### Mode — one dial for the mission's shape
+
+`Mode` picks the **kind** of mission and sets sensible defaults for the dials below
+(any dial you set explicitly still wins). It's the keystone the Open Universe
+foundation grows on (see `FOUNDATION_PLAN.md`).
+
+| Mode | Admiral RTS | Economy | Skirmish | For |
+|---|---|---|---|---|
+| `sandbox` | on | standard | border | today's living universe (default) |
+| `skirmish` | on | brisk | border | a punchy 1–3 h RTS |
+| `war` | on | epic | border | a long, multi-side war |
+| `campaign` | **off** | epic | off | a persistent single-ship epic |
+| `story` | **off** | standard | off | a bounded 1–2 h narrative |
+
+`campaign`/`story` switch the **admiral economy off entirely** even if a Worldlets
+chapter is present — so a story mission can reuse the universe without the RTS. An
+unknown or omitted mode is `sandbox`. (More of the mission shape — hostile side
+relations, victory/defeat conditions, which subsystems load — folds into `Mode` in
+later phases; today it drives the admiral/economy/skirmish switches.)
+
 ### Economy pace — one dial for game length
 
 Base resources accumulate slowly on purpose (an anti-snowball economy: single-digit

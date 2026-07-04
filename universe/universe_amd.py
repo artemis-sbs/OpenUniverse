@@ -151,6 +151,8 @@ def _ou_facts(data, label, value):
         data.setdefault("admiralty", {})["relay_rate"] = amd_pct(value)
     elif label == "build model":
         data.setdefault("admiralty", {})["build_model"] = str(value).strip().lower()
+    elif label == "mode":
+        data.setdefault("admiralty", {})["mode"] = str(value).strip().lower()
     elif label == "economy pace":
         data.setdefault("admiralty", {})["economy_pace"] = str(value).strip().lower()
     elif label == "research pace":
