@@ -274,10 +274,12 @@ default shared ADM_LAST_MSG = ""
     # Right, bottom: build-queue / action status, under the comms buttons with real
     # vertical space. This console has no info panel, so the Admiralty's build
     # progress, confirmations and rejection reasons live here (ADM_BUILDS +
-    # ADM_LAST_MSG, both shared). The on-change watcher repaints when either changes.
+    # ADM_LAST_MSG, both shared). The change key ticks each SECOND while builds are
+    # queued so the per-build countdown updates live; otherwise it only repaints on a
+    # build starting/finishing or a new message (no idle repaints).
     gui_section(style="area: 72, 67, 100, 100; background:#0234;")
     adm_bwidget = gui_text("$text:" + admiralty_status_line(ADM_BUILDS, ADM_LAST_MSG) + ";justify:center;font:gui-2;color:#8cf")
-    on change str(len(ADM_BUILDS)) + "|" + ADM_LAST_MSG:
+    on change admiralty_status_change_key(ADM_BUILDS, ADM_LAST_MSG):
         adm_bwidget.update("text:" + admiralty_status_line(ADM_BUILDS, ADM_LAST_MSG) + ";justify:center;font:gui-2;color:#8cf")
     # Comms won't open on an object the side holds no science data for. Scan the
     # Admiral's theatre once now so THIS console's first click works; the economy

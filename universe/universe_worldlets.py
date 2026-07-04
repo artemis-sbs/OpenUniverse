@@ -846,6 +846,17 @@ def admiralty_build_queue_text(builds, now):
     return "Building " + str(len(rows)) + ": " + ", ".join(rows)
 
 
+def admiralty_status_change_key(builds, last_msg):
+    """The overseer status panel's `on change` key. Changes every SECOND while builds
+    are queued (so the countdown ticks live), and only on build count / last-message
+    otherwise (no idle repaints). Keep the panel's `on change` and its repaint reading
+    the same admiralty_status_line, so what triggers the repaint and what it shows agree."""
+    base = str(len(builds)) + "|" + str(last_msg)
+    if builds:
+        return base + "|" + str(int(FrameContext.sim_seconds))
+    return base
+
+
 def admiralty_status_line(builds, last_msg):
     """The overseer's status/queue line. Active builds take priority (a live queue -
     what the yards are working on); else the last action result (a build/commission
