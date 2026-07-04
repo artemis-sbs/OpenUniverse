@@ -35,3 +35,14 @@ display: The Fading Signal
 universe: scout_signal.amd
 ```
     ->END
+
+# Archetype A (FOUNDATION_PLAN.md): a multi-admiral PvP SKIRMISH universe -
+# Mode: skirmish (hostile player sides, brisk economy, last-standing victory).
+=== universe_skirmish_arena
+metadata:``` yaml
+type: universe/skirmish_arena
+key: skirmish_arena
+display: Skirmish - The Broken Accord
+universe: skirmish_arena.amd
+```
+    ->END
