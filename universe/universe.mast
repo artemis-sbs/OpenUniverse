@@ -433,11 +433,11 @@ GameCode:
     # A campaign goal carrying Win/Lose ends the campaign when it completes. The end
     # is announced on the info panel and broadcast as a signal so an end screen (or
     # any addon) can hook it; the goal's own prose is the citation.
-    if DATA.get("win"):
+    if DATA.get("end_win"):
         UNIVERSE_GAME_OVER = True
         universe_info_card(DATA.get("citation", "The frontier is yours."), title="VICTORY")
         signal_emit("universe_victory", DATA)
-    if DATA.get("lose"):
+    if DATA.get("end_lose"):
         UNIVERSE_GAME_OVER = True
         universe_info_card(DATA.get("citation", "The frontier is lost."), title="DEFEAT")
         signal_emit("universe_defeat", DATA)

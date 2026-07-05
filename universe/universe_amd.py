@@ -4,30 +4,20 @@ A universe AMD fence is authored as `Label: value` fact lines instead of YAML
 (keep the `---` fence, drop the YAML). This module turns one fence block into the
 internal data dict the rest of the universe code already reads.
 
-The generic parsing + value coercion now lives in the library
-(`sbs_utils.procedural.amd`); this file keeps only the Open Universe's VOCABULARY:
-the domain coercers (trigger verbs, rewards, reputation) and the label->key
-interpretation chain, wired in as an `amd_parse_facts` handler. `universe_amd_data`
-is still the public entry point (referenced as `data_parser=universe_amd_data`).
+Generic parsing + value coercion lives in `sbs_utils.procedural.amd`, and the
+generic QUEST vocabulary (Goal/When/Then/Pays/Scope/State/Win/Lose/Tier/Display and
+the trigger verbs) now lives in `sbs_utils.procedural.amd_quest` - shared with any
+mission (e.g. the LM siege map), so universe AMD is a strict SUPERSET of that
+subset. This file keeps only the Open Universe's OWN vocabulary (clans, generation,
+worldlets, admiralty, reputation) and composes the shared quest handler underneath
+it. `universe_amd_data` is still the public entry (`data_parser=universe_amd_data`).
 """
 from sbs_utils.procedural.amd import (
     amd_parse_facts, amd_norm, amd_num, amd_pct, amd_list,
     amd_weighted, amd_makeup, amd_coords)
+from sbs_utils.procedural.amd_quest import amd_quest_facts, amd_reward
 
 _ROLE_ALIASES = {"derelict": "universe_derelict", "derelicts": "universe_derelict"}
-# verb -> (trigger key, target field): a role (npc), a key (item), or a sector.
-_TRIGGER_VERBS = {
-    "destroy": ("on_kill", "role"),   "kill": ("on_kill", "role"),
-    "recover": ("on_collect", "key"), "collect": ("on_collect", "key"),
-    "gather": ("on_collect", "key"),
-    "scan": ("on_scan", "role"),      "survey": ("on_scan", "role"),
-    "dock": ("on_dock", "role"),
-    "reach": ("on_reach", "sector"),  "travel": ("on_reach", "sector"),
-    # Generic named trigger (LM quest_driver.quest_on_signal escape hatch): a quest
-    # completes when signal_emit("quest_signal", {"SIGNAL_NAME": <name>}) fires. Lets
-    # authors hook war-state / mission milestones - e.g. `When: signal eliminated_orion`.
-    "signal": ("on_signal", "name"),
-}
 
 # Generation knobs (the `generation:` block): friendly label -> internal key.
 _GEN_PCT = {
@@ -36,56 +26,9 @@ _GEN_PCT = {
     "outpost chance": "outpost", "mine chance": "mines",
 }
 
-
-def _f_trigger(s):
-    """'destroy 4 raiders' -> ('on_kill', {role: raider, count: 4}); 'reach 6, 4' ->
-    ('on_reach', {sector: [6,4]}); 'recover 3 provisions' -> ('on_collect', {key:
-    provisions, count: 3}). None if the leading word isn't a known verb."""
-    toks = str(s).split()
-    if not toks:
-        return None
-    spec = _TRIGGER_VERBS.get(toks[0].lower())
-    if spec is None:
-        return None
-    trig, kind = spec
-    rest = toks[1:]
-    count = None
-    if rest and rest[0].isdigit():
-        count = int(rest[0])
-        rest = rest[1:]
-    target = " ".join(rest).strip()
-    data = {}
-    if kind == "sector":
-        data["sector"] = amd_coords(target)
-    elif kind == "name":
-        # A single-token signal name (matched exactly by quest_on_signal); lowercase
-        # + underscores so `signal Eliminated Orion` and `signal eliminated_orion` agree.
-        if target:
-            data["name"] = target.strip().lower().replace(" ", "_")
-        if count is not None:
-            data["count"] = count
-    elif kind == "key":
-        if target:
-            data["key"] = amd_norm(target)
-        if count is not None:
-            data["count"] = count
-    else:  # role
-        role = _ROLE_ALIASES.get(target.lower())
-        if role is None:
-            role = target.lower()
-            if role.endswith("s"):
-                role = role[:-1]
-        data["role"] = role
-        data["count"] = count if count is not None else 1
-    return trig, data
-
-
-def _f_reward(s):
-    """'300 credits' -> {credits: 300}."""
-    for t in str(s).split():
-        if t.isdigit():
-            return {"credits": int(t)}
-    return {"credits": 0}
+# The shared quest vocabulary (Goal/When/Then/Pays/Scope/State/Win/Lose/Tier/Display),
+# bound with the universe's role aliases. Tried first in _ou_facts.
+_quest_facts = amd_quest_facts(_ROLE_ALIASES)
 
 
 def _f_rep(s):
@@ -100,9 +43,12 @@ def _f_rep(s):
 
 
 def _ou_facts(data, label, value):
-    """The Open Universe's label->key interpretation, as an amd_parse_facts
-    handler. Returns True when a label is consumed; returns None for unknown
-    labels so amd_parse_facts applies its default (amd_num)."""
+    """The Open Universe's label->key interpretation, as an amd_parse_facts handler.
+    The shared quest vocabulary is tried first; this adds the universe's own labels
+    (clans, generation, worldlets, admiralty, reputation). Returns True when a label
+    is consumed; None for unknown labels so amd_parse_facts applies its default."""
+    if _quest_facts(data, label, value):
+        return True
     if label == "color":
         data["color"] = value
     elif label == "archetype":
@@ -121,8 +67,6 @@ def _ou_facts(data, label, value):
         data["at"] = amd_coords(value)
     elif label == "sabotage":
         data["sabotage"] = amd_list(value)
-    elif label in ("win", "lose"):
-        data[label] = str(value).strip().lower() in ("true", "yes", "1", "")
     elif label in _GEN_PCT:
         data.setdefault("generation", {})[_GEN_PCT[label]] = amd_pct(value)
     elif label == "loot max":
@@ -153,7 +97,7 @@ def _ou_facts(data, label, value):
     elif label == "fleet gas burn":
         data.setdefault("admiralty", {})["fleet_gas_burn"] = amd_num(value)
     elif label == "requisition budget":
-        data.setdefault("admiralty", {})["requisition_budget"] = _f_reward(value)["credits"]
+        data.setdefault("admiralty", {})["requisition_budget"] = amd_reward(value)["credits"]
     elif label == "skirmish pressure":
         data.setdefault("admiralty", {})["skirmish_pressure"] = value
     elif label in ("skirmish interval", "mia timer"):
@@ -174,30 +118,8 @@ def _ou_facts(data, label, value):
         data["quest_pool"] = amd_list(value)
     elif label == "flies":
         data["makeup"] = amd_makeup(value)
-    elif label == "display":
-        data["display"] = value
     elif label in ("file", "files"):
         data.setdefault("file", []).extend(amd_list(value))
-    elif label == "tier":
-        data["tier"] = amd_num(value)
-    elif label in ("scope", "state"):
-        data[label] = value
-    elif label in ("goal", "when"):
-        trig = _f_trigger(value)
-        if trig is not None:
-            data[trig[0]] = trig[1]
-        if label == "goal":
-            data["objective"] = value[:1].upper() + value[1:]
-        elif label == "when" and trig is None:
-            data["when"] = value
-    elif label == "then":
-        toks = value.split()
-        if len(toks) >= 2 and toks[0].lower() in ("reveal", "signal"):
-            data[toks[0].lower()] = toks[1]
-        else:
-            data["reveal"] = value
-    elif label == "pays":
-        data["reward"] = _f_reward(value)
     elif label == "earns":
         data["rep"] = _f_rep(value)
     elif label == "axis":
@@ -227,6 +149,7 @@ def _ou_facts(data, label, value):
 
 def universe_amd_data(text):
     """Parse one friendly fact-sheet fence block into the internal data dict the
-    universe code reads. (Generic parsing/coercion lives in sbs_utils.procedural.amd;
-    this supplies the Open Universe vocabulary.)"""
+    universe code reads. Generic parsing/coercion lives in sbs_utils.procedural.amd;
+    the shared quest vocabulary in sbs_utils.procedural.amd_quest; this supplies the
+    Open Universe's own labels."""
     return amd_parse_facts(text, _ou_facts)

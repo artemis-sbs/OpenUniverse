@@ -316,13 +316,16 @@ check("active change-key carries the live sim clock", _k1.endswith("|" + str(int
 
 # --- Phase 3c: the AMD `signal` verb (conquest-as-quest via on_signal) -----------
 print("\nAMD signal verb (on_signal):")
-_f_trigger = NS["_f_trigger"]
+# The trigger verbs moved to the shared library (sbs_utils.procedural.amd_quest);
+# universe passes its own role aliases (derelict -> universe_derelict).
+from sbs_utils.procedural.amd_quest import amd_trigger
+_aliases = NS["_ROLE_ALIASES"]
 check("`signal eliminated_orion` -> on_signal {name}",
-      _f_trigger("signal eliminated_orion") == ("on_signal", {"name": "eliminated_orion"}))
+      amd_trigger("signal eliminated_orion") == ("on_signal", {"name": "eliminated_orion"}))
 check("`signal Eliminated Orion` normalizes case+spaces",
-      _f_trigger("signal Eliminated Orion") == ("on_signal", {"name": "eliminated_orion"}))
+      amd_trigger("signal Eliminated Orion") == ("on_signal", {"name": "eliminated_orion"}))
 check("existing `scan 1 derelict` still aliases to universe_derelict",
-      _f_trigger("scan 1 derelict") == ("on_scan", {"role": "universe_derelict", "count": 1}))
+      amd_trigger("scan 1 derelict", _aliases) == ("on_scan", {"role": "universe_derelict", "count": 1}))
 
 print("\n" + ("ALL PASS" if not fails else f"{len(fails)} FAILED: {fails}"))
 sys.exit(1 if fails else 0)
