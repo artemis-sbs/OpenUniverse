@@ -1139,15 +1139,19 @@ GameCode:
 # them. The base universe still regenerates from the seed; only these deltas
 # are stored (see universe_save in universe_helpers.py).
 #
-//damage/destroy if UNIVERSE_ACTIVE and has_role(DESTROYED_ID, "station") and not has_role(DESTROYED_ID, "outpost")
+//damage/killed if UNIVERSE_ACTIVE and has_role(DAMAGE_SELECTED_ID, "station") and not has_role(DAMAGE_SELECTED_ID, "outpost")
+    # KILLED (not DESTROY): the station is still registered here, so its cell and
+    # side read correctly. DESTROY is a lifetime-removal event (fires for script
+    # deletes too, victim can already be gone), wrong for combat accounting. The
+    # victim on the killed route is DAMAGE_SELECTED_ID.
     # Key the "station destroyed" delta to the STATION'S cell (from its position),
     # not the shared global - the station could be in a split-off player's system.
-    dstr_cell = object_cell(DESTROYED_ID)
+    dstr_cell = object_cell(DAMAGE_SELECTED_ID)
     universe_sectors = universe_set_system_flag(universe_sectors, dstr_cell[0], dstr_cell[1], "station_destroyed")
     universe_save(universe_seed, dstr_cell[0], dstr_cell[1], universe_sectors)
     # The rescue raid: bringing down a captor clan's station frees every
     # Admiralty officer it holds (the other way out of a ransom).
-    for _freed_key in officers_captured_by(get_side(DESTROYED_ID)):
+    for _freed_key in officers_captured_by(get_side(DAMAGE_SELECTED_ID)):
         officer_release(universe_primary_side(), _freed_key)
         officer_card(_freed_key, "Found my own way out when the walls came down. Nice shooting.")
     universe_save_players()
