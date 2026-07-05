@@ -103,6 +103,6 @@ def universe_system_deck(key, kind, owner, archetype=None, foe=False, difficulty
         x, y, z = _ring_pos(r, 15000, 38000)
         pois.append(MastDataObject({
             "type": "worldlet", "worldlet_type": wkey,
-            "radius": r.uniform(300, 600), "x": x, "y": 0.0, "z": z}))
+            "radius": r.uniform(1600, 2400), "x": x, "y": 0.0, "z": z}))
 
     return pois

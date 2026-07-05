@@ -228,13 +228,17 @@ def universe_worldlet_spawn(type_key, x, y, z, radius=None):
     if wt is None:
         return None
     co = terrain_spawn(x, y, z, wt.get("name"), "#,worldlet", "planet", "behav_planet")
-    r = float(radius if radius is not None else 400)
+    r = float(radius if radius is not None else 2000)
     co.engine_object.exclusion_radius = r
     ds = co.data_set
     sim = FrameContext.sim
     if sim is not None:
         ds.set("planet_last_changed", sim.time_tick_counter, 0)
-    ds.set("planet_radius", r / 2.0, 0)
+    # planet_radius IS the 3D-view size. Use the full worldlet radius (not r/2 like
+    # LM's decorative prefab_planetoid) so the body reads at a distance - a worldlet
+    # is the whole point of the Admiral's map. r is ~2000 (see universe_systems.py),
+    # matching exclusion_radius above and clearing the platform offset (r + 900).
+    ds.set("planet_radius", r, 0)
     # A worldlet is the whole point of the Admiral's map, so make it read from a
     # distance on the 2D command view: a larger icon + a warm radar tint. (These are
     # 2D-view knobs; the 3D planet keeps its palette above. Tune icon_scale to taste -

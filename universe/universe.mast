@@ -1112,7 +1112,7 @@ GameCode:
             terrain_spawn(lmpos[0], lmpos[1], lmpos[2], lm.name, "wreck, universe_derelict, landmark", universe_landmark_art(lm), "behav_wreck")
         elif lm.kind == "worldlet":
             # A hand-placed worldlet (Type: names the ## Worldlets entry).
-            universe_worldlet_spawn(lm.wtype, lmpos[0], 0.0, lmpos[2], 500)
+            universe_worldlet_spawn(lm.wtype, lmpos[0], 0.0, lmpos[2], 2000)
         else:
             npc_spawn(lmpos[0], lmpos[1], lmpos[2], lm.name, lm.side + ", station, landmark", universe_landmark_art(lm), "behav_station")
 
