@@ -39,6 +39,7 @@ from sbs_utils.procedural.space_objects import (closest_object, target, target_p
 from sbs_utils.procedural.gui import gui_row, gui_text
 from sbs_utils.procedural.comms import comms_info_card
 from sbs_utils.procedural.lifeform import lifeform_spawn, lifeform_transfer, lifeform_set_path
+from sbs_utils.procedural.standby import standby_cull_clear
 from sbs_utils.vec import Vec3
 
 # The commissionable hull roster (data - difficulty/length tuning later).
@@ -689,6 +690,13 @@ def fleet_tick(fleet_key, dt_seconds, veiled=False):
     okey = f.get("officer")
     ships = fleet_ships(fleet_key)
     if len(ships) == 0:
+        # Release the fleet's cell occupancy (a DEPLOYED fleet held its post live);
+        # despawn the cell if the fleet was its last occupant. Undeployed fleets never
+        # registered, so universe_cell_leave is a harmless no-op there.
+        fcell = f.get("cell", None)
+        if fcell is not None and universe_cell_leave(int(fcell[0]), int(fcell[1]), fleet_occ_id(fleet_key)):
+            standby_cull_clear()
+            universe_clear_cell(int(fcell[0]), int(fcell[1]))
         del _FLEETS[fleet_key]
         _fleets_sync(side)
         # The officer ejects where the fleet died: MIA, pod beacon live -
