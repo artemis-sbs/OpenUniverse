@@ -79,6 +79,13 @@ ECONOMY_PACE = {
     "epic":     {"yield": 1.0, "reserve": 5.0, "storage": 3.0, "start": 1.5},
 }
 
+# TEMP PLAYTEST KNOB: a blanket multiplier on every economy-pace dial (yield / start
+# pool / reserve / storage), applied in economy_pace_mult AFTER the pace lookup - so
+# it speeds the loop unconditionally, even if the Mode->brisk wiring isn't taking.
+# Purpose is OBSERVABILITY (make the build/fleet/expand loop fast enough to watch and
+# verify it works), not final balance. Set to 1 to disable; remove once tuned.
+_PLAYTEST_SPEED = 8.0
+
 # Per-minute resource upkeep of a FULL (100%) subsidy - the actual drain scales
 # with the active rate, so a 30% subsidy costs 30% of this each minute. This is
 # the anti-snowball rail: the upkeep competes with fleets/builds/research.
@@ -184,7 +191,9 @@ def economy_pace_mult(dim):
     (extraction, reserve spawn, pool cap, seed) so it scales the authored base."""
     preset = ECONOMY_PACE.get(str(admiralty_tuning("economy_pace", "standard")).strip().lower(),
                               ECONOMY_PACE["standard"])
-    return float(preset.get(dim, 1.0))
+    # _PLAYTEST_SPEED is a TEMP blanket accelerator (see its definition) - multiplied
+    # in after the pace lookup so it applies regardless of the Mode->pace wiring.
+    return float(preset.get(dim, 1.0)) * _PLAYTEST_SPEED
 
 
 def mission_mode():
@@ -837,15 +846,31 @@ def admiralty_command_points(side):
     return base + relays * SENSOR_COMMAND_POINTS
 
 
-def admiralty_build_record(kind, worldlet_id):
+def admiralty_build_record(kind, worldlet_id, side=None):
     """A build-queue entry the overseer can read cleanly: name + where + eta (sim
     seconds at completion). Replaces the old bare 'Name at Where' string so the queue
-    can show per-build progress with several builds running at once."""
+    can show per-build progress with several builds running at once. kind/side/
+    worldlet_id + the `cancel` flag let the console cancel a queued build: the build
+    task polls `cancel` and refunds via admiralty_build_cancel."""
     pdef = ADM_PLATFORMS.get(kind) or {}
     wobj = to_object(worldlet_id)
     where = str(wobj.name) if (wobj is not None and wobj.name) else "the works"
     return MastDataObject({"name": pdef.get("name", kind), "where": where,
-                           "eta": FrameContext.sim_seconds + float(pdef.get("build_time", 0))})
+                           "eta": FrameContext.sim_seconds + float(pdef.get("build_time", 0)),
+                           "kind": kind, "side": side, "worldlet_id": worldlet_id,
+                           "cancel": False})
+
+
+def admiralty_build_cancel(kind, side, worldlet_id):
+    """Undo a cancelled build: refund its full cost to the side pools and clear the
+    worldlet's in-progress flag so the platform can be rebuilt. The build task itself
+    removes the queue record and stops; this just reverses the spend + reservation."""
+    pdef = ADM_PLATFORMS.get(kind) or {}
+    for res, amt in (pdef.get("cost") or {}).items():
+        admiralty_pool_add(side, res, int(amt))
+    wobj = to_object(worldlet_id)
+    if wobj is not None:
+        wobj.set_inventory_value("building_" + kind, False)
 
 
 def admiralty_build_queue_text(builds, now):
@@ -889,6 +914,63 @@ def admiralty_status_line(builds, last_msg):
     if last_msg:
         return last_msg
     return "Shipyards standing by - select a worldlet or platform to command."
+
+
+def admiralty_build_queue_area(builds, last_msg):
+    """Multi-line queue readout for a gui_text_area: ONE build per line (a scrollable
+    list instead of one cramped string), so the overseer sees everything in flight.
+    Active builds take priority; otherwise the same idle / last-action text as
+    admiralty_status_line. Reads FrameContext.sim_seconds for the live countdown."""
+    now = FrameContext.sim_seconds
+    if builds:
+        lines = ["$t Build Queue (" + str(len(builds)) + ")", ""]
+        for b in builds:
+            if isinstance(b, str):
+                lines.append("- " + b)
+                continue
+            rem = int(max(0, float(b.get("eta", now)) - now))
+            lines.append("- " + b.get("name", "?") + " - " + b.get("where", "?") + " (" + str(rem) + "s)")
+        return "\n".join(lines)
+    if not to_object_list(role("admiral_extractor")):
+        return "No extractors yet - build an Extractor on a worldlet to produce ore and gas."
+    if last_msg:
+        return str(last_msg)
+    return "Shipyards standing by - select a worldlet or platform to command."
+
+
+# --- Selectable build-queue listbox (cancel a queued build) --------------------
+def admiralty_build_title():
+    gui_row("row-height: 1.2em; padding:6px; background:#1578;")
+    gui_text("$text:Build Queue")
+
+
+def admiralty_build_row(item):
+    """One queue row: name - worldlet. No live countdown - updating it would force a
+    listbox repaint each tick, which made the list un-clickable. Tolerates legacy
+    string entries (research runs), which aren't cancellable here."""
+    gui_row("row-height: 1.8em;")
+    if isinstance(item, str):
+        gui_text("$text:" + item + ";font:gui-1")
+        return
+    gui_text("$text:" + item.get("name", "?") + " - " + item.get("where", "?") + ";font:gui-1")
+
+
+def admiralty_build_count_key(builds, last_msg):
+    """Repaint key for the selectable queue listbox: changes ONLY when a build is
+    added or removed (or the last-action message changes) - never on a timer, so the
+    list stays clickable. (A periodic countdown repaint rebuilt the list mid-click and
+    made it unusable.)"""
+    return str(len(builds)) + "|" + str(last_msg)
+
+
+def admiralty_status_hint(builds, last_msg):
+    """The action/idle line ABOVE the queue list (the list itself shows active
+    builds). Last action result, else the no-extractor nudge, else an idle prompt."""
+    if not to_object_list(role("admiral_extractor")):
+        return "No extractors yet - build an Extractor on a worldlet to produce ore and gas."
+    if last_msg:
+        return str(last_msg)
+    return "Select a worldlet or platform to command."
 
 
 def admiralty_scan_theatre(side):
@@ -944,6 +1026,50 @@ def admiralty_ticker_text(side):
     for res in ADM_RESOURCES:
         parts.append(res.upper() + " " + str(p[res]) + "/" + str(admiralty_pool_cap(side, res)))
     return "   ".join(parts) + "   CMD " + str(fleet_count()) + "/" + str(cmd_max)
+
+
+def admiralty_debug_pace_text(side):
+    """TEMP DIAGNOSTIC (remove after verifying): the mode + economy pace actually in
+    effect at runtime, with the yield/start multipliers. Brisk should read
+    '[skirmish/brisk y2.0 s1.5]'; a fallback to '[.../standard y1.0 s1.0]' means the
+    Mode->brisk wiring didn't take, which doubles every economy timer."""
+    pace = str(admiralty_tuning("economy_pace", "standard"))
+    return ("[" + mission_mode() + "/" + pace
+            + " y" + str(economy_pace_mult("yield"))
+            + " s" + str(economy_pace_mult("start")) + "]")
+
+
+def admiralty_platform_status_text(obj):
+    """A one-line status readout for a platform, shown when the Admiral hails it.
+    Every platform answers a hail (no dead clicks); passive infrastructure has no
+    action menu, so this IS its interaction. Kind-specific detail where it helps."""
+    if obj is None:
+        return "Platform not found."
+    kind = obj.get_inventory_value("admiral_kind", None) or "platform"
+    pdef = ADM_PLATFORMS.get(kind) or {}
+    name = pdef.get("name", kind)
+    wid = obj.get_inventory_value("worldlet_id", None)
+    wobj = to_object(wid) if wid is not None else None
+    wname = wobj.name if (wobj is not None and wobj.name) else "the worldlet"
+    if kind == "extractor" and wobj is not None:
+        yields = wobj.get_inventory_value("worldlet_yields", {}) or {}
+        reserve = wobj.get_inventory_value("worldlet_reserve", None)
+        ytxt = ", ".join(str(v) + "/min " + k for k, v in yields.items()) or "nothing"
+        rtxt = "unlimited" if reserve is None else str(int(reserve))
+        return name + " online. Mining " + wname + " (" + ytxt + "). Reserve: " + rtxt + "."
+    if kind == "refinery":
+        return name + " online at " + wname + ". Boosting extraction and adding storage."
+    if kind == "academy":
+        return name + " online. Training the officer roster for the shipyard."
+    if kind == "bastion":
+        return name + " standing watch over " + wname + ". Raids strike here first."
+    if kind == "depot":
+        return name + " online. Fleets in range resupply and burn no gas."
+    if kind == "sensor":
+        return name + " online. Sensor coverage extended; command-point cap raised."
+    if kind == "relay":
+        return name + " online. Relaying this system's income while the flag is away."
+    return name + " online and operational."
 
 
 def worldlet_list_title():
@@ -1029,4 +1155,13 @@ def universe_platform_spawn(kind, side, worldlet_obj):
     if kind == "hq" and len(to_object_list(role("admiral_home_hq") & role(side))) == 0:
         add_role(py, "admiral_home_hq")
         add_role(py, side + "_capital")
+    # Mark the finished platform known to its OWN side immediately, so the Admiral
+    # console can open comms on it right away instead of waiting up to a full econ
+    # tick for the next admiralty_scan_theatre pass (the engine won't open comms on
+    # an object the side holds no science data for). Origin = any sided object of the
+    # side (the HQ that gated this build always qualifies).
+    for _sorg in to_object_list(role(side)):
+        if getattr(_sorg, "side", None) is not None:
+            science_set_scan_data(_sorg, co.id, "Admiralty Scan")
+            break
     return py

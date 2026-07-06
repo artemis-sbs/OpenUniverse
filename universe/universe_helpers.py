@@ -604,7 +604,7 @@ def universe_quest_target_sectors():
 # Named landmarks now come from clans (clans.amd home systems), layered onto the
 # galaxy map by universe.mast. The procedural kind below is clan-agnostic; clan
 # ownership/naming is applied on top (see universe_clans.universe_system_clan).
-_KIND_ABBR = {"home": "Home", "station": "Base", "enemy": "Foe",
+_KIND_ABBR = {"home": "Home", "station": "Base", "enemy": "Threat",
               "nebula": "Neb", "anomaly": "!!", "empty": "."}
 
 

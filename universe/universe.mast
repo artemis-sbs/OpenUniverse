@@ -916,8 +916,17 @@ GameCode:
     gui_section(style="area: 58, 68, 96, 90;")
     gui_row("row-height: 2.2em;")
     go_btn = gui_button("$text:Jump Here;justify:center;", style="background:#0a6;")
+    # Route by the client's CURRENT ship, not a persistent flag. The Admiral rides a
+    # detached cambot (role admiral_cam) -> the camera self-jump; a player on their own
+    # ship -> the player jump. (Keying off a client-inventory flag broke this:
+    # ADMIRAL_CAM lingers on a client that later drives a player ship, so its nav jump
+    # wrongly took the admiral path.)
     on gui_message(go_btn):
-        task_schedule(universe_jump_to, {"ti": SEL_I, "tj": SEL_J, "warp_ship": sbs.get_ship_of_client(client_id)})
+        nav_ship = sbs.get_ship_of_client(client_id)
+        if has_role(nav_ship, "admiral_cam"):
+            task_schedule(universe_admiral_jump, {"ti": SEL_I, "tj": SEL_J, "cam_id": nav_ship, "jump_client": client_id})
+        else:
+            task_schedule(universe_jump_to, {"ti": SEL_I, "tj": SEL_J, "warp_ship": nav_ship})
     gui_row("row-height: 2.2em;")
     center_btn = gui_button("$text:Center on Selected;justify:center;")
     on gui_message(center_btn):
@@ -1079,6 +1088,19 @@ GameCode:
             if universe_mystery_available(p.id, ei, ej):
                 universe_grant_mystery(p.id, universe_seed, ei, ej)
         universe_save_players()
+    elif kind == "empty":
+        # An empty-kind cell hits none of the branches above, its POI deck can roll
+        # to nothing, and Terrain: none zeroes the field - so the system can
+        # materialize with literally zero objects. Drop one "unknown" terrain marker
+        # so the cell always holds at least one object: guards against any engine
+        # trouble with a totally void world, and gives science a contact to scan.
+        # long_description is the scan readout (empty system); the player learns it's
+        # empty by scanning the contact.
+        random.seed(key + 13)
+        mpos = Vec3.rand_in_sphere(4000, 9000, False, True)
+        marker = terrain_spawn(mpos.x + co.x, co.y, mpos.z + co.z, "Unknown Contact", "universe_empty_marker", "unknown", "behav_asteroid")
+        marker.data_set.set("name_tag", "Unknown Contact")
+        marker.data_set.set("long_description", "Empty system. Scan detects no stations, vessels, or significant terrain.")
 
     # Richer systems: a keyed POI deck layered on the template core above
     # (universe_systems.py). Deterministic per system; loot/derelicts feed

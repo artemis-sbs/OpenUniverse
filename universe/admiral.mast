@@ -133,9 +133,21 @@ default shared ADM_LAST_MSG = ""
     # A rich queue record (name + worldlet + eta) so the overseer can show what's
     # building where and roughly how close, with several builds at once. Removed by
     # identity when this build finishes.
-    build_rec = admiralty_build_record(build_kind, build_worldlet_id)
+    build_rec = admiralty_build_record(build_kind, build_worldlet_id, build_side)
     ADM_BUILDS.append(build_rec)
-    await delay_sim(pdef.get("build_time"))
+    # Poll in 1s steps (instead of one delay_sim) so the overseer can CANCEL a queued
+    # build: the console sets build_rec.cancel, we refund + free the worldlet and stop.
+    build_left = pdef.get("build_time")
+--- build_wait
+    await delay_sim(1)
+    if build_rec.get("cancel", False):
+        ADM_BUILDS.remove(build_rec)
+        admiralty_build_cancel(build_kind, build_side, build_worldlet_id)
+        ADM_LAST_MSG = pdef.get("name") + " build cancelled - resources refunded."
+        comms_navigate_override(role("admiral_cam") & role(build_side), build_worldlet_id)
+        ->END
+    build_left = build_left - 1
+    jump build_wait if build_left > 0
     ADM_BUILDS.remove(build_rec)
     built_plat = admiralty_build_done(build_kind, build_side, build_worldlet_id)
     # Completion lands on the overseer status line (the platform also appears on the
@@ -226,7 +238,10 @@ default shared ADM_LAST_MSG = ""
     # cell origin: the side's own HQ if it has built one, else the nearest worldlet in
     # this cell (the first thing you build an Extractor on, and easy to lose on the map
     # otherwise), else the cell origin. Saves a long pan hunting for the economy.
-    adm_focus_hq = to_object_list(role("admiral_hq") & role(adm_cam.side))
+    # SCOPE the HQ focus to THIS cell: role("admiral_hq") spans every live virtual
+    # system, so opening the console while the cambot sits in a system other than the
+    # HQ's would otherwise focus the wrong slot. (worldlets_in_cell is already scoped.)
+    adm_focus_hq = objects_in_cell(to_object_list(role("admiral_hq") & role(adm_cam.side)), adm_cell[0], adm_cell[1])
     adm_focus_wl = worldlets_in_cell(adm_cell[0], adm_cell[1])
     if len(adm_focus_hq) > 0:
         adm_cam.pos = Vec3(adm_focus_hq[0].pos.x, 1000, adm_focus_hq[0].pos.z)
@@ -248,17 +263,25 @@ default shared ADM_LAST_MSG = ""
     # Galaxy tab here; its click is handled by //gui/tab/galaxy. gui_tab_back sets
     # the framework-provided back tab to this console, so the galaxy view returns.
     #CONSOLE_SELECT = "admiral"
+    # Repaint entry point: the selectable build-queue listbox can't update in place,
+    # so a queue change (or the ~2s countdown tick) jumps here to rebuild the visual
+    # layout. The one-time setup above (cell enter, cam, gui_activate_console) is NOT
+    # re-run - task vars (adm_side, adm_cam...) persist across the jump.
+--- repaint
     gui_tab_enable("galaxy")
     gui_tab_back(CONSOLE_SELECT)
     gui_section(style="area: 2, 2, 98, 8; background:#1578;")
     # Live resource ticker: a plain text label is built once and goes stale, so use
     # a handle + on-change (the pools shift on the economy tick - watch the string
     # and repaint when it changes).
-    adm_ticker_w = gui_text("$text:" + admiralty_ticker_text(adm_side) + ";justify:center;font:gui-4")
+    # TEMP DIAGNOSTIC: the "  [mode/pace ...]" tag reports the economy pace actually
+    # live at runtime (verifying the Skirmish Mode->brisk wiring). Remove the
+    # admiralty_debug_pace_text() appends once confirmed.
+    adm_ticker_w = gui_text("$text:" + admiralty_ticker_text(adm_side) + "  " + admiralty_debug_pace_text(adm_side) + ";justify:center;font:gui-4")
     on change admiralty_ticker_text(adm_side):
         # .update() replaces the whole style, so carry the format props too (else
         # the text reverts to unstyled/left-aligned).
-        adm_ticker_w.update("text:" + admiralty_ticker_text(adm_side) + ";justify:center;font:gui-4")
+        adm_ticker_w.update("text:" + admiralty_ticker_text(adm_side) + "  " + admiralty_debug_pace_text(adm_side) + ";justify:center;font:gui-4")
     # Left: zoom + the system 2D view (click an object to command it).
     gui_section(style="area: 0, 9, 72, 100;")
     gui_row("row-height: 34px;")
@@ -277,10 +300,25 @@ default shared ADM_LAST_MSG = ""
     # ADM_LAST_MSG, both shared). The change key ticks each SECOND while builds are
     # queued so the per-build countdown updates live; otherwise it only repaints on a
     # build starting/finishing or a new message (no idle repaints).
-    gui_section(style="area: 72, 67, 100, 100; background:#0234;")
-    adm_bwidget = gui_text("$text:" + admiralty_status_line(ADM_BUILDS, ADM_LAST_MSG) + ";justify:center;font:gui-2;color:#8cf")
-    on change admiralty_status_change_key(ADM_BUILDS, ADM_LAST_MSG):
-        adm_bwidget.update("text:" + admiralty_status_line(ADM_BUILDS, ADM_LAST_MSG) + ";justify:center;font:gui-2;color:#8cf")
+    # Build queue: a SELECTABLE list - pick a build and Cancel it (refunds the cost,
+    # frees the worldlet). Builds run in PARALLEL (each its own task), so there's no
+    # order to reprioritize. A status hint sits above; the list repaints on queue
+    # add/remove and ~every 2s while building (admiralty_build_count_key -> repaint).
+    gui_section(style="area: 72, 67, 100, 73; background:#0234;")
+    adm_hint_w = gui_text("$text:" + admiralty_status_hint(ADM_BUILDS, ADM_LAST_MSG) + ";justify:center;font:gui-1;color:#8cf")
+    on change ADM_LAST_MSG:
+        adm_hint_w.update("text:" + admiralty_status_hint(ADM_BUILDS, ADM_LAST_MSG) + ";justify:center;font:gui-1;color:#8cf")
+    gui_section(style="area: 72, 73, 100, 93;")
+    adm_qbox = gui_list_box(ADM_BUILDS, "row-height: 1.8em;", item_template=admiralty_build_row, title_template=admiralty_build_title, select=True)
+    on change admiralty_build_count_key(ADM_BUILDS, ADM_LAST_MSG):
+        gui_task_jump("repaint")
+    gui_section(style="area: 72, 93, 100, 100;")
+    adm_cancel_btn = gui_button("$text:Cancel selected build;font:gui-1;justify:center;")
+    on gui_message(adm_cancel_btn):
+        adm_qsel = adm_qbox.get_value()
+        if adm_qsel is not None and not isinstance(adm_qsel, str):
+            adm_qsel.cancel = True
+            ADM_LAST_MSG = "Cancelling " + adm_qsel.get("name", "build") + "..."
     # Comms won't open on an object the side holds no science data for. Scan the
     # Admiral's theatre once now so THIS console's first click works; the economy
     # tick keeps it fresh side-wide thereafter (admiralty_scan_theatre is one pass
@@ -309,11 +347,23 @@ default shared ADM_LAST_MSG = ""
     default ti = universe_i
     default tj = universe_j
     default cam_id = 0
+    default jump_client = 0
     ->END if cam_id == 0
     cam = to_object(cam_id)
     ->END if cam is None
     asrc = ship_cell(cam_id)
     ->END if ti == asrc[0] and tj == asrc[1]
+
+    # Hyperspace screen on for the overseer's OWN console (jump_client - the client
+    # that pressed Jump). A detached cambot has no `linked_to consoles`, so target the
+    # client id directly. Doubles as a load-level screen while the dest cell spawns.
+    # The cambot art is invisible (no ship in the warp screen), so use a real hull.
+    ahull = "tsn_light_cruiser"
+    if jump_client != 0:
+        sbs.super_hyper_warp_mode(jump_client, ahull, 1)
+
+    await delay_sim(2)
+
     if universe_cell_enter(ti, tj, cam_id):
         await task_schedule(universe_enter_system, {"ei": ti, "ej": tj})
     if universe_cell_leave(asrc[0], asrc[1], cam_id):
@@ -321,9 +371,30 @@ default shared ADM_LAST_MSG = ""
         universe_clear_cell(asrc[0], asrc[1])
     ship_set_cell(cam_id, ti, tj)
     aco = universe_cell_origin(ti, tj)
-    cam.pos = Vec3(aco.x, 1000.0, aco.z)
+    # Arrive looking at the destination system's own content, not empty space at the
+    # slot origin. SCOPE both queries to THIS cell: role(...) spans every live virtual
+    # system, so an out-of-system HQ (e.g. home) would otherwise pull the cambot to
+    # the wrong world-slot. worldlets_in_cell is already cell-scoped; wrap the HQ set
+    # in objects_in_cell so only an HQ actually in (ti, tj) can grab focus.
+    dest_hq = objects_in_cell(to_object_list(role("admiral_hq") & role(cam.side)), ti, tj)
+    dest_wl = worldlets_in_cell(ti, tj)
+    if len(dest_hq) > 0:
+        cam.pos = Vec3(dest_hq[0].pos.x, 1000.0, dest_hq[0].pos.z)
+    elif len(dest_wl) > 0:
+        cam.pos = Vec3(dest_wl[0].pos.x, 1000.0, dest_wl[0].pos.z)
+    else:
+        cam.pos = Vec3(aco.x, 1000.0, aco.z)
     universe_i = ti
     universe_j = tj
+    # Persist like the player jump: the destination cell's sectors delta + overseer/
+    # player state, so a reloaded or revisited game keeps the overseer where it jumped.
+    universe_save(universe_seed, ti, tj, universe_sectors)
+    universe_save_players()
+
+    await delay_sim(1)
+    # Hyperspace screen off (same console).
+    if jump_client != 0:
+        sbs.super_hyper_warp_mode(jump_client, "", 0)
     ->END
 
 
@@ -497,6 +568,25 @@ default shared ADM_LAST_MSG = ""
     else:
         ADM_LAST_MSG = fail
     universe_info_card(ADM_LAST_MSG, "Admiralty R&D", "#0cf")
+    ->END
+
+
+# Every OTHER platform (passive infrastructure - extractor, refinery, academy,
+# bastion, depot, sensor, relay) answers a hail with its status, so no platform is a
+# dead click. HQ/Shipyard/Lab already have their own action menus above, so they're
+# excluded here.
+//enable/comms if has_roles(COMMS_ORIGIN_ID, "admiral") and has_roles(COMMS_SELECTED_ID, "admiral_platform") and not has_roles(COMMS_SELECTED_ID, "admiral_hq") and not has_roles(COMMS_SELECTED_ID, "admiral_shipyard") and not has_roles(COMMS_SELECTED_ID, "admiral_lab")
+
+
+//comms if has_roles(COMMS_ORIGIN_ID, "admiral") and has_roles(COMMS_SELECTED_ID, "admiral_platform") and not has_roles(COMMS_SELECTED_ID, "admiral_hq") and not has_roles(COMMS_SELECTED_ID, "admiral_shipyard") and not has_roles(COMMS_SELECTED_ID, "admiral_lab")
+    + "Hail for status" admiral_platform_hail {"HAIL_ID": COMMS_SELECTED_ID}
+
+
+# Report the hailed platform's status on the Admiral's status line (this console has
+# no info panel; ADM_LAST_MSG is the shared surface the build-status widget watches).
+=== admiral_platform_hail
+    default HAIL_ID = None
+    ADM_LAST_MSG = admiralty_platform_status_text(to_object(HAIL_ID))
     ->END
 
 
