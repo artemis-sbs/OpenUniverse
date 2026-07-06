@@ -15,6 +15,7 @@ tick driven from admiral.mast.
 Shared-namespace notes (like the other universe_*.py files): universe_section
 comes from universe_clans.py; no relative sibling imports.
 """
+import math
 from sbs_utils.mast.mast_node import MastDataObject
 from sbs_utils.procedural.spawn import terrain_spawn, npc_spawn
 from sbs_utils.procedural.inventory import get_inventory_value, set_inventory_value
@@ -991,6 +992,17 @@ def universe_platform_spawn(kind, side, worldlet_obj):
         return None
     pos = worldlet_obj.pos
     off = float(worldlet_obj.get_inventory_value("worldlet_radius", 400)) + 900
+    # Orbit: space platforms evenly around the worldlet in its XZ plane at radius `off`,
+    # instead of stacking them all at one point. The slot is the count already orbiting
+    # this worldlet (any side); the golden angle (~137.5 deg) fills the largest gap each
+    # time, so the ring stays nicely spread no matter how many build.
+    slot = 0
+    for o in to_object_list(role("admiral_platform")):
+        if o.get_inventory_value("worldlet_id", 0) == worldlet_obj.id:
+            slot += 1
+    ang = slot * 2.399963229728653   # golden angle (radians)
+    px = pos.x + off * math.cos(ang)
+    pz = pos.z + off * math.sin(ang)
     name = (worldlet_obj.name + " " + pdef["name"]) if worldlet_obj.name else pdef["name"]
     # No `station` role: it would pull in LM's default station comms (docking/market
     # /hail) on top of the Admiral's own platform menus. These are Admiral
@@ -998,7 +1010,7 @@ def universe_platform_spawn(kind, side, worldlet_obj):
     # admiral_platform + admiral_<kind> and leave `station` off. (behav_station still
     # gives them station physics/behaviour - the role is only a query/comms tag.)
     roles = side + ", admiral_platform, admiral_" + kind
-    co = npc_spawn(pos.x + off, pos.y, pos.z, name, roles, pdef["art"], "behav_station")
+    co = npc_spawn(px, pos.y, pz, name, roles, pdef["art"], "behav_station")
     # The engine also derives `station` from the starbase ART's ship data, so the
     # role string alone won't keep it off - strip it explicitly after the spawn.
     remove_role(co, "station")
