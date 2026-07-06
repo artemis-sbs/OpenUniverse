@@ -1,15 +1,16 @@
-"""SPIKE (throwaway proof - ADMIRAL_CONSOLE.md section 19, "Deploy UX"): prove that
-far-coordinate TERRAIN markers render + SELECT on a 2D view, and that a //popup route
-fires on them, BEFORE building the real galaxy theater. Guarded and trivially removable.
+"""Galaxy theater - the admiral's strategic map as a 2D-view board of real marker
+objects in the dead space far from the play slots (ADMIRAL_CONSOLE.md section 19).
+Markers never move and the galaxy cambot parks among them, so far-coordinate float
+precision (a movement problem) doesn't matter. Still HQ-button-triggered while it grows
+into the Galaxy tab.
 
-Spawns a 3x3 patch of mesh-varied TERRAIN markers + one region navarea in the dead space
-far from the play slots, plus an invisible ALT cambot at the center. The admiral keeps
-its real command cambot; the 2D radar is pointed at the alt cambot via
-sbs.assign_client_to_alt_ship (a VIEW focus, not a reassignment), so viewing the map
-never displaces the command camera.
+The client is TEMPORARILY re-assigned to the galaxy cambot to view the board (returns
+to its command cambot via the per-client ADMIRAL_CAM) - the engine-solid way to move a
+console's view (assign_client_to_alt_ship did not move the detached comms 2D view).
 
 Shared-namespace notes (like the other universe_*.py files): no relative sibling
-imports; sbs_utils absolute imports only.
+imports; sbs_utils absolute imports only. universe_system_kind / universe_system_clan /
+universe_cell_known come from sibling modules via the merged MAST namespace.
 """
 from sbs_utils.procedural.spawn import terrain_spawn, player_spawn
 from sbs_utils.procedural.roles import role, remove_role
@@ -20,68 +21,46 @@ from sbs_utils.helpers import FrameContext
 from sbs_utils.vec import Vec3
 
 
-# The theater lives in the DEAD SPACE far from the play slots (which sit within +-1M):
-# the markers never move and the alt cambot parks among them, so the far-coordinate
-# float precision that hurts MOVEMENT doesn't matter here. See section 19.
+# Far from the play slots (within +-1M); markers are static so the distance is safe.
 GALAXY_THEATER = Vec3(50_000_000.0, 0.0, 0.0)
 THEATER_SPACING = 4_000.0
 
-# Spike icon vocabulary: distinct MESHES so the silhouette carries meaning. Fog/unknown
-# uses the `unknown` shipData art (same as the empty-system marker). The real mapping is
-# a table later (a `## Galaxy Icons` AMD chapter).
-_SPIKE_ICONS = {
-    "home":   "starbase_command",
-    "base":   "starbase_civil",
-    "threat": "tsn_light_cruiser",
-    "nebula": "unknown",
-    "empty":  "unknown",
+# Icon vocabulary: system KIND -> (art, color, scale). behav_marker renders the ART
+# (shape channel); the COLOR is applied via a per-kind colored SIDE (radar color comes
+# from the side's icon color, not a per-object property); scale via icon_scale. Each
+# marker's side is "gm_<kind>" (colored once in _galaxy_theater_define_sides). A later
+# `## Galaxy Icons` AMD chapter can own this mapping.
+_KIND_ICON = {
+    "home":    ("starbase_command",  "#33ff66", 1.6),
+    "station": ("starbase_civil",    "#00ccff", 1.2),
+    "enemy":   ("tsn_light_cruiser", "#ff4444", 1.2),
+    "nebula":  ("unknown",           "#cc66ff", 1.0),
+    "anomaly": ("unknown",           "#aa33ff", 1.0),
+    "empty":   ("unknown",           "#888888", 0.7),
+    "fog":     ("unknown",           "#555555", 0.7),
 }
-# The 3x3 patch (row-major over i in -1..1, then j in -1..1). Center (index 4, right
-# under the cam) is a starbase so the mesh variety is obvious the moment it opens.
-_SPIKE_LAYOUT = ["threat", "base", "nebula",
-                 "empty", "home", "base",
-                 "threat", "nebula", "base"]
 
 
-def galaxy_theater_marker_pos(i, j):
-    """World position of the marker for galaxy cell (i, j) on the theater board."""
-    return Vec3(GALAXY_THEATER.x + i * THEATER_SPACING,
+def galaxy_theater_marker_pos(di, dj):
+    """World position of the marker at window offset (di, dj) from the board center."""
+    return Vec3(GALAXY_THEATER.x + di * THEATER_SPACING,
                 GALAXY_THEATER.y,
-                GALAXY_THEATER.z + j * THEATER_SPACING)
+                GALAXY_THEATER.z + dj * THEATER_SPACING)
 
 
-def galaxy_theater_spike_spawn():
-    """Spawn the 3x3 TERRAIN marker patch + one region navarea + the alt cambot, once.
-    Terrain (passive) keeps the board out of the active sim. Idempotent."""
-    if len(to_object_list(role("galaxy_marker"))) > 0:
+def galaxy_theater_ensure_cam():
+    """Spawn the galaxy cambot (invisible, scan-capable) + one backdrop navarea, once.
+    The cambot is the ship the viewing client is temporarily assigned to; a distinct
+    role (galaxy_theater_cam) gates its //popup routes."""
+    if galaxy_theater_cam_id() != 0:
         return
-    n = 0
-    for i in (-1, 0, 1):
-        for j in (-1, 0, 1):
-            kind = _SPIKE_LAYOUT[n]
-            n += 1
-            art = _SPIKE_ICONS.get(kind, "unknown")
-            p = galaxy_theater_marker_pos(i, j)
-            m = terrain_spawn(p.x, p.y, p.z, "System " + str(i) + "," + str(j),
-                              "galaxy_marker", art, "behav_asteroid")
-            if m is not None:
-                set_inventory_value(m.id, "marker_i", i)
-                set_inventory_value(m.id, "marker_j", j)
-                set_inventory_value(m.id, "marker_kind", kind)
-    # A region navarea under the patch - the shaded-zone backdrop test. Corners in
-    # TL,TR,BL,BR order as (x, z) pairs, covering the 3x3 with a margin.
     sim = FrameContext.sim
-    r = THEATER_SPACING * 1.6
+    r = THEATER_SPACING * 8
     ox = GALAXY_THEATER.x
     oz = GALAXY_THEATER.z
     sim.add_navarea(ox - r, oz + r, ox + r, oz + r,
                     ox - r, oz - r, ox + r, oz - r,
-                    "Test Region", "#08fc")
-    # The galaxy cambot at the theater center: the client is TEMPORARILY re-assigned to
-    # THIS ship (assign_client_to_ship) to view the theater, then back to its command
-    # cambot - the standard, engine-solid way to move a console's view. Invisible,
-    # __player__ stripped; `has_science_scan` + a side (set at open) so its 2D view can
-    # select the (scanned) markers; `galaxy_theater_cam` role gates its popups.
+                    "Galaxy", "#08f4")
     cam = player_spawn(GALAXY_THEATER.x, GALAXY_THEATER.y + 1000.0, GALAXY_THEATER.z,
                        "", "#,galaxy_theater_cam,has_science_scan", "invisible")
     if cam is not None:
@@ -89,14 +68,52 @@ def galaxy_theater_spike_spawn():
 
 
 def galaxy_theater_cam_id():
-    """The alt cambot id to focus the 2D radar on (0 if not spawned)."""
+    """The galaxy cambot id the viewing client is assigned to (0 if not spawned)."""
     cams = to_object_list(role("galaxy_theater_cam"))
     return cams[0].id if cams else 0
 
 
+def galaxy_theater_clear():
+    """Despawn the current marker board (for a refresh / re-center)."""
+    for m in to_object_list(role("galaxy_marker")):
+        m.delete_object()
+
+
+def galaxy_theater_build(seed, danger, clans, sectors, reveal, ci, cj, side, win=3):
+    """Refresh the board: a (2*win+1) square window of REAL system markers around cell
+    (ci, cj), meshed by actual system kind (fog -> unknown). Clears the old markers
+    first. seed/danger/clans/sectors/reveal are the universe's shared config, passed in
+    from MAST (they aren't module globals)."""
+    galaxy_theater_clear()
+    for di in range(-win, win + 1):
+        for dj in range(-win, win + 1):
+            i = ci + di
+            j = cj + dj
+            if not universe_cell_known(sectors, i, j, reveal):
+                kind = "fog"
+            else:
+                base_kind = universe_system_kind(seed, i, j, danger)
+                kind = universe_system_clan(clans, seed, i, j, base_kind)[1]
+            icon = _KIND_ICON.get(kind, _KIND_ICON["fog"])
+            p = galaxy_theater_marker_pos(di, dj)
+            # Passive map marker: behav_marker renders the ART; radar_color_override
+            # forces the 2D-radar colour per object; icon_scale sizes it.
+            m = terrain_spawn(p.x, p.y, p.z, "System " + str(i) + "," + str(j),
+                              "galaxy_marker", icon[0], "behav_marker")
+            if m is not None:
+                m.data_set.set("radar_color_override", icon[1], 0)
+                m.data_set.set("icon_scale", icon[2], 0)
+                # Label the marker on the map with its coords (enrich with owner/name
+                # later). name_tag is what the 2D radar draws as text.
+                m.data_set.set("name_tag", str(i) + "," + str(j), 0)
+                set_inventory_value(m.id, "marker_i", i)
+                set_inventory_value(m.id, "marker_j", j)
+                set_inventory_value(m.id, "marker_kind", kind)
+
+
 def galaxy_theater_scan_for(origin_id):
-    """Mark the markers scanned for `origin_id` (the admiral's command cambot), so
-    comms/selection on them isn't gated by the science-data rule."""
+    """Mark the markers scanned for `origin_id` (the galaxy cambot), so its 2D view can
+    select them (comms/selection is gated by the science-data rule)."""
     origin = to_object(origin_id)
     if origin is None:
         return

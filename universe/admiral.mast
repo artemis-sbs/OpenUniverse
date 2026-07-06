@@ -638,7 +638,7 @@ default shared ADM_LAST_MSG = ""
     # and point THIS console's 2D radar at it via alt-ship focus (keeps the command
     # cambot). Then right-click a marker on the 2D view to test the //popup.
     + "[Spike] Galaxy theater":
-        galaxy_theater_spike_spawn()
+        galaxy_theater_ensure_cam()
         # The comms route's client_id is the SERVER (0); the overseer's real client is
         # stashed on its command cambot (COMMS_ORIGIN) at console open.
         spike_client = get_inventory_value(COMMS_ORIGIN_ID, "cam_client", 0)
@@ -647,12 +647,14 @@ default shared ADM_LAST_MSG = ""
         if spike_gc is not None:
             spike_gc.side = COMMS_ORIGIN.side
             spike_gc.data_set.set("ship_base_scan_range", 40000, 0)
-        # Scan the markers for the galaxy cam's side so its 2D view can select them,
-        # then re-assign this client to the galaxy cam (view moves to the theater). Its
-        # ADMIRAL_CAM still points at the command cambot, so "Close map" returns.
+        # Build the REAL board (mesh by kind) around the overseer's current cell, scan
+        # it for the galaxy cam, then re-assign this client to the galaxy cam (view moves
+        # to the theater). ADMIRAL_CAM still points at the command cambot -> Close returns.
+        spike_cell = object_cell(COMMS_ORIGIN_ID)
+        galaxy_theater_build(universe_seed, DANGER, UNIVERSE_CLANS, universe_sectors, MAP_REVEAL, spike_cell[0], spike_cell[1], COMMS_ORIGIN.side)
         galaxy_theater_scan_for(spike_gcam)
         sbs.assign_client_to_ship(spike_client, spike_gcam)
-        debug_print("THEATER SPIKE: gcam=" + str(spike_gcam) + " markers=" + str(len(to_object_list(role("galaxy_marker")))) + " client=" + str(spike_client))
+        debug_print("THEATER: gcam=" + str(spike_gcam) + " cell=" + str(spike_cell[0]) + "," + str(spike_cell[1]) + " markers=" + str(len(to_object_list(role("galaxy_marker")))))
     + "Adjust crew subsidy":
         adm_new_sub = admiralty_subsidy_cycle(COMMS_ORIGIN.side)
         universe_save_players()

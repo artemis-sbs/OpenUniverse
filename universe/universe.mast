@@ -1019,6 +1019,11 @@ GameCode:
     tv = universe_terrain_value
     if kind == "nebula":
         tv = max(tv, 4)
+    # Skirmish testing aid: crank terrain WAY down (little/no nebula + asteroid clutter)
+    # so systems generate and render fast. Skirmish is a PvP arena, not a scenic run;
+    # dial this up later if the frontier should have cover.
+    if mission_mode() == "skirmish":
+        tv = 0
     universe_generate_system(universe_seed, ei, ej, tv)
 
     # Features, each re-seeded from the sector key for determinism
