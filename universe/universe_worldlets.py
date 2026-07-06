@@ -765,6 +765,29 @@ def admiralty_platform_elsewhere(sectors, kind, here_key):
     return None
 
 
+# --- System control (Phase B: fleet-establishes-control) -------------------------
+# Control is DERIVED, not stored: a side controls a system once it owns any admiral
+# structure there. Structures already persist in the sectors delta, so control
+# survives save/load for free, and home is controlled the moment its HQ stands.
+def admiralty_side_controls_cell(side, i, j):
+    """True if `side` owns any admiral structure in cell (i, j) - i.e. controls it."""
+    return len(objects_in_cell(to_object_list(role("admiral_platform") & role(side)), i, j)) > 0
+
+
+def admiralty_cell_has_hostiles(i, j):
+    """True if an armed foe is contesting cell (i, j) - a raider fleet is present.
+    `raider` is the established foe-fleet tag (border raids, foe-clan garrisons); the
+    claim gate uses it so a system must be cleared before you found a base there.
+    (PvP: a RIVAL admiral's adm_fleet doesn't count yet - a later refinement.)"""
+    return len(objects_in_cell(to_object_list(role("raider")), i, j)) > 0
+
+
+def admiralty_side_fleet_in_cell(side, i, j):
+    """True if one of the side's own fleets is present in cell (i, j) - the fleet that
+    holds a system while its first (claiming) structure is built."""
+    return len(objects_in_cell(to_object_list(role("adm_fleet") & role(side)), i, j)) > 0
+
+
 def admiralty_can_build(kind, side, worldlet_id, sectors=None, here_key=None, need_cost=True):
     """Why a build is (None) or isn't (a reason string) allowed at a worldlet,
     WITHOUT spending. sectors/here_key drive the HQ's campaign-wide uniqueness
@@ -787,6 +810,18 @@ def admiralty_can_build(kind, side, worldlet_id, sectors=None, here_key=None, ne
             return "The Headquarters is already established in system (" + hq_at.replace(",", ", ") + ")."
     if kind != "hq" and len(to_object_list(role("admiral_hq") & role(side))) == 0:
         return "Requires a Headquarters."
+    # Control gate (Phase B): in a system your side does not yet control, the first
+    # structure IS the claim - it requires the system CLEARED of hostiles and one of
+    # your FLEETS present to hold it while it builds. Once you own any structure here
+    # the cell is controlled and you build freely. The HQ is exempt: it's the capital,
+    # founded in your start system (which has no fleet yet).
+    if kind != "hq":
+        wc = object_cell(worldlet_id)
+        if not admiralty_side_controls_cell(side, wc[0], wc[1]):
+            if admiralty_cell_has_hostiles(wc[0], wc[1]):
+                return "Clear the hostile forces before you can claim this system."
+            if not admiralty_side_fleet_in_cell(side, wc[0], wc[1]):
+                return "Bring a fleet here to hold the system while you build."
     if kind == "refinery" and admiralty_platform_at(wobj, "extractor") is None:
         return "Requires an Extractor at this worldlet."
     if need_cost and not admiralty_can_afford(side, pdef["cost"]):

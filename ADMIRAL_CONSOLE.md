@@ -753,6 +753,175 @@ Player + author docs shipped (mkdocs `playing/admiral.md` + `writing/admiralty.m
 
 ---
 
+## 19. Back to Conquest - divergence audit and the way to the expand loop
+
+Section 18 calls the Admiral "feature-complete against this document" - and it is.
+But the document it's complete against describes a **contested-frontier brawl**:
+extract at home, hold one frontier, defend against border raids, field a small navy,
+go crack the enemy HQ. Conquest: Frontier Wars - the "CQ" this whole design ports -
+is a bigger thing: a **reveal -> contest -> secure -> build -> hold -> repeat**
+expansion loop. The pieces we built are faithful CQ *features*; what we haven't built
+is the CQ *loop*. This section is the honest audit and the sequenced way back.
+(Prompted by playtest: the economy felt glacial and the loop didn't "go anywhere" -
+the tuning + admiral self-jump fixes shipped alongside this were the first response.)
+
+### Where we stayed faithful to CQ (keep)
+
+Solid ports, unchanged: **ore / gas / crew** and **Command Points** (CQ minerals/gas/
+crew + admiral command capacity; CP stays the fleet cap); **worldlet types +
+depletion** and the planet-popup read; **captains-as-officers** with trait bonuses +
+veterancy; the **six fleet orders**; **Bastion / Relay Gate / Depot / Sensor Relay /
+Lab**; the **subsidy** resources->prices bridge; **fog + Sensor reveal**. All mined
+per section 2, all shipped.
+
+### Where we forked or fell short of the CQ *loop* (the gap)
+
+Not the individual features - the loop between them:
+
+1. **Expansion is capped, so you can't settle.** The HQ is campaign-unique; the
+   Shipyard/Academy are single-instance (the code gates non-per-worldlet platforms
+   side-wide - section 18 describes them as per-system, a discrepancy worth
+   reconciling). Either way you can extend Extractors outward but can't root a
+   *self-sustaining base* in a new system. Expansion is tenant-mining, not settling -
+   the loop caps out after your second system instead of repeating.
+2. **Fleets don't claim ground.** They're purely military (patrol/strike/defense,
+   CP-capped). A worldlet is claimed by *building* on it (needs your flag present),
+   not *secured* by a fleet - so "send the fleet out to take the next system" isn't a
+   verb.
+3. **The Fabricator exists but off to the side.** Section 2 mined it; section 18
+   shipped it as build-model *B* (an optional slow builder ship). But the default is
+   menu-build, and the CQ-defining verb - convoy a builder to the frontier and found a
+   base - is neither the default nor wired into an expand loop.
+4. **No economic AI opponent.** Clans are scripted raiders; they harass but don't run
+   an economy or expand. The "others doing the same" half of the loop is PvP-only.
+5. **Held-but-unattended territory doesn't produce.** The multi-cell model keeps only
+   *occupied* cells live; an empty system despawns and freezes into its sectors delta.
+   A captured system you aren't sitting in earns nothing (the offline-economy revisit).
+
+### The way back - decided principles
+
+From the realignment discussion (user-confirmed where noted):
+
+- **CQ is the north star** - already the stated reference; finish the port, don't
+  change games.
+- **One Capital, many colonies (CONFIRMED).** Keep the HQ as a single campaign-unique
+  Capital (losing it loses you). Expansion is *controlling worldlets*, NOT replicating
+  HQs - so the singleton stops being a wall and becomes the thing you defend. Dissolves
+  the "can't settle" fork with no new capital structures.
+- **The worldlet IS the build site; DROP the Fabricator (user's call).** Simpler than a
+  mobile builder and one less unit to micro. Retire build-model B (or keep it dark) in
+  favour of build-on-the-controlled-worldlet.
+- **The fleet establishes control.** A fleet *secures* a worldlet (clears hostiles +
+  holds); control unlocks building there; an Extractor + **Bastion** make it stick after
+  the fleet moves on. Gives fleets an economic purpose and makes the worldlet the atomic
+  unit you fight over. This is the missing verb - it replaces the Fabricator run.
+- **Anti-snowball is positional overextension, layered on Command Points.** You can only
+  secure what your fleets can clear and hold only what your navy + Bastions can defend;
+  spread too thin and the frontier picks you apart. CP caps the navy; overextension is
+  its territorial twin. Lean on organic limits, not more price walls / hard caps.
+
+### Open decisions to lock (recommendation in bold)
+
+- **#4 Which artificial rails to retire?** The singleton HQ *stays* (it's the Capital),
+  CP *stays*. **Recommend** relaxing the storage cap and letting the Shipyard/Academy
+  limits follow "control, not replication" as needed; lean on overextension for the
+  snowball. Decide per-rail during Phase C.
+- **#5 What grants "control"? DECIDED - clear-and-build, fleet-anchored** (per-system;
+  control is binary + structure-based). Claim an uncontrolled system: clear any
+  contesting hostiles, then build an anchor with your fleet PRESENT for the whole build
+  (the fleet is pinned/vulnerable while it goes up - the CQ Fabricator tension without a
+  Fabricator; leaving or dying mid-build aborts). Empty systems have nothing to clear, so
+  you just build an anchor - fly-through space with no structure is NOT held. Light anchor
+  = REUSE the Relay Gate (waypoint / supply / reveal); heavy = Bastion or forward
+  starbase. Once controlled, build freely (the gate applies only to the first, claiming
+  structure). Abort refund = PERCENT-COMPLETE (refund the unbuilt fraction via `build_left`;
+  the built portion is sunk). A RAZED structure DROPS SALVAGE (reuse the derelict/salvage
+  system) so taking enemy territory is rewarding. Revert to contested when a foe destroys
+  your anchors.
+- **#6 Do fleets reveal the fog? Recommend yes** - a fleet lifts fog as it flies, so
+  "build fleets to explore" is literally true (today only the static Sensor Relay
+  reveals; keep it as the *persistent* reveal).
+- **#7 PvE economic AI admiral? Recommend PvP-first** - prove the loop with two human
+  admirals (Skirmish already does this); an AI admiral that builds + expands is a later
+  phase.
+
+### Phased roadmap (each phase playable + verified in-engine before the next)
+
+- **Phase A - Economy legibility (mostly done).** Playtest speed knob + self-jump fix
+  landed so the loop is watchable. OWED: replace `_PLAYTEST_SPEED` with a real tuned
+  curve (fast-but-balanced), remove the debug pace tag. *Deliverable: a Skirmish economy
+  that ramps in minutes, not an hour.*
+- **Phase B - The control verb.** Fleet-secures-worldlet (#5) as the gate to building in
+  a not-yet-yours system; Bastion = the hold; reversion on raid. Drop the Fabricator
+  default. *Deliverable: reveal -> secure -> build -> hold works for one forward system.*
+- **Phase C - Repeat + overextension.** Fleets reveal fog (#6); relax the rails that
+  block a second/third forward base (#4); tune so holding more frontier genuinely strains
+  the navy. *Deliverable: the rinse-and-repeat expand loop; an admiral can chain 3-4
+  systems.*
+- **Phase D - Held-territory economy.** Resolve the offline-economy revisit: unattended
+  held systems keep producing (keep select cells live, or a timestamped catch-up on the
+  delta at re-entry). *Deliverable: territory is worth holding even when you leave.*
+- **Phase E - The opponent.** A PvE economic AI admiral (#7) that runs the same loop back
+  at you. *Deliverable: single-player CQ, not just PvP.*
+
+### Deploy UX - the galaxy theater + popup command model (proposed, spike first)
+
+The fleet-deploy verb (Phase B/C) needs a way to point a fleet at a system the admiral
+isn't in. Direction: build the galaxy map as a 2D-VIEW "theater" of real selectable
+marker objects placed in the DEAD SPACE far from the play slots (~+50M, where float
+precision is fine because the markers never move and the camera parks among them),
+viewed through the engine 2D view - so the engine's right-click / long-hold popup
+(//popup, the LM friendly_give_orders pattern) works on systems directly.
+
+- **Markers = real objects, so the MESH is the icon:** kind -> mesh, owner/control ->
+  data_set color, importance/strength -> scale (+ name_tag). Three channels = a board
+  that reads at a glance. Fog/unscanned uses the `unknown` shipData art (same art the
+  empty-system marker uses). Spawn every marker (and the fleet icons) as TERRAIN
+  (passive tick_type via terrain_spawn), NOT npc_spawn - the whole board then stays OUT
+  of the engine's active sim calcs (passive is ~free, perf_probe: 100k flat; active
+  ships have a ~190 ceiling), and terrain is still selectable on the 2D view (the
+  empty-system marker already proves a terrain object scans + selects). Terrain isn't
+  proximity-culled either, so the board stays loaded for the whole session. Windowed + virtual-scrolled (~15x15 pool relabels on pan;
+  the galaxy is infinite so we never spawn all of it); reuses every per-cell
+  kind/owner/fog computation + control state; fleets show as side-colored ship icons at
+  their current systems. Icon->mesh mapping is a small table (later AMD-authorable, a
+  `## Galaxy Icons` chapter, per the declarative preference).
+- **Regions as nav-areas:** draw each named region (Ashen Reach, Verdant Belt, the
+  antimatter veil) as a `sim.add_navarea` quad in theater space, colored by
+  `region_map_color` (veil = amber), so the geographic backdrop is a real SHADED ZONE on
+  the 2D view - the layered strategic-map look (region territories underneath, mesh
+  system/fleet icons on top), reusing the existing region logic verbatim
+  (region_for_system / region_map_color / region_is_veiled). Nav-areas are navpoints, so
+  a region could even carry its own popup later.
+- **Command grammar:** left-click SELECTS, right-click (popup) COMMANDS. So "select
+  fleet, right-click system X, Send fleet here" is ONE gesture, feeding
+  `fleet_deploy`/`universe_admiral_jump`. Crucially the popup carries BOTH the selected
+  object AND the clicked target (COMMS_SELECTED + COMMS_POPUP/_POINT) - the "do X to Y"
+  grammar single-selection //comms can't express. This is the real reason to move to
+  popups, not just consistency.
+- **ONE COMMON map, per-console popups.** The player Navigation console and the Admiral
+  already SHARE one galaxy map (`universe_galaxy_map_gui` today); keep that - the theater
+  REPLACES the shared grid for BOTH, it is not an admiral-only surface. The `//popup`
+  routes gate on the origin's role, so the SAME markers offer the Admiral its commands
+  (jump / send fleet / build) and the player Nav its own (set course / jump) with zero
+  duplication. Common rendering, divergent commands.
+- **EXPLORE: move the admiral's object menus from //comms to //popup/comms** (worldlet
+  build, fleet orders, platform actions) for a consistent right-click-to-command model
+  across the system view AND the theater. Likely split: COMMANDS -> //popup;
+  CONVERSATIONS (station dialogue / hails) stay //comms. Watch discoverability -
+  right-click is less obvious than an always-open menu (a hint, or keep a minimal
+  //comms fallback).
+- **Spike FIRST** - two engine unknowns the headless mock can't answer: do
+  far-coordinate static markers render + select on the 2D view, and does the popup fire
+  on them? Prove with a theater camera + a few mesh markers + one //popup route in the
+  browser before committing to the full theater.
+
+Guiding constraint throughout: **every step must still touch the bridge game**
+(section 1) - securing, holding, and losing systems should be things the crews feel,
+not a solitaire RTS in the corner.
+
+---
+
 ## Appendix - AMD strawman (slice-1 authored data)
 
 Drops into `default.amd` (or an `admiralty.amd` spliced via `File:`). Same

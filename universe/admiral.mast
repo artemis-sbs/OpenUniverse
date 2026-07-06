@@ -228,6 +228,11 @@ default shared ADM_LAST_MSG = ""
         adm_home = ship_cell(adm_own_ship) if adm_own_ship else (universe_i, universe_j)
         ship_set_cell(adm_cam_id, adm_home[0], adm_home[1])
     sbs.assign_client_to_ship(client_id, adm_cam_id)
+    # Stash the overseer's REAL client id on the cambot: //comms routes run server-side
+    # (their client_id is 0), so a comms handler that needs to talk to this console's
+    # own client (e.g. assign_client_to_alt_ship for the galaxy theater) reads it back
+    # off COMMS_ORIGIN here.
+    set_inventory_value(adm_cam_id, "cam_client", client_id)
     # Register the camera as an occupant of its cell (idempotent) and place it at
     # that cell's world slot, so the cell lifecycle counts the overseer as a
     # viewer (its system stays live; an empty one it leaves despawns).
@@ -454,6 +459,18 @@ default shared ADM_LAST_MSG = ""
     # a hard-coded literal - so a rival-side Admiral builds/refreshes for its side.
     adm_side = COMMS_ORIGIN.side
     adm_here = f"{universe_i},{universe_j}"
+    # Phase B claim gate: in a system this side doesn't control, the build menu is
+    # empty until it's cleared AND a fleet is here (see admiralty_can_build). Say why,
+    # on the status line, so an empty menu doesn't read as broken. Use the worldlet's
+    # OWN cell (multi-cell: it may differ from the global focus).
+    adm_wc = object_cell(COMMS_SELECTED_ID)
+    adm_uncontrolled = not admiralty_side_controls_cell(adm_side, adm_wc[0], adm_wc[1])
+    adm_hostile = admiralty_cell_has_hostiles(adm_wc[0], adm_wc[1])
+    adm_has_fleet = admiralty_side_fleet_in_cell(adm_side, adm_wc[0], adm_wc[1])
+    if adm_uncontrolled and adm_hostile:
+        ADM_LAST_MSG = "Uncontrolled system - clear the hostile forces to claim it."
+    if adm_uncontrolled and not adm_hostile and not adm_has_fleet:
+        ADM_LAST_MSG = "Uncontrolled system - bring a fleet here to hold it while you build."
     adm_items = admiralty_buildable_items(adm_side, COMMS_SELECTED_ID, universe_sectors, adm_here)
     yield success if len(adm_items) == 0
     for adm_it in adm_items:
@@ -617,6 +634,25 @@ default shared ADM_LAST_MSG = ""
 
 
 //comms if has_roles(COMMS_ORIGIN_ID, "admiral") and has_roles(COMMS_SELECTED_ID, "admiral_hq")
+    # SPIKE (throwaway - ADMIRAL_CONSOLE.md section 19): spawn the galaxy-theater board
+    # and point THIS console's 2D radar at it via alt-ship focus (keeps the command
+    # cambot). Then right-click a marker on the 2D view to test the //popup.
+    + "[Spike] Galaxy theater":
+        galaxy_theater_spike_spawn()
+        # The comms route's client_id is the SERVER (0); the overseer's real client is
+        # stashed on its command cambot (COMMS_ORIGIN) at console open.
+        spike_client = get_inventory_value(COMMS_ORIGIN_ID, "cam_client", 0)
+        spike_gcam = galaxy_theater_cam_id()
+        spike_gc = to_object(spike_gcam)
+        if spike_gc is not None:
+            spike_gc.side = COMMS_ORIGIN.side
+            spike_gc.data_set.set("ship_base_scan_range", 40000, 0)
+        # Scan the markers for the galaxy cam's side so its 2D view can select them,
+        # then re-assign this client to the galaxy cam (view moves to the theater). Its
+        # ADMIRAL_CAM still points at the command cambot, so "Close map" returns.
+        galaxy_theater_scan_for(spike_gcam)
+        sbs.assign_client_to_ship(spike_client, spike_gcam)
+        debug_print("THEATER SPIKE: gcam=" + str(spike_gcam) + " markers=" + str(len(to_object_list(role("galaxy_marker")))) + " client=" + str(spike_client))
     + "Adjust crew subsidy":
         adm_new_sub = admiralty_subsidy_cycle(COMMS_ORIGIN.side)
         universe_save_players()

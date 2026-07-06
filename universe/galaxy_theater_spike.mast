@@ -1,0 +1,31 @@
+# SPIKE (throwaway - ADMIRAL_CONSOLE.md section 19, "Deploy UX"): the galaxy-theater
+# proof popup. The board + alt-ship focus are triggered by a "[Spike] Galaxy theater"
+# button on the admiral HQ comms (admiral.mast); helpers in universe_galaxy_theater.py.
+# This proves the two engine unknowns: do far-coordinate terrain markers select on the
+# 2D view, and does //popup fire on them.
+
+# Right-click a galaxy marker on the 2D radar -> this popup. The client is assigned to
+# the galaxy cambot while viewing the theater, so COMMS_ORIGIN is that cam
+# (galaxy_theater_cam). The SAME markers get per-console popups later - here only this.
+//popup/comms if has_roles(COMMS_ORIGIN_ID, "galaxy_theater_cam") and has_roles(COMMS_SELECTED_ID, "galaxy_marker")
+    spike_kind = get_inventory_value(COMMS_SELECTED_ID, "marker_kind", "?")
+    + "Send fleet here [{spike_kind}]" theater_spike_ack {"SPIKE_ACT": "deploy"}
+    + "Jump here [{spike_kind}]" theater_spike_ack {"SPIKE_ACT": "jump"}
+    + "Close map" theater_spike_close
+
+
+# Popup button ran -> report it on the admiral status line (proves the popup fired and
+# carried the right marker). Real actions (fleet_deploy / universe_admiral_jump) wire in
+# once the spike passes.
+=== theater_spike_ack
+    default SPIKE_ACT = "?"
+    ADM_LAST_MSG = "Theater popup: " + SPIKE_ACT + " -> marker " + str(get_inventory_value(COMMS_SELECTED_ID, "marker_kind", "?"))
+    ->END
+
+
+# Return the client to its real command cambot (stored per-client as ADMIRAL_CAM).
+=== theater_spike_close
+    close_cam = get_inventory_value(client_id, "ADMIRAL_CAM", 0)
+    if close_cam != 0:
+        sbs.assign_client_to_ship(client_id, close_cam)
+    ->END
