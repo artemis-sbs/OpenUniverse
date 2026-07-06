@@ -251,6 +251,18 @@ def universe_worldlet_spawn(type_key, x, y, z, radius=None):
     _set_planet_color(ds, "planet_upperCloudColor", pal.get("clouds"))
     if pal.get("bands") is not None:
         ds.set("planet_bandScale", float(pal.get("bands")), 0)
+    else:
+        ds.set("planet_bandScale", 3.72, 0)              # LM planetoid default
+    # The engine's planet needs its full shader model set or the body can read as
+    # INVISIBLE in the 3D view (colors alone aren't enough). These are the values LM's
+    # working prefab_planetoid uses; the palette above tints on top. Without them the
+    # worldlet spawns but never draws - the "worldlets don't show in 3D" bug.
+    ds.set("planet_fresnel", 11.96)
+    ds.set("planet_fresnelBias", 0.42)
+    ds.set("planet_windSpeed1", 1000)
+    ds.set("planet_windSpeed2", 1000)
+    ds.set("planet_upperCloudStrength", 3.12)
+    ds.set("planet_upperCloudExponent", 3.96)
     py = co.py_object
     py.set_inventory_value("worldlet_type", type_key)
     py.set_inventory_value("worldlet_radius", r)
