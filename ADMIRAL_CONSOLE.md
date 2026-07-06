@@ -905,12 +905,13 @@ viewed through the engine 2D view - so the engine's right-click / long-hold popu
   routes gate on the origin's role, so the SAME markers offer the Admiral its commands
   (jump / send fleet / build) and the player Nav its own (set course / jump) with zero
   duplication. Common rendering, divergent commands.
-- **EXPLORE: move the admiral's object menus from //comms to //popup/comms** (worldlet
-  build, fleet orders, platform actions) for a consistent right-click-to-command model
-  across the system view AND the theater. Likely split: COMMANDS -> //popup;
-  CONVERSATIONS (station dialogue / hails) stay //comms. Watch discoverability -
-  right-click is less obvious than an always-open menu (a hint, or keep a minimal
-  //comms fallback).
+- **DECIDED (reversed 2026-07-06): KEEP the admiral's system-view commands on //comms +
+  the comms_control widget; do NOT migrate them to //popup.** Reason: the comms button
+  panel SCROLLS when there are many buttons (buildable platforms, "Send fleet here" per
+  fleet, fleet orders); the hold-menu popup has limited space and no scroll. So popups
+  are for the theater MAP gesture (right-click a marker/empty space), and //comms stays
+  the surface for command LISTS. (Watch: a very long theater fleet list could overflow
+  the hold menu - route that one through comms if it bites.)
 - **Spike FIRST** - two engine unknowns the headless mock can't answer: do
   far-coordinate static markers render + select on the 2D view, and does the popup fire
   on them? Prove with a theater camera + a few mesh markers + one //popup route in the
