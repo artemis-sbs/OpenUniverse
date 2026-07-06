@@ -4,10 +4,14 @@
 # This proves the two engine unknowns: do far-coordinate terrain markers select on the
 # 2D view, and does //popup fire on them.
 
-# Right-click a galaxy marker on the 2D radar -> this popup. The client is assigned to
-# the galaxy cambot while viewing the theater, so COMMS_ORIGIN is that cam
-# (galaxy_theater_cam). The SAME markers get per-console popups later - here only this.
-//popup/comms if has_roles(COMMS_ORIGIN_ID, "galaxy_theater_cam") and has_roles(COMMS_SELECTED_ID, "galaxy_marker") and COMMS_POPUP_ID != 0
+# LEFT-CLICK a galaxy marker -> its command menu in the scrollable comms_control (comms,
+# not a popup, so a long "Send fleet" list scrolls). The client is assigned to the galaxy
+# cambot while viewing the theater, so COMMS_ORIGIN is that cam (galaxy_theater_cam) - the
+# system-view admiral //comms routes gate on `admiral` and don't fire here.
+//enable/comms if has_roles(COMMS_ORIGIN_ID, "galaxy_theater_cam") and has_roles(COMMS_SELECTED_ID, "galaxy_marker")
+
+
+//comms if has_roles(COMMS_ORIGIN_ID, "galaxy_theater_cam") and has_roles(COMMS_SELECTED_ID, "galaxy_marker")
     spike_kind = get_inventory_value(COMMS_SELECTED_ID, "marker_kind", "?")
     fd_i = get_inventory_value(COMMS_SELECTED_ID, "marker_i", 0)
     fd_j = get_inventory_value(COMMS_SELECTED_ID, "marker_j", 0)
