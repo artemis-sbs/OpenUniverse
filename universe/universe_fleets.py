@@ -39,6 +39,7 @@ from sbs_utils.procedural.space_objects import (closest_object, target, target_p
 from sbs_utils.procedural.gui import gui_row, gui_text
 from sbs_utils.procedural.comms import comms_info_card
 from sbs_utils.procedural.lifeform import lifeform_spawn, lifeform_transfer, lifeform_set_path
+from sbs_utils.vec import Vec3
 
 # The commissionable hull roster (data - difficulty/length tuning later).
 FLEET_ROSTER = [
@@ -459,14 +460,61 @@ def fleet_ships(fleet_key):
 
 
 def fleet_cell(fleet_key):
-    """The (i, j) cell a fleet is in, from its lead hull's position. (0, 0) if the
-    fleet has no live ships. The fleet loop reads this to ask the veil per-fleet,
-    instead of the one global universe_i/j. universe_cell_at_pos is a free global."""
+    """The (i, j) cell a fleet is in. Deploy-only: the fleet's RECORDED cell is
+    authoritative (a fleet holds a post whether or not its hulls are currently live);
+    fall back to the lead hull's position, then (0, 0)."""
+    f = _FLEETS.get(fleet_key)
+    if f is not None:
+        c = f.get("cell", None)
+        if c is not None:
+            return (int(c[0]), int(c[1]))
     ships = fleet_ships(fleet_key)
     if not ships:
         return (0, 0)
     p = ships[0].pos
     return universe_cell_at_pos(p.x, p.z)
+
+
+def fleet_side(fleet_key):
+    """The side a fleet belongs to (None if unknown)."""
+    f = _FLEETS.get(fleet_key)
+    return f.get("side") if f is not None else None
+
+
+def fleet_occ_id(fleet_key):
+    """A stable synthetic cell-occupant token for a fleet, so a DEPLOYED fleet keeps its
+    cell live (holds the system) even with no player/cam there. Derived from the fleet
+    key; large enough not to collide with real object ids or 0."""
+    try:
+        return 900000 + int(str(fleet_key)[1:])
+    except (ValueError, IndexError):
+        return 900000
+
+
+def fleets_of_side(side):
+    """Live fleet records for a side - the deploy picker's list."""
+    return [f for f in _FLEETS.values()
+            if f.get("side") == side and int(f.get("alive", 0)) > 0]
+
+
+def fleet_relocate(fleet_key, i, j):
+    """Place a fleet's hulls at cell (i, j)'s world origin (spawn them if it has none)
+    and RECORD the fleet's cell. Deploy-only: the recorded cell is where fleets_respawn
+    brings it back, so a deployed fleet stays put instead of following the flag."""
+    f = _FLEETS.get(fleet_key)
+    if f is None:
+        return
+    setattr(f, "cell", (int(i), int(j)))
+    co = universe_cell_origin(i, j)
+    ships = fleet_ships(fleet_key)
+    if ships:
+        for n, s in enumerate(ships):
+            ang = n * 2.4
+            s.pos = Vec3(co.x + 700 * math.cos(ang), 0.0, co.z + 700 * math.sin(ang))
+    else:
+        _fleet_spawn_ships(f.get("side"), fleet_key,
+                           co.x + 4200.0, co.z + 4200.0, int(f.get("alive", 0)))
+    _fleets_sync(f.get("side"))
 
 
 def fleet_of_ship(ship_id):
@@ -499,11 +547,17 @@ def fleet_cost_text():
 
 
 def _fleets_sync(side):
-    """Mirror the live fleets into side inventory (adm_fleets) - the source of
-    truth the universe save persists (universe_helpers side_admiralty)."""
-    recs = [{"officer": f.get("officer"), "order": f.get("order", "hold"),
-             "alive": int(f.get("alive", len(FLEET_ROSTER)))}
-            for f in _FLEETS.values() if f.get("side") == side]
+    """Mirror the live fleets into side inventory (adm_fleets) - the source of truth the
+    universe save persists (universe_helpers side_admiralty). Includes each fleet's
+    deployed cell so a restored campaign brings it back to its POST, not the flag."""
+    recs = []
+    for f in _FLEETS.values():
+        if f.get("side") != side:
+            continue
+        c = f.get("cell", None)
+        recs.append({"officer": f.get("officer"), "order": f.get("order", "hold"),
+                     "alive": int(f.get("alive", len(FLEET_ROSTER))),
+                     "cell": [int(c[0]), int(c[1])] if c is not None else None})
     set_inventory_value(to_side_id(side), "adm_fleets", recs)
 
 
@@ -543,10 +597,14 @@ def fleet_try_form(side, officer_key):
     fkey = "f" + str(_NEXT_FLEET[0])
     _NEXT_FLEET[0] += 1
     ypos = yards[0].pos
+    # A fleet's post starts at the Shipyard's cell (deploy-only: it stays here until
+    # the overseer deploys it via fleet_deploy).
+    ycell = universe_cell_at_pos(ypos.x, ypos.z)
     _fleet_spawn_ships(side, fkey, ypos.x + 1200, ypos.z + 1200, len(FLEET_ROSTER))
     _FLEETS[fkey] = MastDataObject({
         "key": fkey, "side": side, "officer": officer_key,
-        "order": "hold", "alive": len(FLEET_ROSTER), "gas_starved": False})
+        "order": "hold", "alive": len(FLEET_ROSTER), "gas_starved": False,
+        "cell": (int(ycell[0]), int(ycell[1]))})
     _fleets_sync(side)
     # The officer takes the flag: hailable there when they have a voice.
     flag_ships = fleet_ships(fkey)
@@ -556,11 +614,12 @@ def fleet_try_form(side, officer_key):
 
 
 def fleets_respawn(side, i, j):
-    """Bring the navy along: after a jump (or a restored save) the arrival cell
-    has no NPCs, so re-instantiate every surviving fleet's hulls near cell (i, j)'s
-    world origin - NOT the galaxy origin, which would strand the navy in whatever
-    sits at slot 0. Rebuilds the live registry from side inventory when empty (fresh
-    session with a saved campaign). universe_cell_origin is a sibling free global."""
+    """Instantiate a side's fleet hulls that belong to cell (i, j). Deploy-only: a
+    fleet respawns in ITS OWN recorded cell, not wherever the flag arrives - so a
+    deployed fleet holds its post. A fleet with no recorded cell (freshly restored /
+    legacy) adopts the arrival cell (the old 'navy at the flag' migration). Rebuilds the
+    live registry from side inventory when empty (fresh session with a saved campaign).
+    universe_cell_origin is a sibling free global."""
     global _FLEETS
     fco = universe_cell_origin(i, j)
     _officers_restore(side)
@@ -571,19 +630,27 @@ def fleets_respawn(side, i, j):
                 continue
             fkey = "f" + str(_NEXT_FLEET[0])
             _NEXT_FLEET[0] += 1
+            rc = rec.get("cell", None)
             _FLEETS[fkey] = MastDataObject({
                 "key": fkey, "side": side, "officer": rec.get("officer"),
                 "order": rec.get("order", "hold"),
-                "alive": int(rec.get("alive", 0)), "gas_starved": False})
+                "alive": int(rec.get("alive", 0)), "gas_starved": False,
+                "cell": (int(rc[0]), int(rc[1])) if rc is not None else None})
     for n, f in enumerate(_FLEETS.values()):
         if f.get("side") != side:
             continue
         alive = int(f.get("alive", 0))
-        if alive > 0 and len(fleet_ships(f.get("key"))) == 0:
+        if alive <= 0:
+            continue
+        fc = f.get("cell", None)
+        if fc is None:                       # legacy / freshly restored -> come to the flag
+            setattr(f, "cell", (i, j))
+            fc = (i, j)
+        # Only (re)spawn hulls for a fleet whose post is THIS cell and that has none.
+        if int(fc[0]) == i and int(fc[1]) == j and len(fleet_ships(f.get("key"))) == 0:
             ang = n * 1.3
             _fleet_spawn_ships(side, f.get("key"),
                                fco.x + 4200 * math.cos(ang), fco.z + 4200 * math.sin(ang), alive)
-        # The officer rides the flag through the jump too.
         rs_ships = fleet_ships(f.get("key"))
         if rs_ships:
             _officer_cast_host(f.get("officer"), rs_ships[0].id)

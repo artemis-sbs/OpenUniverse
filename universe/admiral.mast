@@ -403,6 +403,30 @@ default shared ADM_LAST_MSG = ""
     ->END
 
 
+# Deploy a fleet to another system (the CFW projection verb). Deploy-only: the fleet
+# becomes an OCCUPANT of the destination cell (holding its system live so it can clear/
+# hold ground the overseer isn't parked in), its hulls relocate there (spawned if it
+# had none), and it leaves the source cell (despawned if the fleet was its last
+# occupant). fleet_relocate records the fleet's cell so fleets_respawn brings it back to
+# THIS post, not the flag. Scheduled from the galaxy-theater "Send fleet here" popup.
+=== fleet_deploy_to
+    default DEPLOY_FLEET = None
+    default ti = universe_i
+    default tj = universe_j
+    ->END if DEPLOY_FLEET is None
+    fd_src = fleet_cell(DEPLOY_FLEET)
+    ->END if ti == fd_src[0] and tj == fd_src[1]
+    fd_occ = fleet_occ_id(DEPLOY_FLEET)
+    fd_new = universe_cell_enter(ti, tj, fd_occ)
+    fleet_relocate(DEPLOY_FLEET, ti, tj)
+    if fd_new:
+        await task_schedule(universe_enter_system, {"ei": ti, "ej": tj})
+    if universe_cell_leave(fd_src[0], fd_src[1], fd_occ):
+        standby_cull_clear()
+        universe_clear_cell(fd_src[0], fd_src[1])
+    ->END
+
+
 # --- Overseer comms: fleet orders (click a fleet hull on the 2D view) -------------
 # The Admiral rides a camera tagged `admiral`; selecting one of its own fleet hulls
 # in the comms 2D view opens this menu. Order buttons carry NO task-var conditions

@@ -7,11 +7,48 @@
 # Right-click a galaxy marker on the 2D radar -> this popup. The client is assigned to
 # the galaxy cambot while viewing the theater, so COMMS_ORIGIN is that cam
 # (galaxy_theater_cam). The SAME markers get per-console popups later - here only this.
-//popup/comms if has_roles(COMMS_ORIGIN_ID, "galaxy_theater_cam") and has_roles(COMMS_SELECTED_ID, "galaxy_marker")
+//popup/comms if has_roles(COMMS_ORIGIN_ID, "galaxy_theater_cam") and has_roles(COMMS_SELECTED_ID, "galaxy_marker") and COMMS_POPUP_ID != 0
     spike_kind = get_inventory_value(COMMS_SELECTED_ID, "marker_kind", "?")
-    + "Send fleet here [{spike_kind}]" theater_spike_ack {"SPIKE_ACT": "deploy"}
-    + "Jump here [{spike_kind}]" theater_spike_ack {"SPIKE_ACT": "jump"}
+    fd_i = get_inventory_value(COMMS_SELECTED_ID, "marker_i", 0)
+    fd_j = get_inventory_value(COMMS_SELECTED_ID, "marker_j", 0)
+    # One "Send <captain> here" per live fleet of this overseer's side (handler label +
+    # data dict - the safe in-loop comms-button pattern, not an inline block).
+    for fdf in fleets_of_side(COMMS_ORIGIN.side):
+        fd_name = fleet_officer_name(fdf.get("key"))
+        fd_key = fdf.get("key")
+        + "Send {fd_name} here" fleet_deploy_pick {"DF_KEY": fd_key, "DF_I": fd_i, "DF_J": fd_j}
+    + "Jump here [{spike_kind}]" theater_jump_here {"JMP_I": fd_i, "JMP_J": fd_j}
     + "Close map" theater_spike_close
+
+
+# Right-click EMPTY space on the theater (COMMS_POPUP_ID == 0, no marker hit) -> Close
+# map. (Room to add "center here" later via COMMS_POPUP_POINT - the clicked world point.)
+//popup/comms if has_roles(COMMS_ORIGIN_ID, "galaxy_theater_cam") and COMMS_POPUP_ID == 0
+    + "Close map" theater_spike_close
+
+
+# Dispatch the picked fleet to the picked system (fire-and-forget; the overseer stays on
+# the map). fleet_deploy_to does the cell enter/generate/relocate/leave.
+=== fleet_deploy_pick
+    default DF_KEY = None
+    default DF_I = 0
+    default DF_J = 0
+    ->END if DF_KEY is None
+    task_schedule(fleet_deploy_to, {"DEPLOY_FLEET": DF_KEY, "ti": DF_I, "tj": DF_J})
+    ADM_LAST_MSG = "Fleet deploying to " + str(DF_I) + "," + str(DF_J) + "."
+    ->END
+
+
+# Jump the overseer to the picked system: return the view to the command cambot, then
+# run the camera self-jump (universe_admiral_jump) to the marker's cell.
+=== theater_jump_here
+    default JMP_I = 0
+    default JMP_J = 0
+    jh_cam = get_inventory_value(client_id, "ADMIRAL_CAM", 0)
+    if jh_cam != 0:
+        sbs.assign_client_to_ship(client_id, jh_cam)
+        task_schedule(universe_admiral_jump, {"ti": JMP_I, "tj": JMP_J, "cam_id": jh_cam, "jump_client": client_id})
+    ->END
 
 
 # Popup button ran -> report it on the admiral status line (proves the popup fired and
