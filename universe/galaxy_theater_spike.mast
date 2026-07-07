@@ -15,9 +15,9 @@
     spike_kind = get_inventory_value(COMMS_SELECTED_ID, "marker_kind", "?")
     fd_i = get_inventory_value(COMMS_SELECTED_ID, "marker_i", 0)
     fd_j = get_inventory_value(COMMS_SELECTED_ID, "marker_j", 0)
-    # Real console client: a //comms handler can run server-side (client_id 0), and Jump/
-    # Close must reassign THIS console. COMMS_ORIGIN (the galaxy cam) carries it as
-    # cam_client (stashed by admiral_galaxy_view); pass it to the handlers via data.
+    # Real console client: a //comms handler can run server-side (client_id 0), and Jump
+    # must reassign THIS console. COMMS_ORIGIN (the galaxy cam) carries it as cam_client
+    # (stashed by admiral_galaxy_view); pass it to the handler via data.
     gt_client = get_inventory_value(COMMS_ORIGIN_ID, "cam_client", 0)
     # One "Send <captain> here" per live fleet of this overseer's side (handler label +
     # data dict - the safe in-loop comms-button pattern, not an inline block).
@@ -26,14 +26,8 @@
         fd_key = fdf.get("key")
         + "Send {fd_name} here" fleet_deploy_pick {"DF_KEY": fd_key, "DF_I": fd_i, "DF_J": fd_j}
     + "Jump here [{spike_kind}]" theater_jump_here {"JMP_I": fd_i, "JMP_J": fd_j, "JH_CLIENT": gt_client}
-    + "Close map" theater_close {"CLOSE_CLIENT": gt_client}
-
-
-# Right-click EMPTY space on the theater (COMMS_POPUP_ID == 0, no marker hit) -> Close
-# map. (Room to add "center here" later via COMMS_POPUP_POINT - the clicked world point.)
-//popup/comms if has_roles(COMMS_ORIGIN_ID, "galaxy_theater_cam") and COMMS_POPUP_ID == 0
-    gt_pclient = get_inventory_value(COMMS_ORIGIN_ID, "cam_client", 0)
-    + "Close map" theater_close {"CLOSE_CLIENT": gt_pclient}
+    # No "Close map" button: the framework back tab (the console tab) returns to the
+    # system view - //gui/tab/admiral -> console_selected reassigns to the command cambot.
 
 
 # Dispatch the picked fleet to the picked system (fire-and-forget; the overseer stays on
@@ -60,15 +54,4 @@
     if jh_cam != 0:
         sbs.assign_client_to_ship(JH_CLIENT, jh_cam)
         task_schedule(universe_admiral_jump, {"ti": JMP_I, "tj": JMP_J, "cam_id": jh_cam, "jump_client": JH_CLIENT})
-    ->END
-
-
-# Return the console to its command cambot (per-client ADMIRAL_CAM). The framework back
-# tab does this too (//gui/tab/admiral -> console_selected); this is the map's own Close.
-=== theater_close
-    default CLOSE_CLIENT = 0
-    ->END if CLOSE_CLIENT == 0
-    close_cam = get_inventory_value(CLOSE_CLIENT, "ADMIRAL_CAM", 0)
-    if close_cam != 0:
-        sbs.assign_client_to_ship(CLOSE_CLIENT, close_cam)
     ->END
