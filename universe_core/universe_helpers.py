@@ -21,7 +21,7 @@ from sbs_utils.procedural.sides import to_side_id
 from sbs_utils.procedural.upgrades import upgrade_add
 from sbs_utils.procedural.persistence import PersistentStore
 from sbs_utils.procedural.quest import (quest_agent_quests, quest_add, quest_set_key,
-                                        quest_get_state, QuestState)
+                                        quest_get_state, quest_get, QuestState)
 from sbs_utils.agent import Agent
 import random as _random
 
@@ -604,9 +604,9 @@ def universe_quest_reach_sector(agent_id, qid):
     """The [ti, tj] on_reach target sector of quest `qid` on `agent_id`, or None. The LM
     Quests tab's "Engage" button emits quest_engage(agent, key); //signal/quest_engage
     resolves the target here and jumps the ship (quest-driven movement, no Nav map)."""
-    tree = quest_agent_quests(agent_id)
-    children = tree.get("children") if tree is not None else None
-    q = (children or {}).get(qid)
+    # Path-aware (quest_get navigates a nested `arc/step` key via quest_folder), so a
+    # jump leg authored as a child of a mission arc still resolves its on_reach target.
+    q = quest_get(agent_id, qid)
     if q is None:
         return None
     reach = (q.get("data") or {}).get("on_reach")
