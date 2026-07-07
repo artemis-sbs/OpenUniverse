@@ -18,6 +18,12 @@ default shared DANGER = "Quiet"
 default shared ENCOUNTERS = "On Arrival"
 default shared universe_kind = "home"
 default shared START_MODE = "Continue"
+# Start-screen dials that used to be set ONLY by the @map metadata panel. Now that the
+# @map lives in each MISSION (universe_core carries none - see universe_map_begin), give
+# them defaults here so a consumer @map that does NOT expose them (e.g. a story mission
+# with a minimal start screen) still resolves. A mission's own @map panel overrides.
+default shared TERRAIN_SELECT = "some"
+default shared seed_value = 0
 default shared universe_sectors = {}
 default shared MAP_REVEAL = "Fog of War"
 default shared UNIVERSE_SELECT = "Default"
@@ -85,41 +91,24 @@ default shared QUEST_ENGAGE_ENABLED = True
     sim.set_diplomacy_color(sbs.DIPLOMACY.NEUTRAL, "#077")
 
 
-@map/universe "Open Universe"
-" Explore an endless, procedurally generated universe. Engage the jump drive on
-" the Navigation console to travel between sectors - the same seed always
-" regenerates the same stars and fields.
-metadata:``` yaml
-Properties:
-  Main:
-    Start: 'gui_drop_down("$text: {START_MODE};list: Continue, New Game", var="START_MODE")'
-    Player Ships: 'gui_int_slider("$text:int;low: 1.0;high:8.0;", var= "PLAYER_COUNT")'
-    Difficulty: 'gui_int_slider("$text:int;low: 1.0;high:11.0;", var= "DIFFICULTY")'
-  Map:
-    Universe: 'gui_drop_down("$text: {UNIVERSE_SELECT};list: " + universe_options_csv(), var="UNIVERSE_SELECT")'
-    Terrain: 'gui_drop_down("$text: {TERRAIN_SELECT};list: none, few, some, lots, max", var="TERRAIN_SELECT")'
-    Danger: 'gui_drop_down("$text: {DANGER};list: Quiet, Balanced, Dangerous", var="DANGER")'
-    Encounters: 'gui_drop_down("$text: {ENCOUNTERS};list: On Arrival, Dormant", var="ENCOUNTERS")'
-    Galaxy Map: 'gui_drop_down("$text: {MAP_REVEAL};list: Fog of War, Full Chart", var="MAP_REVEAL")'
-    Seed: 'gui_input("desc: Integer (0 = random);", var="seed_value")'
-GameCode:
-  - PLAYER_COUNT
-  - DIFFICULTY
-  - TERRAIN_SELECT
-  - DANGER
-  - ENCOUNTERS
-  - seed_value
-```
+# The universe setup, as a REUSABLE label (OpenUniverse Phase 2b foundation). A mission
+# supplies its OWN `@map/<key>` - the presentation surface: title, description, and the
+# start-screen Properties panel - sets UNIVERSE_SELECT (which universe .amd to load), then
+# `jump universe_map_begin`. universe_core carries NO @map of its own, so a consumer's map
+# is the only one the start screen shows (no inherited "Open Universe" / demo dropdown).
+# OU's own `@map/universe` (with its dropdown of demo universes) lives in the OU mission's
+# story.mast; StormsBeacon's `@map/stormsbeacon` lives in its story.mast. Both jump here.
+=== universe_map_begin
     UNIVERSE_ACTIVE = True
     # Load the selected universe from one merged AMD file (identity + clans + jobs
     # + narrative; see UNIVERSE_CHANGES.md capstone). Parsed once into UNIVERSE_DOC;
     # clans/jobs/narrative are sections of it. Legacy split-file universes have no
     # sections, so jobs fall back to a standalone clan_quests.amd.
-    shared UNIVERSE_DOC = universe_doc(media_read_relative_file(universe_file(UNIVERSE_SELECT)))
+    shared UNIVERSE_DOC = universe_doc(universe_read_content(universe_file(UNIVERSE_SELECT)))
     # Section includes: a section with `File: x.amd` in its fence pulls its entries
     # from that file (so the main universe.amd stays a table of contents). One level.
     for _inc in universe_includes(UNIVERSE_DOC):
-        universe_splice(UNIVERSE_DOC, _inc.key, universe_doc(media_read_relative_file(_inc.file)))
+        universe_splice(UNIVERSE_DOC, _inc.key, universe_doc(universe_read_content(_inc.file)))
     # Reputation axes + standing tuning from the universe's root `reputation:` block
     # (resets to the built-in 7 axes + defaults when absent). Must run before any
     # rep read/write below.
@@ -167,14 +156,20 @@ GameCode:
     shared UNIVERSE_LANDMARKS = universe_parse_landmarks(UNIVERSE_DOC)
     # Goods (the `goods` section): the authored loot pool the POI deck scatters.
     goods_configure(universe_parse_goods(UNIVERSE_DOC))
-    # Worldlets + Admiralty (the Admiral console economy, ADMIRAL_CONSOLE.md):
-    # register the authored worldlet types and the Admiralty tuning. Inactive
-    # (zero worldlets, no Admiral game) unless the universe authors both.
-    worldlets_configure(universe_parse_worldlets(UNIVERSE_DOC))
-    admiralty_configure(universe_admiralty_cfg(UNIVERSE_DOC))
-    research_configure(universe_parse_research(UNIVERSE_DOC))
-    officers_configure(universe_parse_officers(UNIVERSE_DOC))
-    fleet_chatter_configure(UNIVERSE_DOC)
+    # Mission Mode gate (CORE): resolves mission_mode() from the ## Scenario / ## Admiralty
+    # chapter. admiralty_active() stays False until the admiral addon (if loaded) enables it.
+    universe_mode_configure(universe_admiralty_cfg(UNIVERSE_DOC))
+    # Admiral economy addon (ADMIRAL_CONSOLE.md): parse + register its content ONLY when
+    # the admiral mastlib is loaded. A story/campaign mission omits that mastlib, so
+    # admiral_present() is False and none of these admiral symbols are ever evaluated -
+    # this if-block IS the optional-addon boundary (Phase 2b). Inactive (zero worldlets,
+    # no Admiral game) unless the universe also authors an Admiralty chapter + worldlets.
+    if admiral_present():
+        worldlets_configure(universe_parse_worldlets(UNIVERSE_DOC))
+        admiralty_configure(universe_admiralty_cfg(UNIVERSE_DOC))
+        research_configure(universe_parse_research(UNIVERSE_DOC))
+        officers_configure(universe_parse_officers(UNIVERSE_DOC))
+        fleet_chatter_configure(UNIVERSE_DOC)
     for _clan in UNIVERSE_CLANS:
         # A foe clan is hostile to every player side (the live roster), not just a
         # hardcoded "tsn" - so foes stay foes no matter which sides are playing.

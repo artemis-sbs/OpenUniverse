@@ -5,6 +5,7 @@ pure function of (seed, i, j): named home systems win, otherwise a keyed pick
 among foe clans - so the galaxy map and what spawns agree. See UNIVERSE_CHANGES.md
 (Epics C/I).
 """
+import os
 import random
 from sbs_utils import scatter
 from sbs_utils.procedural.quest import document_get_amd_file
@@ -13,6 +14,8 @@ from sbs_utils.procedural.sides import side_set_relations
 from sbs_utils.procedural.roles import all_roles
 from sbs_utils.procedural.gui import gui_row, gui_text
 from sbs_utils.procedural.comms import comms_info_card
+from sbs_utils.procedural.media import media_read_relative_file
+from sbs_utils.fs import get_mission_dir_filename
 from sbs_utils.mast.mast_node import MastDataObject
 from sbs_utils.agent import Agent
 
@@ -111,6 +114,22 @@ def universe_file(display):
     fall back to that so old universes keep loading.
     """
     return _universe_field(display, "universe", None) or universe_clans_file(display)
+
+
+def universe_read_content(fname):
+    """Read a universe .amd file (or an include) as text. Tries the CONSUMER MISSION
+    folder first (get_mission_dir_filename) so a standalone mission built on the
+    universe_core mastlib can supply its OWN universe content, then falls back to
+    code/lib-relative (media_read_relative_file) for OU's bundled universes - which
+    also reads from inside a packaged mastlib zip (Phase 2b foundation work). Backward
+    compatible: OU's own .amd files live next to universe.mast, so when a consumer
+    provides no such file in its mission dir, the fallback loads them exactly as before."""
+    if fname:
+        mission_path = get_mission_dir_filename(fname)
+        if mission_path is not None and os.path.isfile(mission_path):
+            with open(mission_path, "r") as f:
+                return f.read()
+    return media_read_relative_file(fname)
 
 
 # --- Merged universe document (one file, nested sections) --------------------

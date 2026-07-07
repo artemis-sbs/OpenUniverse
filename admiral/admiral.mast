@@ -9,6 +9,10 @@
 # only presents it, so any number of Admiral consoles can join one side
 # (decision: multi-Admiral co-op, last command wins).
 
+# Phase 2b optional-addon boundary: this file defines admiralty_configure, which the
+# CORE Mode gate (universe_mode.py admiral_present()) detects in the shared namespace to
+# know the admiral economy addon is loaded - so no compile-order-sensitive marker is
+# needed here. A core-only story/campaign mission omits this mastlib entirely.
 shared ADM_BUILDS = []
 # The overseer's last action result (build/commission/research confirmation or a
 # rejection reason). Surfaced in the overseer status line since that console has no

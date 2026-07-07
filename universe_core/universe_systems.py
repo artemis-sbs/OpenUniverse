@@ -87,22 +87,25 @@ def universe_system_deck(key, kind, owner, archetype=None, foe=False, difficulty
         pois.append(MastDataObject({
             "type": "mines", "count": 3 + int(difficulty) // 3, "x": x, "y": y, "z": z}))
 
-    # Worldlet - a resource body for the Admiral economy (universe_worldlets.py).
-    # Chance is 0 unless the universe authors an Admiralty chapter; the type is
-    # drawn from the authored ## Worldlets registry (universe_worldlet_pick is a
-    # shared-namespace call, like universe_generation above). The home system
-    # always gets one (a settled type when authored) so the Admiral's opening
-    # economy exists from minute zero.
-    draw = r.random() < universe_generation("worldlet", i, j)
-    wkey = None
-    if kind == "home":
-        wkey = universe_worldlet_home_pick()
-    elif draw:
-        wkey = universe_worldlet_pick(r)
-    if wkey is not None:
-        x, y, z = _ring_pos(r, 15000, 38000)
-        pois.append(MastDataObject({
-            "type": "worldlet", "worldlet_type": wkey,
-            "radius": r.uniform(1600, 2400), "x": x, "y": 0.0, "z": z}))
+    # Worldlet - a resource body for the Admiral economy (the admiral addon). Gated on
+    # admiralty_active() (the CORE Mode gate, universe_mode.py) so a core-only story
+    # mission - which does not load the admiral mastlib - never evaluates the
+    # universe_worldlet_* symbols. Chance is 0 unless the universe authors an Admiralty
+    # chapter; the type is drawn from the authored ## Worldlets registry. The home system
+    # always gets one (a settled type when authored) so the Admiral's opening economy
+    # exists from minute zero. (No behaviour change with the admiral addon: without
+    # worldlet types admiralty_active() was already the effective gate.)
+    if admiralty_active():
+        draw = r.random() < universe_generation("worldlet", i, j)
+        wkey = None
+        if kind == "home":
+            wkey = universe_worldlet_home_pick()
+        elif draw:
+            wkey = universe_worldlet_pick(r)
+        if wkey is not None:
+            x, y, z = _ring_pos(r, 15000, 38000)
+            pois.append(MastDataObject({
+                "type": "worldlet", "worldlet_type": wkey,
+                "radius": r.uniform(1600, 2400), "x": x, "y": 0.0, "z": z}))
 
     return pois

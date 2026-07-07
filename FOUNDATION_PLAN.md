@@ -160,9 +160,24 @@ multiplayer/PvP shapes need an in-engine playtest.
   seam (see §3b); confirm the `Mode.admiral` gate fully dormant-izes the admiral
   subsystem (no loops / console / worldlets / restore when off). No behaviour change
   for `sandbox`. The runtime split works today; only the packaging is still one addon.
-- **Phase 2b — physical split.** Move the six `admiral` files into their own
-  `.mastlib`; turn the core→admiral cross-refs into an optional-addon boundary;
-  `story.json` manifests. Needs a story-mode test mission for the core-only smoke.
+- **Phase 2b — physical split.** *(DONE 2026-07-06)* Split the monolithic `universe/`
+  into two auto-discovered addon folders + mastlibs: **`universe_core/`** (17 core files
+  incl. the new **`universe_mode.py`** — the Mode gate extracted out of
+  `universe_worldlets.py`) and **`admiral/`** (9 RTS files). `__lib__.json` now manifests
+  `mastlib: [universe_core, admiral]`. The core→admiral seam is an optional-addon
+  boundary: the Mode gate is core, `admiralty_active()` is False unless the admiral addon
+  loaded, and **`admiral_present()` detects `admiralty_configure` in the shared namespace
+  — order-independent**, so alphabetical local-folder discovery (`admiral` before
+  `universe_core`) is harmless. **The audit was re-run — the 2026-07-04 "six files" list
+  was stale** (galaxy-theater/warstate/goods/lifeforms/clan-quests postdated it); the real
+  split is 17 core / 9 admiral. Two enabling changes landed with it: (1) a **mission-
+  relative `.amd` loader** (`universe_read_content`) so a consumer supplies its OWN
+  universe content; (2) an **sbs_utils core fix** — packaged-mastlib `.py` now share a
+  per-lib namespace (`mast.py`), because OU's bare-name cross-`.py` calls only worked as a
+  local folder, not isolated-module mastlibs (affects all mastlibs; verified against the
+  LM set). **Core-only smoke = `data/missions/StormsBeacon/`** (a `Mode: story` mission
+  loading `universe_core` alone); headless `--test` PASSes for OU sandbox and StormsBeacon
+  core-only on the fully-packaged path.
 - **Phase 3 — relations + victory.** Player-side hostile relations + a declarative
   victory/defeat set; `Mode` picks defaults (skirmish/war → raze HQ; story →
   story goal; campaign → endless).

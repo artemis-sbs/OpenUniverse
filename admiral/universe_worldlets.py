@@ -48,20 +48,9 @@ _ADM_DEFAULTS = {
     "mode": "sandbox",          # mission-shape preset (see MODE_PRESETS / FOUNDATION_PLAN.md)
 }
 
-# Mission-shape presets (the `Mode` dial - see FOUNDATION_PLAN.md). Each preset just
-# provides DEFAULTS for a few dials; a dial the author sets explicitly always wins.
-# `admiral` gates whether the RTS economy runs at all (a story/campaign mission runs
-# none even if a Worldlets/Admiralty chapter is present). This is the keystone
-# abstraction the foundation grows on - Phase 1 wires the levers that exist today
-# (economy pace, skirmish, admiral on/off); relations/victory/subsystem gating land
-# in later phases.
-MODE_PRESETS = {
-    "sandbox":  {"admiral": True,  "economy_pace": "standard", "skirmish_pressure": "border"},
-    "skirmish": {"admiral": True,  "economy_pace": "brisk",    "skirmish_pressure": "border"},
-    "war":      {"admiral": True,  "economy_pace": "epic",     "skirmish_pressure": "border"},
-    "campaign": {"admiral": False, "economy_pace": "epic",     "skirmish_pressure": "off"},
-    "story":    {"admiral": False, "economy_pace": "standard", "skirmish_pressure": "off"},
-}
+# The Mission-shape `Mode` dial (MODE_PRESETS) moved to universe_mode.py (core) in
+# Phase 2b so a core-only mission has it without this admiral economy addon. This addon
+# reads MODE_PRESETS / mission_mode() from there (shared MAST namespace).
 
 # Economy pace presets: one authored line ("Economy pace: brisk") scales the four
 # throughput/longevity dials together, instead of hand-tuning Yields/Reserve/Storage/
@@ -95,7 +84,6 @@ SUBSIDY_UPKEEP_PER_MIN = {"ore": 180, "gas": 60}
 # generation_configure / regions_configure).
 _WORLDLET_TYPES = {}
 _ADM = dict(_ADM_DEFAULTS)
-_ADM_ACTIVE = False
 
 
 # --- AMD parsing + load-time configuration -----------------------------------
@@ -123,62 +111,37 @@ def worldlets_configure(types):
     _WORLDLET_TYPES = {t.get("key"): t for t in (types or [])}
 
 
-def universe_admiralty_cfg(doc):
-    """The `## Admiralty` chapter's tuning dict, or None when absent. Also carries
-    any generation keys authored there (Worldlet chance), and the mission-shape
-    `Mode:` - which belongs in a mission-level `## Scenario` chapter (so a story
-    universe needs no Admiralty block just to carry it) but is still accepted inside
-    `## Admiralty` for older universes. Returns non-None whenever EITHER chapter has
-    content, so `Mode: story` alone (Scenario, no Admiralty) still configures."""
-    section = universe_section(doc, "admiralty")
-    cfg = {}
-    if section is not None:
-        data = section.get("data") or {}
-        cfg = dict(data.get("admiralty") or {})
-        gen = data.get("generation") or {}
-        if "worldlet" in gen:
-            cfg["worldlet_chance"] = gen["worldlet"]
-    # Prefer Mode from a mission-level ## Scenario chapter; the label routes to the
-    # "admiralty" sub-dict of whatever chapter holds it (see universe_amd.py).
-    scen = universe_section(doc, "scenario")
-    if scen is not None:
-        smode = ((scen.get("data") or {}).get("admiralty") or {}).get("mode")
-        if smode is not None:
-            cfg["mode"] = smode
-    return cfg or None
+# universe_admiralty_cfg + the Mode gate (MODE_PRESETS / mission_mode / admiralty_active)
+# moved to universe_mode.py (core) in Phase 2b, so a core-only mission has them without
+# this admiral economy addon. Below keeps only the economy tuning + activation report.
 
 
 def admiralty_configure(cfg):
-    """Apply a universe's Admiralty tuning (resets to defaults first). The
-    Admiral game is active only when a universe authors an Admiralty chapter
-    AND at least one worldlet type - legacy universes are untouched. The
-    Worldlet chance dial is pushed into the generation registry so the POI
-    deck sees it (generation_set lives in universe_helpers)."""
-    global _ADM, _ADM_ACTIVE
+    """Apply a universe's Admiralty economy tuning (resets to defaults first) and
+    enable the RTS for this load. Mode resolution lives in universe_mode.py (core);
+    this fills the economy dials, then reports admiral-content presence back to the
+    Mode gate via universe_mode_set_admiral_active. The Worldlet chance dial is pushed
+    into the generation registry so the POI deck sees it (generation_set, universe_helpers)."""
+    global _ADM
     _ADM = dict(_ADM_DEFAULTS)
-    _ADM_ACTIVE = cfg is not None and bool(_WORLDLET_TYPES)
     if cfg:
         for k, v in cfg.items():
             if k != "worldlet_chance":
                 _ADM[k] = v
-        if _ADM_ACTIVE and "worldlet_chance" in cfg:
-            generation_set("worldlet", cfg["worldlet_chance"])
-    # Mission-shape Mode: fill in DEFAULTS for any dial the author did not set
-    # explicitly (explicit cfg value wins), and honour the mode's `admiral` gate -
-    # a story/campaign mission runs no RTS economy even with a Worldlets chapter.
-    preset = MODE_PRESETS.get(str(_ADM.get("mode", "sandbox")).strip().lower())
+    # Mission Mode preset: fill in DEFAULTS for any economy dial the author did not set
+    # explicitly (explicit cfg value wins). The Mode itself is resolved in universe_mode.py.
+    preset = MODE_PRESETS.get(mission_mode())
     if preset is not None:
         for k, v in preset.items():
             if k == "admiral":
                 continue
             if cfg is None or k not in cfg:
                 _ADM[k] = v
-        if not preset.get("admiral", True):
-            _ADM_ACTIVE = False
-
-
-def admiralty_active():
-    return _ADM_ACTIVE
+    # Active iff the Mode allows the RTS AND the universe authored worldlet types.
+    # universe_mode_set_admiral_active folds in the Mode gate + the admiral-present flag.
+    universe_mode_set_admiral_active(cfg is not None and bool(_WORLDLET_TYPES))
+    if admiralty_active() and cfg and "worldlet_chance" in cfg:
+        generation_set("worldlet", cfg["worldlet_chance"])
 
 
 def admiralty_tuning(name, default=None):
@@ -194,13 +157,6 @@ def economy_pace_mult(dim):
     # _PLAYTEST_SPEED is a TEMP blanket accelerator (see its definition) - multiplied
     # in after the pace lookup so it applies regardless of the Mode->pace wiring.
     return float(preset.get(dim, 1.0)) * _PLAYTEST_SPEED
-
-
-def mission_mode():
-    """The active mission-shape Mode (sandbox | skirmish | war | campaign | story).
-    The keystone dial - see FOUNDATION_PLAN.md. Its defaults are already baked into
-    the tuning by admiralty_configure; this is for introspection / later gating."""
-    return str(admiralty_tuning("mode", "sandbox")).strip().lower()
 
 
 def worldlet_type(key):
@@ -445,7 +401,7 @@ def admiralty_extraction_tick(side, dt_seconds):
     worldlet stops producing (its extractors idle). A Refinery at the same
     worldlet multiplies the pull; 'extraction N%' research speeds everything.
     Called from admiral.mast."""
-    if not _ADM_ACTIVE:
+    if not admiralty_active():
         return
     scale = float(dt_seconds) / 60.0 * float(research_extraction_mult(side)) * economy_pace_mult("yield")
     for plat in to_object_list(role("admiral_extractor")):
@@ -559,7 +515,7 @@ def admiralty_relay_tick(side, sectors, cur_i, cur_j, dt_seconds):
     while unlimited worldlets pay on. Mutates the stored reserves in place, so
     the depletion is exactly what arrival re-applies on the next visit. A legacy
     delta (adm_income, no adm_relay) falls back to the frozen aggregate."""
-    if not _ADM_ACTIVE or not isinstance(sectors, dict):
+    if not admiralty_active() or not isinstance(sectors, dict):
         return
     rate = float(admiralty_tuning("relay_rate", 0.5))
     if rate <= 0:

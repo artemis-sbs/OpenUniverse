@@ -1,3 +1,32 @@
-# Entry story for the Open Universe mission. The actual content (the @map/universe
-# label, clans, quests, systems) lives in the local `universe/` addon, which loads
-# automatically alongside the LegendaryMissions addons listed in story.json.
+# Entry story for the Open Universe mission. universe_core (the engine) + admiral (the RTS)
+# load as local addons alongside the LegendaryMissions addons in story.json. The universe
+# SETUP is the reusable `=== universe_map_begin` label in universe_core; THIS mission owns
+# its own @map (OpenUniverse Phase 2b: a map is mission presentation, not engine) - the
+# "Open Universe" start screen, incl. the dropdown of demo universes (universe_options_csv).
+
+@map/universe "Open Universe"
+" Explore an endless, procedurally generated universe. Engage the jump drive on
+" the Navigation console to travel between sectors - the same seed always
+" regenerates the same stars and fields.
+metadata:``` yaml
+Properties:
+  Main:
+    Start: 'gui_drop_down("$text: {START_MODE};list: Continue, New Game", var="START_MODE")'
+    Player Ships: 'gui_int_slider("$text:int;low: 1.0;high:8.0;", var= "PLAYER_COUNT")'
+    Difficulty: 'gui_int_slider("$text:int;low: 1.0;high:11.0;", var= "DIFFICULTY")'
+  Map:
+    Universe: 'gui_drop_down("$text: {UNIVERSE_SELECT};list: " + universe_options_csv(), var="UNIVERSE_SELECT")'
+    Terrain: 'gui_drop_down("$text: {TERRAIN_SELECT};list: none, few, some, lots, max", var="TERRAIN_SELECT")'
+    Danger: 'gui_drop_down("$text: {DANGER};list: Quiet, Balanced, Dangerous", var="DANGER")'
+    Encounters: 'gui_drop_down("$text: {ENCOUNTERS};list: On Arrival, Dormant", var="ENCOUNTERS")'
+    Galaxy Map: 'gui_drop_down("$text: {MAP_REVEAL};list: Fog of War, Full Chart", var="MAP_REVEAL")'
+    Seed: 'gui_input("desc: Integer (0 = random);", var="seed_value")'
+GameCode:
+  - PLAYER_COUNT
+  - DIFFICULTY
+  - TERRAIN_SELECT
+  - DANGER
+  - ENCOUNTERS
+  - seed_value
+```
+    jump universe_map_begin
