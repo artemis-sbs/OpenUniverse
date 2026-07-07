@@ -324,12 +324,19 @@ buy-market substrate (LM `casino/market.mast`, `items/item_market.mast`).
 
 ### Phase 1 — The two new mechanics
 
-4. **XORN pursuit** (§7 decision: both) — start minimal: XORN arrives in the episode system
-   after a dwell timer (the light trail), forcing escape-or-get-help; then layer the 2–3
-   authored confrontations. The one piece with real design risk — tune cadence in browser.
+4. **XORN pursuit** (§7 decision: both) — ✅ **trailing layer DONE (2026-07-07).** On every
+   arrival `universe_core` emits `universe_arrived`; the mission routes it to a per-cell
+   **dwell watch** (`xorn_pursuit_watch`) — linger past the fuse (`XORN_DWELL_SECONDS=45`,
+   tunable) and XORN warps in (`xorn_engage`): a single superior `skaraan_executor` on the
+   hostile `raider` side with an `ai_chase_player` brain, spawned near the lingering player.
+   Home (0,0) is safe; won hunt = no pursuer; the engine clears NPCs on a jump so escaping
+   removes XORN for free. The **finale beat** rides the same path with a short fuse
+   (`XORN_DWELL_FINALE=15`) at the origin (6,-2) so the climax always confronts. All in
+   `story.mast` (XORN is content, not engine). *Remaining: cross-cell "follows you in"
+   trailing, a scripted first-sighting flyby, and browser cadence tuning.*
 5. **Crazy Eddy's Emporium** (§7 decision: real stats) — market surface reusing the
    casino/items substrate + **resolve the apply-upgrade-on-launch TODO** so purchases hit
-   ship stats + the up/downgrade gamble. Wire rep → prices + lead quality.
+   ship stats + the up/downgrade gamble. Wire rep → prices + lead quality. *(next)*
 
 ### Phase 2 — Cast & reputation
 
