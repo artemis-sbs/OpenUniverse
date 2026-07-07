@@ -334,12 +334,63 @@ default shared ADM_LAST_MSG = ""
 //gui/tab/admiral
     jump console_selected 
 
-# Galaxy top tab (//gui/tab framework, like the hangar's Casino). Enabled on the
-# Admiral overseer; its click shows the shared galaxy map (the same one the player
-# Navigation console uses). "Child knows its parent": set the framework's back tab
-# to the console that opened us (CONSOLE_SELECT) so the map can return.
+# Galaxy top tab (//gui/tab framework, like the hangar's Casino). On the Admiral it
+# opens the 2D strategic THEATER (a marker board out in dead space), NOT the old GUI
+# grid - the overseer is a detached camera, so its view can ride the galaxy cam. The
+# player Navigation console keeps the grid: a player's client is bound to its ship, so
+# it can't be reassigned to a cam without breaking its other consoles (helm/weapons).
 //gui/tab/galaxy if CONSOLE_SELECT == "admiral"
-    jump universe_galaxy_map_gui
+    jump admiral_galaxy_view
+
+# The overseer's galaxy view: reassign this console to the galaxy cam so its
+# comms_2d_view shows the theater board, built + scanned around the command cambot's
+# cell. The command cambot (per-client ADMIRAL_CAM) stays assigned in state, so the
+# framework back tab (-> //gui/tab/admiral -> console_selected) reassigns back and
+# restores the system view. Left-click a marker -> the theater //comms (deploy/jump);
+# right-click empty space -> Close (galaxy_theater_spike.mast).
+=== admiral_galaxy_view
+    agv_cam = get_inventory_value(client_id, "ADMIRAL_CAM", 0)
+    agv_side = universe_console_side(client_id)
+    galaxy_theater_ensure_cam()
+    agv_gcam = galaxy_theater_cam_id()
+    agv_gc = to_object(agv_gcam)
+    if agv_gc is not None and agv_cam != 0:
+        agv_gc.side = agv_side
+        agv_gc.data_set.set("ship_base_scan_range", 40000, 0)
+        agv_cell = ship_cell(agv_cam)
+        galaxy_theater_build(universe_seed, DANGER, UNIVERSE_CLANS, universe_sectors, MAP_REVEAL, agv_cell[0], agv_cell[1], agv_side)
+        galaxy_theater_scan_for(agv_gcam)
+        sbs.assign_client_to_ship(client_id, agv_gcam)
+        # Stash this console's REAL client on the galaxy cam: a marker's //comms handler
+        # can run server-side (client_id 0), and Jump/Close need to reassign THIS client
+        # back - they read it off COMMS_ORIGIN (the galaxy cam) as cam_client.
+        set_inventory_value(agv_gcam, "cam_client", client_id)
+    # Keep the detached-console selection routing (2D click -> comms selection) that
+    # console_selected set, in case presenting this page reset the console name.
+    gui_activate_console("gamemaster_overseer_comms")
+--- agv_repaint
+    gui_tab_enable("galaxy")
+    gui_tab_back("admiral")
+    gui_section(style="area: 2, 2, 98, 8; background:#1578;")
+    """justify:center; font:gui-4; $text:Galaxy Theater - click a system to command it"""
+    # Left: zoom + the theater 2D view (click a marker to command that system).
+    gui_section(style="area: 0, 9, 72, 100;")
+    gui_row("row-height: 34px;")
+    gui_layout_widget("radar_zoom_ctrl")
+    gui_row()
+    gui_layout_widget("comms_2d_view")
+    # Right, top: selected marker's comms face + command menu (deploy / jump / close).
+    gui_section(style="area: 72, 9, 100, 66;")
+    gui_row("row-height: 100px;")
+    gui_layout_widget("comms_face")
+    gui_row()
+    gui_layout_widget("comms_control")
+    # Right, bottom: the shared Admiralty status line (deploy confirmations land here).
+    gui_section(style="area: 72, 67, 100, 100; background:#0234;")
+    agv_hint_w = gui_text("$text:" + admiralty_status_hint(ADM_BUILDS, ADM_LAST_MSG) + ";justify:center;font:gui-1;color:#8cf")
+    on change ADM_LAST_MSG:
+        agv_hint_w.update("text:" + admiralty_status_hint(ADM_BUILDS, ADM_LAST_MSG) + ";justify:center;font:gui-1;color:#8cf")
+    await gui()
 
 
 # Overseer self-jump (Model A): relocate the command camera to another system.
@@ -658,27 +709,8 @@ default shared ADM_LAST_MSG = ""
 
 
 //comms if has_roles(COMMS_ORIGIN_ID, "admiral") and has_roles(COMMS_SELECTED_ID, "admiral_hq")
-    # SPIKE (throwaway - ADMIRAL_CONSOLE.md section 19): spawn the galaxy-theater board
-    # and point THIS console's 2D radar at it via alt-ship focus (keeps the command
-    # cambot). Then right-click a marker on the 2D view to test the //popup.
-    + "[Spike] Galaxy theater":
-        galaxy_theater_ensure_cam()
-        # The comms route's client_id is the SERVER (0); the overseer's real client is
-        # stashed on its command cambot (COMMS_ORIGIN) at console open.
-        spike_client = get_inventory_value(COMMS_ORIGIN_ID, "cam_client", 0)
-        spike_gcam = galaxy_theater_cam_id()
-        spike_gc = to_object(spike_gcam)
-        if spike_gc is not None:
-            spike_gc.side = COMMS_ORIGIN.side
-            spike_gc.data_set.set("ship_base_scan_range", 40000, 0)
-        # Build the REAL board (mesh by kind) around the overseer's current cell, scan
-        # it for the galaxy cam, then re-assign this client to the galaxy cam (view moves
-        # to the theater). ADMIRAL_CAM still points at the command cambot -> Close returns.
-        spike_cell = object_cell(COMMS_ORIGIN_ID)
-        galaxy_theater_build(universe_seed, DANGER, UNIVERSE_CLANS, universe_sectors, MAP_REVEAL, spike_cell[0], spike_cell[1], COMMS_ORIGIN.side)
-        galaxy_theater_scan_for(spike_gcam)
-        sbs.assign_client_to_ship(spike_client, spike_gcam)
-        debug_print("THEATER: gcam=" + str(spike_gcam) + " cell=" + str(spike_cell[0]) + "," + str(spike_cell[1]) + " markers=" + str(len(to_object_list(role("galaxy_marker")))))
+    # The galaxy theater now lives on the overseer's Galaxy top tab (admiral_galaxy_view),
+    # not an HQ button - the HQ menu is command/economy actions only.
     + "Adjust crew subsidy":
         adm_new_sub = admiralty_subsidy_cycle(COMMS_ORIGIN.side)
         universe_save_players()

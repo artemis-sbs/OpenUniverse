@@ -762,10 +762,11 @@ GameCode:
     jump universe_galaxy_map_gui
 
 
-# Shared galaxy map + jump drive. Used by the player Navigation console AND the
-# Admiral overseer's Galaxy view - the jump acts on the client's assigned ship (a
-# player ship, or the Admiral's camera), so both reuse one map. GALAXY_BACK, when
-# set (the overseer sets it), shows a "Command" button that returns there.
+# The player Navigation console's galaxy map + jump drive: a GUI grid overlay, so the
+# player stays on its own ship (its client can't be reassigned to a cam without breaking
+# helm/weapons). The Admiral overseer uses the 2D-view theater instead (admiral_galaxy_view)
+# - it's a detached camera, so its view can ride the galaxy cam. The go_btn still routes by
+# the client's ship role (defensive), but in practice only player ships reach this map now.
 === universe_galaxy_map_gui
     default GALAXY_BACK = None
 --- repaint

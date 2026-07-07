@@ -1,8 +1,8 @@
-# SPIKE (throwaway - ADMIRAL_CONSOLE.md section 19, "Deploy UX"): the galaxy-theater
-# proof popup. The board + alt-ship focus are triggered by a "[Spike] Galaxy theater"
-# button on the admiral HQ comms (admiral.mast); helpers in universe_galaxy_theater.py.
-# This proves the two engine unknowns: do far-coordinate terrain markers select on the
-# 2D view, and does //popup fire on them.
+# The galaxy THEATER command routes (ADMIRAL_CONSOLE.md section 19, "Deploy UX"). The
+# overseer's Galaxy top tab (admiral_galaxy_view in admiral.mast) reassigns the console
+# to the galaxy cam so its 2D view shows the marker board (built out in dead space);
+# helpers in universe_galaxy_theater.py. These routes turn a click on that board into a
+# command. (Was a throwaway spike proving far-coordinate markers select + fire //comms.)
 
 # LEFT-CLICK a galaxy marker -> its command menu in the scrollable comms_control (comms,
 # not a popup, so a long "Send fleet" list scrolls). The client is assigned to the galaxy
@@ -15,20 +15,25 @@
     spike_kind = get_inventory_value(COMMS_SELECTED_ID, "marker_kind", "?")
     fd_i = get_inventory_value(COMMS_SELECTED_ID, "marker_i", 0)
     fd_j = get_inventory_value(COMMS_SELECTED_ID, "marker_j", 0)
+    # Real console client: a //comms handler can run server-side (client_id 0), and Jump/
+    # Close must reassign THIS console. COMMS_ORIGIN (the galaxy cam) carries it as
+    # cam_client (stashed by admiral_galaxy_view); pass it to the handlers via data.
+    gt_client = get_inventory_value(COMMS_ORIGIN_ID, "cam_client", 0)
     # One "Send <captain> here" per live fleet of this overseer's side (handler label +
     # data dict - the safe in-loop comms-button pattern, not an inline block).
     for fdf in fleets_of_side(COMMS_ORIGIN.side):
         fd_name = fleet_officer_name(fdf.get("key"))
         fd_key = fdf.get("key")
         + "Send {fd_name} here" fleet_deploy_pick {"DF_KEY": fd_key, "DF_I": fd_i, "DF_J": fd_j}
-    + "Jump here [{spike_kind}]" theater_jump_here {"JMP_I": fd_i, "JMP_J": fd_j}
-    + "Close map" theater_spike_close
+    + "Jump here [{spike_kind}]" theater_jump_here {"JMP_I": fd_i, "JMP_J": fd_j, "JH_CLIENT": gt_client}
+    + "Close map" theater_close {"CLOSE_CLIENT": gt_client}
 
 
 # Right-click EMPTY space on the theater (COMMS_POPUP_ID == 0, no marker hit) -> Close
 # map. (Room to add "center here" later via COMMS_POPUP_POINT - the clicked world point.)
 //popup/comms if has_roles(COMMS_ORIGIN_ID, "galaxy_theater_cam") and COMMS_POPUP_ID == 0
-    + "Close map" theater_spike_close
+    gt_pclient = get_inventory_value(COMMS_ORIGIN_ID, "cam_client", 0)
+    + "Close map" theater_close {"CLOSE_CLIENT": gt_pclient}
 
 
 # Dispatch the picked fleet to the picked system (fire-and-forget; the overseer stays on
@@ -44,29 +49,26 @@
 
 
 # Jump the overseer to the picked system: return the view to the command cambot, then
-# run the camera self-jump (universe_admiral_jump) to the marker's cell.
+# run the camera self-jump (universe_admiral_jump) to the marker's cell. JH_CLIENT is the
+# real console client (threaded from the route, robust to a server-side handler).
 === theater_jump_here
     default JMP_I = 0
     default JMP_J = 0
-    jh_cam = get_inventory_value(client_id, "ADMIRAL_CAM", 0)
+    default JH_CLIENT = 0
+    ->END if JH_CLIENT == 0
+    jh_cam = get_inventory_value(JH_CLIENT, "ADMIRAL_CAM", 0)
     if jh_cam != 0:
-        sbs.assign_client_to_ship(client_id, jh_cam)
-        task_schedule(universe_admiral_jump, {"ti": JMP_I, "tj": JMP_J, "cam_id": jh_cam, "jump_client": client_id})
+        sbs.assign_client_to_ship(JH_CLIENT, jh_cam)
+        task_schedule(universe_admiral_jump, {"ti": JMP_I, "tj": JMP_J, "cam_id": jh_cam, "jump_client": JH_CLIENT})
     ->END
 
 
-# Popup button ran -> report it on the admiral status line (proves the popup fired and
-# carried the right marker). Real actions (fleet_deploy / universe_admiral_jump) wire in
-# once the spike passes.
-=== theater_spike_ack
-    default SPIKE_ACT = "?"
-    ADM_LAST_MSG = "Theater popup: " + SPIKE_ACT + " -> marker " + str(get_inventory_value(COMMS_SELECTED_ID, "marker_kind", "?"))
-    ->END
-
-
-# Return the client to its real command cambot (stored per-client as ADMIRAL_CAM).
-=== theater_spike_close
-    close_cam = get_inventory_value(client_id, "ADMIRAL_CAM", 0)
+# Return the console to its command cambot (per-client ADMIRAL_CAM). The framework back
+# tab does this too (//gui/tab/admiral -> console_selected); this is the map's own Close.
+=== theater_close
+    default CLOSE_CLIENT = 0
+    ->END if CLOSE_CLIENT == 0
+    close_cam = get_inventory_value(CLOSE_CLIENT, "ADMIRAL_CAM", 0)
     if close_cam != 0:
-        sbs.assign_client_to_ship(client_id, close_cam)
+        sbs.assign_client_to_ship(CLOSE_CLIENT, close_cam)
     ->END
