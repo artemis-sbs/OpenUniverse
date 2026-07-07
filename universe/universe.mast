@@ -37,6 +37,9 @@ default shared NAV_CONSOLE_ENABLED = False
 # ships + any fleets) from the theater - no economy, no building. The economy code stays
 # intact; this only gates whether that mode runs/shows it. A Mode preset flips it.
 default shared ADMIRALTY_ECONOMY = True
+# Opt into the LM Quests tab's "Engage" button: movement is quest-driven, so a player
+# engages a job's on_reach target from the Quests tab (//signal/quest_engage jumps).
+default shared QUEST_ENGAGE_ENABLED = True
 
 
 # The player-side agents. LM's server start fires signal_emit("create_sides")
@@ -781,33 +784,21 @@ GameCode:
 # map. Movement is quest-driven now - this lists the ship's active on_reach objectives;
 # Engage arms the chosen one (active_objective) and jumps there via the shared
 # universe_jump_to (the same primitive the Admiral "Send <ship> here" uses).
-@console/missions !0 ^9 "Missions" if UNIVERSE_ACTIVE
-    " Your active jobs - pick an objective and Engage to jump there.
---- mrepaint
-    m_ship = sbs.get_ship_of_client(client_id)
-    m_objs = universe_ship_objectives(m_ship)
-    gui_section(style="area: 5, 4, 95, 12; background:#1578;")
-    """justify:center; font:gui-4; $text:Mission Objectives"""
-    gui_section(style="area: 5, 13, 95, 82;")
-    m_box = gui_list_box(m_objs, "row-height: 1.6em;", item_template=universe_objective_template, title_template=universe_objective_title, select=True)
-    # Repaint only when the objective COUNT changes (accepted / completed a quest) - a
-    # per-tick listbox repaint makes it un-clickable (learned on the build queue).
-    on change len(universe_ship_objectives(m_ship)):
-        gui_task_jump("mrepaint")
-    gui_section(style="area: 5, 84, 95, 92;")
-    gui_row("row-height: 2.4em;")
-    m_engage = gui_button("$text:Engage - jump to objective;justify:center;", style="background:#0a6;")
-    on gui_message(m_engage):
-        m_sel = m_box.get_value()
-        if m_sel is not None and not isinstance(m_sel, str):
-            set_inventory_value(m_ship, "active_objective", [m_sel.ti, m_sel.tj])
-            task_schedule(universe_jump_to, {"ti": m_sel.ti, "tj": m_sel.tj, "warp_ship": m_ship})
-    gui_section(style="area: 5, 93, 95, 99;")
-    m_hint = "No active jobs - dock at a station and take a contract to get an objective."
-    if len(m_objs) > 0:
-        m_hint = "Reaching an objective's system completes its job."
-    """justify:center; font:gui-1; $text:{m_hint};color:#8cf"""
-    await gui()
+# Quest-driven jump: no separate Missions console - objectives live in the shared LM
+# Quests tab. Its opt-in "Engage" button (QUEST_ENGAGE_ENABLED) emits quest_engage with
+# the selected quest's owner + key; here we resolve that quest's on_reach target sector
+# and jump the ship there via the same universe_jump_to the Admiral's Send uses.
+//signal/quest_engage
+    default QE_SHIP = 0
+    default QE_AGENT = 0
+    default QE_KEY = ""
+    ->END if QE_SHIP == 0
+    qe_sec = universe_quest_reach_sector(QE_AGENT, QE_KEY)
+    if qe_sec is None:
+        comms_broadcast(linked_to(QE_SHIP, "consoles"), "That job has no travel destination.", "#fa4")
+    else:
+        set_inventory_value(QE_SHIP, "active_objective", qe_sec)
+        task_schedule(universe_jump_to, {"ti": qe_sec[0], "tj": qe_sec[1], "warp_ship": QE_SHIP})
 
 
 # The player Navigation console's galaxy map + jump drive: a GUI grid overlay, so the
