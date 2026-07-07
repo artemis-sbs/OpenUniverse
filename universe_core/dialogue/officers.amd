@@ -1,0 +1,83 @@
+// The Academy officers' voices - hail a fleet's flag hull and its officer
+// answers (Speaker = the officer's key; the ## Officers Scene: names each
+// entry). Spliced into default.amd's `## Dialogue` section. Their Values are
+// their leans, so talking to your own captains moves personal reputation
+// like any other character.
+
+// --- Commodore Ansel Vale, the Quartermaster (by-the-book, honest, kind) ---
+# [Vale on the Flag Bridge](off_vale_hail)
+---
+Speaker: vale
+---
+% Commodore Vale. Tanks at nominal, boards green. What do you need, captain?
+% Vale here. Manifest is current and the escorts are on station. Go ahead.
+
+- [How is the fleet holding up?](off_vale_fleet)
+- [Just checking in](off_vale_out)
+
+# [The Fleet's Condition](off_vale_fleet)
+---
+Speaker: vale
+---
+% Fueled, patched, and on schedule - the way a fleet ought to be run.
+% We burn what the manifest says we burn. If the gas ever reads low, that is the Admiralty's ledger, not my flying.
+
+- [Good hunting, Commodore](off_vale_out)
+
+# [Vale Out](off_vale_out)
+---
+Speaker: vale
+---
+% Logged. Vale out.
+
+// --- Captain Iris Kade, Old Thunder (fearsome, violent, generous) ---
+# [Kade on the Flag Bridge](off_kade_hail)
+---
+Speaker: kade
+---
+% Kade. If you are calling me off a target, say it fast.
+% Old Thunder here. Guns are warm. Speak.
+
+- [Anything on your scope?](off_kade_scope)
+- [Carry on, Captain](off_kade_out)
+
+# [Kade's Scope](off_kade_scope)
+---
+Speaker: kade
+---
+% Nothing worth the powder yet. Point me at a border and that will change.
+% Raiders do not scare off a quiet fleet, captain. They scare off MINE.
+
+- [Stay sharp](off_kade_out)
+
+# [Kade Out](off_kade_out)
+---
+Speaker: kade
+---
+% Kade out. Try to leave some for us.
+
+// --- Captain Juno Ashwell, the Magpie (resourceful, intellectual, selfish) ---
+# [Ashwell on the Flag Bridge](off_ashwell_hail)
+---
+Speaker: ashwell
+---
+% Ashwell. You would not believe what the last wreck was carrying. What can I do for you?
+% The Magpie, at your service. Mostly at mine, but yours too.
+
+- [Found anything good?](off_ashwell_salvage)
+- [As you were](off_ashwell_out)
+
+# [The Magpie's Haul](off_ashwell_salvage)
+---
+Speaker: ashwell
+---
+% Ore, coils, and one crate I am not declaring until I know what it is.
+% Every derelict is a payday someone else abandoned. Sentiment is expensive; salvage is not.
+
+- [Keep the fleet in one piece](off_ashwell_out)
+
+# [Ashwell Out](off_ashwell_out)
+---
+Speaker: ashwell
+---
+% Ashwell out. If you find a wreck, save it for me.

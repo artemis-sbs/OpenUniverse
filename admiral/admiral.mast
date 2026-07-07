@@ -1,0 +1,773 @@
+# The Admiral console (see ADMIRAL_CONSOLE.md).
+# A strategic console ON THE PLAYER SIDE: worldlets, extraction, and the side
+# stockpiles. The Admiral rides a detached camera over a system-wide 2D command
+# view (the overseer); build / fleet orders / research / requisition / subsidy are
+# all driven by clicking objects to open comms menus. A Galaxy top tab reuses the
+# player Navigation console's galaxy map for jumping between systems.
+#
+# Economy state lives on the side agent (universe_worldlets.py); the console
+# only presents it, so any number of Admiral consoles can join one side
+# (decision: multi-Admiral co-op, last command wins).
+
+# Phase 2b optional-addon boundary: this file defines admiralty_configure, which the
+# CORE Mode gate (universe_mode.py admiral_present()) detects in the shared namespace to
+# know the admiral economy addon is loaded - so no compile-order-sensitive marker is
+# needed here. A core-only story/campaign mission omits this mastlib entirely.
+shared ADM_BUILDS = []
+# The overseer's last action result (build/commission/research confirmation or a
+# rejection reason). Surfaced in the overseer status line since that console has no
+# info panel; also mirrored to info cards for other consoles.
+default shared ADM_LAST_MSG = ""
+
+
+# Started by @map/universe when the universe has an Admiralty chapter. One
+# global task: every tick, extractor platforms pull their worldlet's yields
+# into the side pools (per-minute rates, scaled by the tick seconds).
+=== admiralty_economy_tick
+--- econ_loop
+    await delay_sim(6)
+    ->END if not UNIVERSE_ACTIVE
+    # Per player side: seed pools (retry until the side agent exists at map
+    # start), scan its own theatre for comms, tick extraction/relay income, and
+    # drain the crew subsidy. Iterating the roster is what makes the economy
+    # multi-side; with one player side this runs exactly once (unchanged).
+    for _side in universe_player_sides():
+        if admiralty_seed_pools(_side):
+            universe_save_players()
+        admiralty_scan_theatre(_side)
+        admiralty_extraction_tick(_side, 6)
+        admiralty_relay_tick(_side, universe_sectors, universe_i, universe_j, 6)
+        subsidy_lapse = admiralty_subsidy_upkeep(_side, 6)
+        if subsidy_lapse is not None:
+            universe_info_card(subsidy_lapse, "Admiralty Quartermaster", "#fa4")
+    # Keep EACH live system's persistence delta fresh (worldlet depletion +
+    # platforms built there + per-minute income) so jumps/saves carry the
+    # infrastructure. Multi-cell: snapshot every live cell to its OWN (i,j) delta -
+    # the old single global snapshot dumped role("worldlet") (all cells at once)
+    # into one key, corrupting the save when two systems were live. Platform/relay
+    # snapshots are per-SIDE (the _all wrappers), so a second player side's works in
+    # the same cell aren't clobbered by the primary side's empty snapshot.
+    for _lc in universe_live_cells():
+        _lci = _lc[0]
+        _lcj = _lc[1]
+        _lc_res = worldlets_snapshot_reserves(_lci, _lcj)
+        # Skip a cell with no worldlets: either it's still being generated (a jump
+        # marks the cell live BEFORE enter_system spawns its worldlets, and this
+        # tick could race in between) or it genuinely has none - either way there's
+        # nothing to persist, so don't clobber the stored delta with empty lists.
+        if len(_lc_res) == 0:
+            continue
+        universe_sectors = universe_set_system_value(universe_sectors, _lci, _lcj, "worldlet_reserves", _lc_res)
+        universe_sectors = universe_set_system_value(universe_sectors, _lci, _lcj, "admiral_platforms", admiralty_snapshot_platforms_all(_lci, _lcj))
+        universe_sectors = universe_set_system_value(universe_sectors, _lci, _lcj, "adm_relay", admiralty_relay_snapshot_all(_lci, _lcj))
+    jump econ_loop
+
+
+# The navy's heartbeat: every few seconds each fleet executes its order
+# (universe_fleets.fleet_tick - movement/targeting/gas/salvage). Officer
+# events (fleet lost, salvage hauls, dry tanks) reach the crews as info-panel
+# cards in the officer's face and name - chatter never rides the waterfall.
+=== admiralty_fleet_loop
+--- fleet_loop
+    await delay_sim(3)
+    ->END if not UNIVERSE_ACTIVE
+    # Veil is per-cell: ask each fleet's OWN cell whether it's veiled (a fleet in a
+    # clear system must not freeze because the shared-global cell happens to be veiled).
+    for _fl in fleet_list():
+        _flc = fleet_cell(_fl.key)
+        _fl_veiled = region_is_veiled(UNIVERSE_REGIONS, _flc[0], _flc[1])
+        fleet_evt = fleet_tick(_fl.key, 3, _fl_veiled)
+        if fleet_evt is not None:
+            officer_card(fleet_evt.officer, fleet_evt.text)
+    # MIA captains (slice 4): pod rescues, captures, lapsed beacons - per side.
+    # Rescued officers speak for themselves; captures/losses are Admiralty traffic.
+    for _side in universe_player_sides():
+        for mia_evt in officer_mia_tick(_side, 3, UNIVERSE_CLANS):
+            if mia_evt.officer is None:
+                universe_info_card(mia_evt.text, "Admiralty Operations", "#f66")
+            else:
+                officer_card(mia_evt.officer, mia_evt.text)
+    jump fleet_loop
+
+
+# Border skirmishes (slice 4): pressure from foe territory adjacency draws
+# periodic raids on the side's platforms - but only once the navy exists
+# (universe_skirmish.py decides; this loop spawns and alerts). Raids prefer
+# a standing Bastion, so the fort is where the fight happens.
+=== admiralty_skirmish_loop
+--- skirmish_loop
+    await delay_sim(10)
+    ->END if not UNIVERSE_ACTIVE
+    # Per side, per LIVE cell: each frontier the side holds paces its own raids from
+    # its own border (skirmish_tick keeps a countdown per (side,cell)). Raids only
+    # ever spawn in a live cell, so no raiders appear in a despawned system.
+    for _side in universe_player_sides():
+        for _skc in universe_live_cells():
+            raid = skirmish_tick(_side, UNIVERSE_CLANS, universe_seed, _skc[0], _skc[1], DANGER, 10)
+            if raid is not None:
+                raid_clan = clan_get(UNIVERSE_CLANS, raid.clan)
+                prefab_spawn(prefab_fleet_raider, {"race": clan_pick_race(raid_clan), "fleet_difficulty": raid.difficulty, "ship_roles": raid.clan + ", raider, skirmish", "START_X": raid.x, "START_Y": raid.y, "START_Z": raid.z})
+                universe_info_card("ALERT - " + clan_name(UNIVERSE_CLANS, raid.clan) + " skirmish raid inbound on " + raid.target + ".", "Admiralty Operations", "#f66")
+    jump skirmish_loop
+
+
+# Build model B: the Fabricator. Drives the builder ship through its queue -
+# fly to the next worldlet, construct, repeat (universe_fabricator.fabricator_tick).
+# A no-op under the default menu model (nothing ever enqueues). Events (relaunch,
+# build complete) reach the crews as Admiralty cards.
+=== admiralty_fabricator_loop
+--- fab_loop
+    await delay_sim(2)
+    ->END if not UNIVERSE_ACTIVE
+    for _side in universe_player_sides():
+        fab_evt = fabricator_tick(_side, 2)
+        if fab_evt is not None:
+            universe_info_card(fab_evt, "Admiralty Fabricator", "#0cf")
+    jump fab_loop
+
+
+# One platform build: cost was already paid (admiralty_try_build); wait out
+# the build time, then the platform appears beside its worldlet.
+=== admiralty_build_task
+    default build_kind = "extractor"
+    default build_worldlet_id = None
+    default build_side = universe_primary_side()
+    pdef = admiralty_platform_def(build_kind)
+    ->END if pdef is None or build_worldlet_id is None
+    # A rich queue record (name + worldlet + eta) so the overseer can show what's
+    # building where and roughly how close, with several builds at once. Removed by
+    # identity when this build finishes.
+    build_rec = admiralty_build_record(build_kind, build_worldlet_id, build_side)
+    ADM_BUILDS.append(build_rec)
+    # Poll in 1s steps (instead of one delay_sim) so the overseer can CANCEL a queued
+    # build: the console sets build_rec.cancel, we refund + free the worldlet and stop.
+    build_left = pdef.get("build_time")
+--- build_wait
+    await delay_sim(1)
+    if build_rec.get("cancel", False):
+        ADM_BUILDS.remove(build_rec)
+        admiralty_build_cancel(build_kind, build_side, build_worldlet_id)
+        ADM_LAST_MSG = pdef.get("name") + " build cancelled - resources refunded."
+        comms_navigate_override(role("admiral_cam") & role(build_side), build_worldlet_id)
+        ->END
+    build_left = build_left - 1
+    jump build_wait if build_left > 0
+    ADM_BUILDS.remove(build_rec)
+    built_plat = admiralty_build_done(build_kind, build_side, build_worldlet_id)
+    # Completion lands on the overseer status line (the platform also appears on the
+    # 2D view); keeps the "did it finish?" question answered.
+    ADM_LAST_MSG = pdef.get("name") + " complete."
+    # Force-refresh the comms buttons of any overseer that has this worldlet selected
+    # so the newly unlocked builds appear without re-clicking (comms_navigate_override
+    # no-ops for cameras not currently on this pair - "only if it's selected"). Scoped
+    # to the building side's cameras (& role(build_side)) so a rival Admiral isn't refreshed.
+    comms_navigate_override(role("admiral_cam") & role(build_side), build_worldlet_id)
+    # A finished Sensor Relay senses this system's neighbourhood - the galaxy map
+    # reveals those cells' contents without a visit (fog of war, the relay's
+    # second CQ role). Persist the intel.
+    if build_kind == "sensor" and built_plat is not None:
+        universe_sectors = universe_reveal_neighbors(universe_sectors, universe_i, universe_j)
+        universe_save(universe_seed, universe_i, universe_j, universe_sectors)
+        universe_info_card("Sensor Relay online - the neighbouring systems are on the chart.", "Admiralty", "#0cf")
+    ->END
+
+
+# One research run: cost was already paid (research_try_start); wait out the
+# Time, then record the milestone (effects apply from the completed set) and
+# persist the campaign.
+=== admiralty_research_task
+    default research_key = None
+    default research_side = universe_primary_side()
+    rdef = research_def(research_key)
+    ->END if rdef is None
+    research_label = "Research - " + rdef.get("name")
+    ADM_BUILDS.append(research_label)
+    await delay_sim(rdef.get("time"))
+    ADM_BUILDS.remove(research_label)
+    research_complete(research_side, research_key)
+    universe_save_players()
+    universe_info_card("Research complete: " + rdef.get("name") + ".", "Admiralty", "#0cf")
+    ->END
+
+
+@console/admiral !0 ^10 "Admiral" if UNIVERSE_ACTIVE and admiralty_active()
+    " The war effort behind the fleet - worldlets, extraction, and stockpiles.
+    # The Admiral commands from a detached camera with a system-wide 2D command
+    # view (the GM cambot pattern); clicking objects opens comms menus that drive
+    # build / fleet orders / research / requisition / subsidy. (The old tabbed
+    # "bridge" console was retired in favour of this map-first surface.)
+    jump admiral_overseer_gui
+
+
+# Overseer mode (A/B, prototype). The Admiral rides a private camera object (the
+# GM cambot pattern - invisible, has_science_scan, all friendlies as scan
+# sources, big scan range) rather than a combat hull, and commands from a
+# system-wide 2D view. Step 1: the detached view + ticker; object-select popups
+# (build / fleet orders) and comms come next.
+=== admiral_overseer_gui
+    default ADM_MSG = ""
+    default ADM_JUMP_I = "0"
+    default ADM_JUMP_J = "0"
+    # The camera the Admiral rides: invisible, sees all friendlies (has_science_scan
+    # + extra_scan_source), tagged `admiral` so the comms routes recognise it as an
+    # Admiral origin (LM give-orders + OU routes guard on that role). No "admiral"
+    # in the CONSOLE name below - the dispatcher routes "admiral"+2dview to science
+    # selection but "comm" to comms selection, and we want comms (for popups).
+    adm_cam_id = get_inventory_value(client_id, "ADMIRAL_CAM", None)
+    adm_cam = to_object(adm_cam_id)
+    if adm_cam_id is None or adm_cam is None:
+        adm_cam = to_object(player_spawn(0, 1000, 0, "", "#,admiral_cam,admiral,has_science_scan", "invisible"))
+        remove_role(adm_cam, "__player__")
+        adm_cam_id = to_id(adm_cam)
+        set_inventory_value(client_id, "ADMIRAL_CAM", adm_cam_id)
+        link(adm_cam_id, "extra_scan_source", any_role("__npc__,__player__"))
+        # The overseer commands the client's own side (its ship's side, or the
+        # primary player side) - not a hard-coded literal.
+        adm_cam.side = universe_console_side(client_id)
+        adm_cam.data_set.set("ship_base_scan_range", 40000, 0)
+        # Model A: the overseer camera starts on the console's OWN ship's cell - so a
+        # second-side Admiral (PvP) oversees ITS system, not the global/primary cell.
+        # (Runs before assign_client_to_ship below, so the client is still on its ship.)
+        adm_own_ship = sbs.get_ship_of_client(client_id)
+        adm_home = ship_cell(adm_own_ship) if adm_own_ship else (universe_i, universe_j)
+        ship_set_cell(adm_cam_id, adm_home[0], adm_home[1])
+    sbs.assign_client_to_ship(client_id, adm_cam_id)
+    # Stash the overseer's REAL client id on the cambot: //comms routes run server-side
+    # (their client_id is 0), so a comms handler that needs to talk to this console's
+    # own client (e.g. assign_client_to_alt_ship for the galaxy theater) reads it back
+    # off COMMS_ORIGIN here.
+    set_inventory_value(adm_cam_id, "cam_client", client_id)
+    # Register the camera as an occupant of its cell (idempotent) and place it at
+    # that cell's world slot, so the cell lifecycle counts the overseer as a
+    # viewer (its system stays live; an empty one it leaves despawns).
+    adm_cell = ship_cell(adm_cam_id)
+    universe_cell_enter(adm_cell[0], adm_cell[1], adm_cam_id)
+    adm_co = universe_cell_origin(adm_cell[0], adm_cell[1])
+    # Open the overseer looking at something worth commanding, not empty space at the
+    # cell origin: the side's own HQ if it has built one, else the nearest worldlet in
+    # this cell (the first thing you build an Extractor on, and easy to lose on the map
+    # otherwise), else the cell origin. Saves a long pan hunting for the economy.
+    # SCOPE the HQ focus to THIS cell: role("admiral_hq") spans every live virtual
+    # system, so opening the console while the cambot sits in a system other than the
+    # HQ's would otherwise focus the wrong slot. (worldlets_in_cell is already scoped.)
+    adm_focus_hq = objects_in_cell(to_object_list(role("admiral_hq") & role(adm_cam.side)), adm_cell[0], adm_cell[1])
+    adm_focus_wl = worldlets_in_cell(adm_cell[0], adm_cell[1])
+    if len(adm_focus_hq) > 0:
+        adm_cam.pos = Vec3(adm_focus_hq[0].pos.x, 1000, adm_focus_hq[0].pos.z)
+    elif len(adm_focus_wl) > 0:
+        adm_cam.pos = Vec3(adm_focus_wl[0].pos.x, 1000, adm_focus_wl[0].pos.z)
+    else:
+        adm_cam.pos = Vec3(adm_co.x, 1000, adm_co.z)
+    set_comms_selection(adm_cam_id, adm_cam_id)
+    # This overseer's side (the flag camera's side); its //comms handlers thread
+    # it from COMMS_ORIGIN.side, the tab body reads adm_side directly.
+    adm_side = adm_cam.side
+    # Console name: `gamemaster_` prefix -> the engine's optimized network path for
+    # detached command consoles; `comms` (not `sci`/`admiral`) -> the dispatcher
+    # routes 2D-view selection to comms (consoledispatcher.py), which our //comms
+    # routes need. The camera's ROLE is `admiral`, not `gamemaster`, so GM menus
+    # (gated on the gamemaster role) don't apply - only our Admiral routes.
+    gui_activate_console("gamemaster_overseer_comms")
+    # Top tabs (the //gui/tab framework, like the hangar's Casino tab): enable the
+    # Galaxy tab here; its click is handled by //gui/tab/galaxy. gui_tab_back sets
+    # the framework-provided back tab to this console, so the galaxy view returns.
+    #CONSOLE_SELECT = "admiral"
+    # Repaint entry point: the selectable build-queue listbox can't update in place,
+    # so a queue change (or the ~2s countdown tick) jumps here to rebuild the visual
+    # layout. The one-time setup above (cell enter, cam, gui_activate_console) is NOT
+    # re-run - task vars (adm_side, adm_cam...) persist across the jump.
+--- repaint
+    gui_tab_enable("galaxy")
+    gui_tab_back(CONSOLE_SELECT)
+    gui_section(style="area: 2, 2, 98, 8; background:#1578;")
+    # Economy mode: live resource ticker (a plain label goes stale, so use a handle +
+    # on-change - the pools shift on the economy tick). Simple mode has no pools, so it
+    # just titles the console.
+    # TEMP DIAGNOSTIC: the "  [mode/pace ...]" tag reports the economy pace actually
+    # live at runtime (verifying the Skirmish Mode->brisk wiring). Remove the
+    # admiralty_debug_pace_text() appends once confirmed.
+    if ADMIRALTY_ECONOMY:
+        adm_ticker_w = gui_text("$text:" + admiralty_ticker_text(adm_side) + "  " + admiralty_debug_pace_text(adm_side) + ";justify:center;font:gui-4")
+        on change admiralty_ticker_text(adm_side):
+            # .update() replaces the whole style, so carry the format props too (else
+            # the text reverts to unstyled/left-aligned).
+            adm_ticker_w.update("text:" + admiralty_ticker_text(adm_side) + "  " + admiralty_debug_pace_text(adm_side) + ";justify:center;font:gui-4")
+    else:
+        """justify:center; font:gui-4; $text:Admiral - Fleet Command"""
+    # Left: zoom + the system 2D view (click an object to command it).
+    gui_section(style="area: 0, 9, 72, 100;")
+    gui_row("row-height: 34px;")
+    gui_layout_widget("radar_zoom_ctrl")
+    gui_row()
+    gui_layout_widget("comms_2d_view")
+    # Right, top: the selected object's comms face + action menu.
+    gui_section(style="area: 72, 9, 100, 66;")
+    gui_row("row-height: 100px;")
+    gui_layout_widget("comms_face")
+    gui_row()
+    gui_layout_widget("comms_control")
+    # Right, bottom: build-queue / action status, under the comms buttons with real
+    # vertical space. This console has no info panel, so the Admiralty's build
+    # progress, confirmations and rejection reasons live here (ADM_BUILDS +
+    # ADM_LAST_MSG, both shared). The change key ticks each SECOND while builds are
+    # queued so the per-build countdown updates live; otherwise it only repaints on a
+    # build starting/finishing or a new message (no idle repaints).
+    # Build queue: a SELECTABLE list - pick a build and Cancel it (refunds the cost,
+    # frees the worldlet). Builds run in PARALLEL (each its own task), so there's no
+    # order to reprioritize. A status hint sits above; the list repaints on queue
+    # add/remove and ~every 2s while building (admiralty_build_count_key -> repaint).
+    if ADMIRALTY_ECONOMY:
+        gui_section(style="area: 72, 67, 100, 73; background:#0234;")
+        adm_hint_w = gui_text("$text:" + admiralty_status_hint(ADM_BUILDS, ADM_LAST_MSG) + ";justify:center;font:gui-1;color:#8cf")
+        on change ADM_LAST_MSG:
+            adm_hint_w.update("text:" + admiralty_status_hint(ADM_BUILDS, ADM_LAST_MSG) + ";justify:center;font:gui-1;color:#8cf")
+        gui_section(style="area: 72, 73, 100, 93;")
+        adm_qbox = gui_list_box(ADM_BUILDS, "row-height: 1.8em;", item_template=admiralty_build_row, title_template=admiralty_build_title, select=True)
+        on change admiralty_build_count_key(ADM_BUILDS, ADM_LAST_MSG):
+            gui_task_jump("repaint")
+        gui_section(style="area: 72, 93, 100, 100;")
+        adm_cancel_btn = gui_button("$text:Cancel selected build;font:gui-1;justify:center;")
+        on gui_message(adm_cancel_btn):
+            adm_qsel = adm_qbox.get_value()
+            if adm_qsel is not None and not isinstance(adm_qsel, str):
+                adm_qsel.cancel = True
+                ADM_LAST_MSG = "Cancelling " + adm_qsel.get("name", "build") + "..."
+    else:
+        # Simple (economy-off) mode: no build queue - just the command status line.
+        gui_section(style="area: 72, 67, 100, 100; background:#0234;")
+        adm_hint_w = gui_text("$text:" + admiralty_status_hint(ADM_BUILDS, ADM_LAST_MSG) + ";justify:center;font:gui-1;color:#8cf")
+        on change ADM_LAST_MSG:
+            adm_hint_w.update("text:" + admiralty_status_hint(ADM_BUILDS, ADM_LAST_MSG) + ";justify:center;font:gui-1;color:#8cf")
+    # Comms won't open on an object the side holds no science data for. Scan the
+    # Admiral's theatre once now so THIS console's first click works; the economy
+    # tick keeps it fresh side-wide thereafter (admiralty_scan_theatre is one pass
+    # for the whole side - science data is stored per-side, not per-console). Only the
+    # economy mode has a theatre to scan (platforms/worldlets); the theater board
+    # scans its own markers.
+    if ADMIRALTY_ECONOMY:
+        admiralty_scan_theatre(adm_side)
+    await gui()
+
+//gui/tab/admiral
+    jump console_selected 
+
+# Galaxy top tab. On the Admiral it opens the 2D strategic THEATER (a marker board out
+# in dead space), NOT the old GUI grid - the overseer is a detached camera, so its view
+# can ride the galaxy cam. The player Navigation console keeps the grid: a player's
+# client is bound to its ship, so it can't be reassigned to a cam without breaking its
+# other consoles (helm/weapons).
+#
+# CONTENT only - it is scoped by being ENABLED (gui_tab_enable("galaxy") in the admiral
+# console page above), not by a CONSOLE_SELECT gate here. See GUI.md "Adding a console
+# tab (the clean, per-console way)".
+//gui/tab/galaxy
+    jump admiral_galaxy_view
+
+# The overseer's galaxy view: reassign this console to the galaxy cam so its
+# comms_2d_view shows the theater board, built + scanned around the command cambot's
+# cell. The command cambot (per-client ADMIRAL_CAM) stays assigned in state, so the
+# framework back tab (-> //gui/tab/admiral -> console_selected) reassigns back and
+# restores the system view. Left-click a marker -> the theater //comms (deploy/jump);
+# right-click empty space -> Close (galaxy_theater_spike.mast).
+=== admiral_galaxy_view
+    agv_cam = get_inventory_value(client_id, "ADMIRAL_CAM", 0)
+    agv_side = universe_console_side(client_id)
+    # A COPY PER ADMIRAL: this client's OWN galaxy cam + board region (so two overseers
+    # never share or clear one board).
+    agv_gcam = galaxy_theater_cam_for(client_id)
+    agv_gc = to_object(agv_gcam)
+    if agv_gc is not None and agv_cam != 0:
+        agv_gc.side = agv_side
+        agv_gc.data_set.set("ship_base_scan_range", 40000, 0)
+        agv_cell = ship_cell(agv_cam)
+        # Only REBUILD the static system grid when the overseer's cell changed (or the
+        # board was never built) - otherwise REUSE it (no clear/flicker) and reconcile the
+        # unit icons in place. The board centre is remembered on the galaxy cam, so the map
+        # is the same objects next activation.
+        if get_inventory_value(agv_gcam, "board_ci", 999999) != agv_cell[0] or get_inventory_value(agv_gcam, "board_cj", 999999) != agv_cell[1]:
+            galaxy_theater_build(agv_gcam, universe_seed, DANGER, UNIVERSE_CLANS, universe_sectors, MAP_REVEAL, agv_cell[0], agv_cell[1], agv_side)
+            set_inventory_value(agv_gcam, "board_ci", agv_cell[0])
+            set_inventory_value(agv_gcam, "board_cj", agv_cell[1])
+            galaxy_theater_scan_for(agv_gcam)
+        else:
+            galaxy_theater_sync_units(agv_gcam, agv_cell[0], agv_cell[1], agv_side)
+        sbs.assign_client_to_ship(client_id, agv_gcam)
+        # Stash this console's REAL client on the galaxy cam: a marker's //comms handler
+        # can run server-side (client_id 0), and Jump/Close need to reassign THIS client
+        # back - they read it off COMMS_ORIGIN (the galaxy cam) as cam_client.
+        set_inventory_value(agv_gcam, "cam_client", client_id)
+    # Keep the detached-console selection routing (2D click -> comms selection) that
+    # console_selected set, in case presenting this page reset the console name.
+    gui_activate_console("gamemaster_overseer_comms")
+--- agv_repaint
+    gui_tab_enable("galaxy")
+    gui_tab_back("admiral")
+    gui_section(style="area: 2, 2, 98, 8; background:#1578;")
+    """justify:center; font:gui-4; $text:Galaxy Theater - click a system to command it"""
+    # Left: zoom + the theater 2D view (click a marker to command that system).
+    gui_section(style="area: 0, 9, 72, 100;")
+    gui_row("row-height: 34px;")
+    gui_layout_widget("radar_zoom_ctrl")
+    gui_row()
+    gui_layout_widget("comms_2d_view")
+    # Right, top: selected marker's comms face + command menu (deploy / jump / close).
+    gui_section(style="area: 72, 9, 100, 66;")
+    gui_row("row-height: 100px;")
+    gui_layout_widget("comms_face")
+    gui_row()
+    gui_layout_widget("comms_control")
+    # Right, bottom: the shared Admiralty status line (deploy confirmations land here).
+    gui_section(style="area: 72, 67, 100, 100; background:#0234;")
+    agv_hint_w = gui_text("$text:" + admiralty_status_hint(ADM_BUILDS, ADM_LAST_MSG) + ";justify:center;font:gui-1;color:#8cf")
+    on change ADM_LAST_MSG:
+        agv_hint_w.update("text:" + admiralty_status_hint(ADM_BUILDS, ADM_LAST_MSG) + ";justify:center;font:gui-1;color:#8cf")
+    # Live unit layer: reconcile the ship icons in place (~1s) so a SENT ship moves /
+    # re-labels / re-tints by CHANGE, never a board rebuild. Auto-cancels when the admiral
+    # leaves the theater (a new GUI is presented).
+    gui_sub_task_schedule("agv_unit_watch")
+    await gui()
+
+--- agv_unit_watch
+    await delay_sim(1)
+    agv_w_cam = get_inventory_value(client_id, "GALAXY_CAM", 0)
+    ->END if agv_w_cam == 0
+    agv_w_obj = to_object(agv_w_cam)
+    ->END if agv_w_obj is None
+    galaxy_theater_sync_units(agv_w_cam, get_inventory_value(agv_w_cam, "board_ci", 0), get_inventory_value(agv_w_cam, "board_cj", 0), agv_w_obj.side)
+    jump agv_unit_watch
+
+
+# Overseer self-jump (Model A): relocate the command camera to another system.
+# Reuses the per-ship cell lifecycle with the camera as the occupant - the
+# destination spawns if the cam is its first occupant, the source despawns if the
+# cam was its last. Economy/fleets/saves are per-cell now (Phase 2e), so this only
+# points the shared "server focus" universe_i/j (skirmish-pressure cell + chatter +
+# default skybox) at the watched system - it no longer drives the economy.
+=== universe_admiral_jump
+    default ti = universe_i
+    default tj = universe_j
+    default cam_id = 0
+    default jump_client = 0
+    ->END if cam_id == 0
+    cam = to_object(cam_id)
+    ->END if cam is None
+    asrc = ship_cell(cam_id)
+    ->END if ti == asrc[0] and tj == asrc[1]
+
+    # Hyperspace screen on for the overseer's OWN console (jump_client - the client
+    # that pressed Jump). A detached cambot has no `linked_to consoles`, so target the
+    # client id directly. Doubles as a load-level screen while the dest cell spawns.
+    # The cambot art is invisible (no ship in the warp screen), so use a real hull.
+    ahull = "tsn_light_cruiser"
+    if jump_client != 0:
+        sbs.super_hyper_warp_mode(jump_client, ahull, 1)
+
+    await delay_sim(2)
+
+    if universe_cell_enter(ti, tj, cam_id):
+        await task_schedule(universe_enter_system, {"ei": ti, "ej": tj})
+    if universe_cell_leave(asrc[0], asrc[1], cam_id):
+        standby_cull_clear()
+        universe_clear_cell(asrc[0], asrc[1])
+    ship_set_cell(cam_id, ti, tj)
+    aco = universe_cell_origin(ti, tj)
+    # Arrive looking at the destination system's own content, not empty space at the
+    # slot origin. SCOPE both queries to THIS cell: role(...) spans every live virtual
+    # system, so an out-of-system HQ (e.g. home) would otherwise pull the cambot to
+    # the wrong world-slot. worldlets_in_cell is already cell-scoped; wrap the HQ set
+    # in objects_in_cell so only an HQ actually in (ti, tj) can grab focus.
+    dest_hq = objects_in_cell(to_object_list(role("admiral_hq") & role(cam.side)), ti, tj)
+    dest_wl = worldlets_in_cell(ti, tj)
+    if len(dest_hq) > 0:
+        cam.pos = Vec3(dest_hq[0].pos.x, 1000.0, dest_hq[0].pos.z)
+    elif len(dest_wl) > 0:
+        cam.pos = Vec3(dest_wl[0].pos.x, 1000.0, dest_wl[0].pos.z)
+    else:
+        cam.pos = Vec3(aco.x, 1000.0, aco.z)
+    universe_i = ti
+    universe_j = tj
+    # Persist like the player jump: the destination cell's sectors delta + overseer/
+    # player state, so a reloaded or revisited game keeps the overseer where it jumped.
+    universe_save(universe_seed, ti, tj, universe_sectors)
+    universe_save_players()
+
+    await delay_sim(1)
+    # Hyperspace screen off (same console).
+    if jump_client != 0:
+        sbs.super_hyper_warp_mode(jump_client, "", 0)
+    ->END
+
+
+# Deploy a fleet to another system (the CFW projection verb). Deploy-only: the fleet
+# becomes an OCCUPANT of the destination cell (holding its system live so it can clear/
+# hold ground the overseer isn't parked in), its hulls relocate there (spawned if it
+# had none), and it leaves the source cell (despawned if the fleet was its last
+# occupant). fleet_relocate records the fleet's cell so fleets_respawn brings it back to
+# THIS post, not the flag. Scheduled from the galaxy-theater "Send fleet here" popup.
+=== fleet_deploy_to
+    default DEPLOY_FLEET = None
+    default ti = universe_i
+    default tj = universe_j
+    ->END if DEPLOY_FLEET is None
+    fd_src = fleet_cell(DEPLOY_FLEET)
+    ->END if ti == fd_src[0] and tj == fd_src[1]
+    fd_occ = fleet_occ_id(DEPLOY_FLEET)
+    fd_new = universe_cell_enter(ti, tj, fd_occ)
+    fleet_relocate(DEPLOY_FLEET, ti, tj)
+    if fd_new:
+        await task_schedule(universe_enter_system, {"ei": ti, "ej": tj})
+    if universe_cell_leave(fd_src[0], fd_src[1], fd_occ):
+        standby_cull_clear()
+        universe_clear_cell(fd_src[0], fd_src[1])
+    ->END
+
+
+# --- Overseer comms: fleet orders (click a fleet hull on the 2D view) -------------
+# The Admiral rides a camera tagged `admiral`; selecting one of its own fleet hulls
+# in the comms 2D view opens this menu. Order buttons carry NO task-var conditions
+# (the engine re-evaluates button conditions out of task, where the loop locals are
+# gone); the current order is hidden with a build-time `if`, and every click block
+# recomputes the fleet from COMMS_SELECTED_ID - a context var that survives to the
+# click. This re-homes the tab console's admiral_fleet_order onto the map surface.
+//enable/comms if has_roles(COMMS_ORIGIN_ID, "admiral") and has_roles(COMMS_SELECTED_ID, "adm_fleet")
+
+
+//comms if has_roles(COMMS_ORIGIN_ID, "admiral") and has_roles(COMMS_SELECTED_ID, "adm_fleet")
+    adm_fkey = fleet_of_ship(COMMS_SELECTED_ID)
+    yield success if adm_fkey is None
+    adm_ord = fleet_current_order(adm_fkey)
+    if adm_ord != "escort":
+        + "Escort the flagship":
+            adm_ack = fleet_set_order(fleet_of_ship(COMMS_SELECTED_ID), "escort")
+            comms_receive(adm_ack, "Order acknowledged", color="white", title_color="cyan")
+    if adm_ord != "patrol":
+        + "Patrol the system":
+            adm_ack = fleet_set_order(fleet_of_ship(COMMS_SELECTED_ID), "patrol")
+            comms_receive(adm_ack, "Order acknowledged", color="white", title_color="cyan")
+    if adm_ord != "strike":
+        + "Strike hostiles":
+            adm_ack = fleet_set_order(fleet_of_ship(COMMS_SELECTED_ID), "strike")
+            comms_receive(adm_ack, "Order acknowledged", color="white", title_color="cyan")
+    if adm_ord != "hold":
+        + "Hold position":
+            adm_ack = fleet_set_order(fleet_of_ship(COMMS_SELECTED_ID), "hold")
+            comms_receive(adm_ack, "Order acknowledged", color="white", title_color="cyan")
+    if adm_ord != "salvage":
+        + "Salvage wrecks":
+            adm_ack = fleet_set_order(fleet_of_ship(COMMS_SELECTED_ID), "salvage")
+            comms_receive(adm_ack, "Order acknowledged", color="white", title_color="cyan")
+    if adm_ord != "withdraw":
+        + "Withdraw to base":
+            adm_ack = fleet_set_order(fleet_of_ship(COMMS_SELECTED_ID), "withdraw")
+            comms_receive(adm_ack, "Order acknowledged", color="white", title_color="cyan")
+
+
+# --- Overseer comms: build on a worldlet (click a worldlet on the 2D view) --------
+# Select one of your worldlets; whatever the Admiralty can build there appears as
+# buttons (the same admiralty_buildable_items list the Map tab used). The per-button
+# platform kind + target worldlet are captured in the handler's data dict at BUILD
+# time (safe) - never read at click time. Re-homes the Map-tab build list onto the
+# map surface. NOTE: worldlets are behav_planet terrain; if the engine won't let
+# comms select terrain, this route simply never fires and we anchor build on a
+# station instead - the browser check tells us which.
+//enable/comms if has_roles(COMMS_ORIGIN_ID, "admiral") and has_roles(COMMS_SELECTED_ID, "worldlet")
+
+
+//comms if has_roles(COMMS_ORIGIN_ID, "admiral") and has_roles(COMMS_SELECTED_ID, "worldlet")
+    # Simple (economy-off) mode has no building, so a worldlet offers no build menu.
+    yield success if not ADMIRALTY_ECONOMY
+    # The building side is the selecting Admiral's own side (COMMS_ORIGIN.side), not
+    # a hard-coded literal - so a rival-side Admiral builds/refreshes for its side.
+    adm_side = COMMS_ORIGIN.side
+    adm_here = f"{universe_i},{universe_j}"
+    # Phase B claim gate: in a system this side doesn't control, the build menu is
+    # empty until it's cleared AND a fleet is here (see admiralty_can_build). Say why,
+    # on the status line, so an empty menu doesn't read as broken. Use the worldlet's
+    # OWN cell (multi-cell: it may differ from the global focus).
+    adm_wc = object_cell(COMMS_SELECTED_ID)
+    adm_uncontrolled = not admiralty_side_controls_cell(adm_side, adm_wc[0], adm_wc[1])
+    adm_hostile = admiralty_cell_has_hostiles(adm_wc[0], adm_wc[1])
+    adm_has_fleet = admiralty_side_fleet_in_cell(adm_side, adm_wc[0], adm_wc[1])
+    if adm_uncontrolled and adm_hostile:
+        ADM_LAST_MSG = "Uncontrolled system - clear the hostile forces to claim it."
+    if adm_uncontrolled and not adm_hostile and not adm_has_fleet:
+        ADM_LAST_MSG = "Uncontrolled system - bring a fleet here to hold it while you build."
+    adm_items = admiralty_buildable_items(adm_side, COMMS_SELECTED_ID, universe_sectors, adm_here)
+    yield success if len(adm_items) == 0
+    for adm_it in adm_items:
+        + "Build {adm_it.name} ({adm_it.cost})" admiral_overseer_build {"BUILD_PICK": adm_it.get("key"), "SEL_WORLDLET": COMMS_SELECTED_ID, "BUILD_SIDE": adm_side}
+
+
+=== admiral_overseer_build
+    default BUILD_PICK = None
+    default SEL_WORLDLET = None
+    # Side threaded from the initiating Admiral (falls back to the primary player
+    # side for any caller that doesn't pass it).
+    default BUILD_SIDE = universe_primary_side()
+    adm_here = f"{universe_i},{universe_j}"
+    adm_pdef = admiralty_platform_def(BUILD_PICK)
+    adm_pname = adm_pdef.get("name") if adm_pdef is not None else "platform"
+    if admiralty_tuning("build_model", "menu") == "fabricator":
+        build_fail = admiralty_can_build(BUILD_PICK, BUILD_SIDE, SEL_WORLDLET, universe_sectors, adm_here)
+        if build_fail is None:
+            admiralty_spend(BUILD_SIDE, adm_pdef.get("cost"))
+            fabricator_enqueue(BUILD_SIDE, BUILD_PICK, SEL_WORLDLET)
+            ADM_LAST_MSG = "Fabricator dispatched to build " + adm_pname + "."
+        else:
+            ADM_LAST_MSG = build_fail
+    else:
+        build_fail = admiralty_try_build(BUILD_PICK, BUILD_SIDE, SEL_WORLDLET, universe_sectors, adm_here)
+        if build_fail is None:
+            task_schedule(admiralty_build_task, {"build_kind": BUILD_PICK, "build_worldlet_id": SEL_WORLDLET, "build_side": BUILD_SIDE})
+            ADM_LAST_MSG = "Construction started: " + adm_pname + "."
+        else:
+            ADM_LAST_MSG = build_fail
+    # Surface on the overseer status line (ADM_LAST_MSG) AND as an info card for the
+    # tab console / any console with an info panel.
+    universe_info_card(ADM_LAST_MSG, "Admiralty", "#0cf")
+    # Refresh the worldlet's comms buttons now the build is underway (the started
+    # item drops out of its own menu) - only for THIS side's cameras currently on
+    # this worldlet (& role(BUILD_SIDE), so a rival Admiral isn't touched).
+    comms_navigate_override(role("admiral_cam") & role(BUILD_SIDE), SEL_WORLDLET)
+    ->END
+
+
+# --- Overseer: click to pan the flag camera --------------------------------------
+# The Admiral rides a detached camera; the comms 2D view fires //focus/comms on a
+# click. Clicking an OBJECT recenters the camera on it (so you can chase a fleet or
+# a worldlet to the middle of the view); clicking empty space pans to that point -
+# reaching worldlets/fleets that sit past the opening view. Mirrors the GM cambot
+# (gamemaster.mast: SCIENCE_ORIGIN.pos = pos). The //comms routes above still fire
+# on object clicks for the actual menus - this just moves the eye.
+//focus/comms if has_roles(COMMS_ORIGIN_ID, "admiral")
+    ->END if COMMS_ORIGIN is None
+    if COMMS_SELECTED_ID != 0 and COMMS_SELECTED is not None:
+        COMMS_ORIGIN.pos = Vec3(COMMS_SELECTED.pos)
+    elif EVENT.source_point is not None:
+        adm_pt = Vec3(EVENT.source_point)
+        if adm_pt.x != 0 or adm_pt.z != 0:
+            COMMS_ORIGIN.pos = adm_pt
+
+
+# --- Overseer: platform command menus --------------------------------------------
+# The Admiral's own platforms are stations; selecting one adds Admiral actions to
+# its comms (on top of the default station comms). This re-homes the tab console's
+# Fleets / Research / Subsidy onto the map: commission at the Shipyard, research at
+# the Lab, set subsidy at the HQ. Per-button keys are captured in the handler data
+# dict at build time (never read at click time); handlers report via info card
+# instead of jumping to the tab console.
+
+# Shipyard: commission a fleet under an available officer (fleet_try_form validates
+# Academy/Shipyard/command-points/cost; we only list officers with no fleet yet).
+//enable/comms if has_roles(COMMS_ORIGIN_ID, "admiral") and has_roles(COMMS_SELECTED_ID, "admiral_shipyard")
+
+
+//comms if has_roles(COMMS_ORIGIN_ID, "admiral") and has_roles(COMMS_SELECTED_ID, "admiral_shipyard")
+    adm_side = COMMS_ORIGIN.side
+    for adm_off in officer_list():
+        if officer_fleet(adm_off.key) is None and officer_status(adm_off.key) == "active":
+            + "Commission {adm_off.name} - {adm_off.title}" admiral_overseer_commission {"OFFICER_PICK": adm_off.key, "ADM_ACT_SIDE": adm_side}
+
+
+=== admiral_overseer_commission
+    default OFFICER_PICK = None
+    default ADM_ACT_SIDE = universe_primary_side()
+    fail = fleet_try_form(ADM_ACT_SIDE, OFFICER_PICK)
+    if fail is None:
+        officer_card(OFFICER_PICK, fleet_line("formed"))
+        adm_ocmr = officer_def(OFFICER_PICK)
+        adm_ocmr_name = adm_ocmr.name if adm_ocmr is not None else "An officer"
+        ADM_LAST_MSG = adm_ocmr_name + " has taken command of a new fleet at the shipyard."
+    else:
+        ADM_LAST_MSG = fail
+    ->END
+
+
+# Lab: start an available research milestone (research_try_start validates slots).
+//enable/comms if has_roles(COMMS_ORIGIN_ID, "admiral") and has_roles(COMMS_SELECTED_ID, "admiral_lab")
+
+
+//comms if has_roles(COMMS_ORIGIN_ID, "admiral") and has_roles(COMMS_SELECTED_ID, "admiral_lab")
+    adm_side = COMMS_ORIGIN.side
+    for adm_res in research_list():
+        if research_state(adm_side, adm_res.key) == "available":
+            + "Research {adm_res.name} [{adm_res.branch}]" admiral_overseer_research {"RESEARCH_PICK": adm_res.key, "ADM_ACT_SIDE": adm_side}
+
+
+=== admiral_overseer_research
+    default RESEARCH_PICK = None
+    default ADM_ACT_SIDE = universe_primary_side()
+    fail = research_try_start(ADM_ACT_SIDE, RESEARCH_PICK)
+    if fail is None:
+        task_schedule(admiralty_research_task, {"research_key": RESEARCH_PICK, "research_side": ADM_ACT_SIDE})
+        adm_rrec = research_def(RESEARCH_PICK)
+        adm_rname = adm_rrec.name if adm_rrec is not None else "project"
+        ADM_LAST_MSG = "Research started: " + adm_rname + "."
+    else:
+        ADM_LAST_MSG = fail
+    universe_info_card(ADM_LAST_MSG, "Admiralty R&D", "#0cf")
+    ->END
+
+
+# Every OTHER platform (passive infrastructure - extractor, refinery, academy,
+# bastion, depot, sensor, relay) answers a hail with its status, so no platform is a
+# dead click. HQ/Shipyard/Lab already have their own action menus above, so they're
+# excluded here.
+//enable/comms if has_roles(COMMS_ORIGIN_ID, "admiral") and has_roles(COMMS_SELECTED_ID, "admiral_platform") and not has_roles(COMMS_SELECTED_ID, "admiral_hq") and not has_roles(COMMS_SELECTED_ID, "admiral_shipyard") and not has_roles(COMMS_SELECTED_ID, "admiral_lab")
+
+
+//comms if has_roles(COMMS_ORIGIN_ID, "admiral") and has_roles(COMMS_SELECTED_ID, "admiral_platform") and not has_roles(COMMS_SELECTED_ID, "admiral_hq") and not has_roles(COMMS_SELECTED_ID, "admiral_shipyard") and not has_roles(COMMS_SELECTED_ID, "admiral_lab")
+    + "Hail for status" admiral_platform_hail {"HAIL_ID": COMMS_SELECTED_ID}
+
+
+# Report the hailed platform's status on the Admiral's status line (this console has
+# no info panel; ADM_LAST_MSG is the shared surface the build-status widget watches).
+=== admiral_platform_hail
+    default HAIL_ID = None
+    ADM_LAST_MSG = admiralty_platform_status_text(to_object(HAIL_ID))
+    ->END
+
+
+# Overseer requisition (HQ comms button): pay + deliver a catalog item beside the
+# requisitioning side's crews. Mirrors the bridge Requisition tab's action.
+=== admiral_overseer_requisition
+    default REQ_PICK = None
+    default REQ_SIDE = universe_primary_side()
+    fail = requisition_try_deliver(REQ_SIDE, REQ_PICK)
+    if fail is None:
+        req_entry = requisition_entry(REQ_SIDE, REQ_PICK)
+        deliver_players = to_object_list(role("__player__") & role(REQ_SIDE))
+        if len(deliver_players) > 0:
+            dpos = deliver_players[0].pos
+            item_spawn(REQ_PICK, dpos.x + 600, dpos.y, dpos.z + 400)
+            ADM_LAST_MSG = "Requisition delivered: " + req_entry[1] + " - collect nearby."
+        else:
+            ADM_LAST_MSG = "No player ship on that side to deliver to."
+    else:
+        ADM_LAST_MSG = fail
+    universe_info_card(ADM_LAST_MSG, "Admiralty Quartermaster", "#0cf")
+    ->END
+
+
+# HQ: cycle the crew subsidy (off -> tiers -> off), the same action the Map/econ
+# tab exposed. Drains the pools while active (admiralty_subsidy_upkeep).
+//enable/comms if has_roles(COMMS_ORIGIN_ID, "admiral") and has_roles(COMMS_SELECTED_ID, "admiral_hq")
+
+
+//comms if has_roles(COMMS_ORIGIN_ID, "admiral") and has_roles(COMMS_SELECTED_ID, "admiral_hq")
+    # The galaxy theater now lives on the overseer's Galaxy top tab (admiral_galaxy_view),
+    # not an HQ button - the HQ menu is command/economy actions only.
+    + "Adjust crew subsidy":
+        adm_new_sub = admiralty_subsidy_cycle(COMMS_ORIGIN.side)
+        universe_save_players()
+        if adm_new_sub > 0:
+            ADM_LAST_MSG = "Crew subsidy set to " + str(int(adm_new_sub * 100)) + "% off station prices."
+        else:
+            ADM_LAST_MSG = "Crew subsidy stood down."
+        universe_info_card(ADM_LAST_MSG, "Admiralty Quartermaster", "#0cf")
+    # Requisition: one button per catalog item (requisition_try_deliver already
+    # requires an HQ, so the Quartermaster platform is its natural home). Delivered
+    # beside the crews - the overseer equivalent of the bridge Requisition tab.
+    adm_hq_side = COMMS_ORIGIN.side
+    for adm_req in requisition_catalog_items(adm_hq_side):
+        + "Requisition {adm_req.name} ({adm_req.costs_text})" admiral_overseer_requisition {"REQ_PICK": adm_req.key, "REQ_SIDE": adm_hq_side}

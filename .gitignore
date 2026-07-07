@@ -4,3 +4,4 @@ __pycache__/
 # Media is provided at runtime from the LegendaryMissions media resource zip
 media/
 # Shared universe save lives in missions/common_data, not here
+WRITERS_GUIDE.pdf

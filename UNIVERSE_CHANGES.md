@@ -599,6 +599,239 @@ flavor is the highest-*delight* for content authors).
 
 ---
 
+## Capstone plan (DECIDED): one `universe.amd` per universe
+
+Resolves the Epic I "unified universe document" exploration above. A universe is
+authored as **one file** - `universe.amd` (per-universe, named by its registry
+label) - that holds identity, clans, clan jobs, and narrative in one place, with a
+home for universe-wide tuning knobs. This is the **primary** way to build a
+universe; the split files (`clans.amd` / `clan_quests.amd` / `narrative.amd`)
+remain a **fallback** so nothing existing breaks.
+
+### Why it's low-risk (no new AMD syntax)
+
+The AMD parser (`document_get_amd_file`, `quest.py`) **already supports nested
+headings**: `#` = level 1, `##` = level 2, `###` = level 3 build a `children`
+tree, and **each** heading carries its own `---` data fence. So one file with
+`## [Clans]` / `## [Jobs]` / `## [Narrative]` sections (each holding `###`
+entries) reuses the exact `# [Display](key)` + `---` fence idioms already in use -
+**nothing new to invent**, satisfying the markdown-shaped / confirm-first
+guardrail. (Confirmed with the user: **nested headings**, and **single-file
+primary with legacy fallback**.)
+
+### Two gaps this also fixes
+
+- `clan_quests.amd` is currently loaded **hardcoded** (`universe.mast`), not from
+  the selected universe - so jobs aren't actually per-universe today. Moving jobs
+  into the file's `jobs` section makes them per-universe.
+- `narrative.amd` is **referenced in the registry but never loaded** (the
+  `universe_narrative_file` helper is dead). The `narrative` section finally gets
+  loaded and its `scope: shared` arcs granted via the existing `quest_grant_amd`.
+
+### File shape
+
+```
+# [Default](default)
+---
+display: Default
+# future home for skybox/music, generation weights, reputation curves
+---
+Prose: what this universe is.
+
+## [Clans](clans)
+### [Iron Concord](iron)
+---
+color: "#3399ff"
+archetype: military
+diplomacy: neutral
+homes: [[6, 4]]
+leans: { by_the_book: 40, fearsome: 30, honest: 20 }
+quest_pool: [patrol, escort, strike]
+makeup: { Kralien: 60, Arvonian: 40 }
+---
+Disciplined and territorial...
+
+## [Jobs](jobs)
+### [Patrol Sweep](patrol)
+---
+tier: 1
+objective: Destroy 4 raiders
+on_kill: { role: raider, count: 4 }
+reward: { credits: 300 }
+---
+Raiders have been probing our space...
+
+## [Narrative](narrative)
+### [The Long Truce: Summons](truce_1)
+---
+scope: shared
+state: active
+on_reach: { sector: [6, 4] }
+reveal: truce_2
+---
+A coded hail from Iron Concord HQ...
+```
+
+### Loader changes (all in this repo, all small)
+
+1. **Registry** (`universes.mast`): each `@universe/<key>` label points at one
+   `universe: default.amd` instead of the `clans:`/`narrative:` pair. The loader
+   still reads the old `clans`/`narrative` keys when present (fallback).
+2. **`universe_clans.py`**: add `universe_file(display)` (the .amd filename, falling
+   back to the legacy clans file) and `universe_section(doc, key)` (a child section
+   by key). `universe_parse_clans` iterates the `clans` section's children; if
+   there's no `clans` section (a legacy flat file), it iterates the root - a
+   one-line branch, backward compatible.
+3. **`universe_clan_quests.py`**: same pattern reading the `jobs` section (fallback
+   to flat). Fixes the hardcoded-jobs gap.
+4. **`universe.mast` load block** (currently 2 parses, lines ~59-62): read the file
+   **once** into `UNIVERSE_DOC = document_get_amd_file(..., content=...)`, then
+   derive `UNIVERSE_CLANS` / `UNIVERSE_CLAN_QUESTS` / new `UNIVERSE_NARRATIVE` from
+   its sections.
+5. **Narrative wiring** (new, small): load the `narrative` section and grant its
+   `scope: shared` arcs via `quest_grant_amd` (the dead reference goes live). May
+   ship as an immediate follow-up to keep the first cut tight.
+
+### Capstone payoff (phased)
+
+The level-1 root's data fence is the home for universe-wide knobs. Ship the
+**container** first (identity + clans + jobs + narrative), then expose tuning
+**incrementally** - each knob a small, testable change rather than one big bang:
+- now: `display` (move off the registry label; the label just names file + key);
+- next: skybox/music theme, generation weights (kind distribution, POI-deck
+  weights), reputation tier thresholds / forgiveness curves, galaxy bounds.
+
+### Migration & scope
+
+- Fold `clans.amd` + `clan_quests.amd` + the Appendix C narrative draft into
+  `universe/default.amd`.
+- Keep the legacy split-file load path as a fallback; new universes are one file.
+- **Save:** no structural change (`universe_selection` already persists; identity
+  is authored, not saved) - **no version bump**.
+- **Test:** headless `--test 30 --map universe --use-working-tree` - clans spawn,
+  jobs offer, a narrative arc grants, and a legacy split-file universe still loads
+  via fallback; add a unit test for `universe_section` / section partitioning.
+
+> Not in scope here: the movie-script **dialogue** flavor (Epic I sub-idea) - that
+> stays a separate, confirm-first design. This capstone is the *document
+> structure*; dialogue is a later content layer that would slot in as another
+> section/flavor once its syntax is signed off.
+
+---
+
+## Reputation flexibility plan (DECIDED): author-defined axes + tuning
+
+Closes the Epic-I gap "the reputation axes themselves (`REP_POLES` is a code
+constant) - can't add a 'pious/heretical' axis for a religious universe," plus
+the adjacent "reputation & diplomacy tuning ... no way to author 'the pirates
+forgive quickly but the cult never forgets.'" Both become **authored data** in the
+universe root's `reputation:` block (the capstone identity fence). Built on the
+merged `universe.amd`.
+
+Confirmed with the user: **explicit axis list** schema; a declared block
+**replaces** the built-in axis set (no block -> the built-in 7); ship **axes +
+tuning knobs together**.
+
+### What's hardcoded today
+
+- `universe_reputation.py`: `REP_POLES` (7 axes / 14 poles) as a module constant;
+  `REP_MIN/MAX`; tier thresholds (`>=20/>=50` in `clan_offer_tier` AND the foe gate
+  in `clan_work_offers`); reward curve (`clan_reward_mult`); `CEASEFIRE_FREE_AT=30`
+  + per-point cost in `clan_ceasefire_cost`; and the **alliance threshold is a bare
+  literal `60`** in the `universe.mast` station comms route (not even a constant).
+- Nuance: `_axis_sign` already defaults an unknown pole to `(pole, +1)`, so a new
+  pole name *already* works one-directionally; what's missing is a **paired
+  opposite**, replacing/renaming the set, and author discoverability.
+- Everything else references poles **by name** (`leans`, `rep:` blocks,
+  `reputation_get/adjust/apply`, `%{pole>N}` comms gates), so it all keeps working
+  unchanged once the pole map is authored.
+
+### Authored schema (in the universe root data fence)
+
+```
+# [Default](default)
+---
+display: Default
+reputation:
+  axes:
+    - { axis: honesty,     pos: honest,       neg: liar }
+    - { axis: nerve,       pos: fearsome,     neg: cowardly }
+    - { axis: temperament, pos: peaceful,     neg: violent }
+    - { axis: generosity,  pos: generous,     neg: selfish }
+    - { axis: kindness,    pos: kind,         neg: cruel }
+    - { axis: method,      pos: resourceful,  neg: by_the_book }
+    - { axis: intellect,   pos: intellectual, neg: foolish }
+  min: -100
+  max: 100
+  tiers: { t2: 20, t3: 50 }      # standing to unlock job tiers 2 / 3
+  foe_deal_standing: 20          # standing a foe clan needs before it deals
+  reward_mult_max: 2.0           # reward multiplier at standing +100
+  ceasefire_free_at: 30          # ceasefire free at/above; scales below
+  ceasefire_per_point: 20        # cr per standing-point under the free line
+  alliance_standing: 60          # standing to propose an alliance
+---
+```
+
+A custom universe (religious, forgiving pirates) just authors its own:
+
+```
+reputation:
+  axes:
+    - { axis: devotion, pos: pious,  neg: heretical }
+    - { axis: valor,    pos: brave,  neg: craven }
+    - { axis: zeal,     pos: zealous }     # single-pole axis (no opposite)
+  tiers: { t2: 10, t3: 40 }               # forgiving thresholds
+```
+
+- **Axes = replace-with-fallback:** if `axes:` is present it fully defines the
+  pole map; if absent, the built-in 7 stand. Each axis -> two poles
+  (`pos`->`(axis,+1)`, `neg`->`(axis,-1)`); `neg` optional (single-pole axis).
+- **Tuning = per-knob override:** each knob present overrides its default; absent
+  keeps today's value (so a universe can retune `tiers` without redefining axes).
+- Explicit-list shape (vs bare pole pairs) was chosen to leave room for future
+  per-axis metadata (display name, color) without a schema change. Reuses the `---`
+  YAML fence - **no new AMD syntax**.
+
+### Code changes (all in this repo)
+
+1. **`universe_reputation.py`**
+   - `REP_POLES` -> module global `_REP_POLES` seeded from a `_DEFAULT_POLES`
+     table; same for the tuning constants (`_TIER2/_TIER3`, `_FOE_DEAL`,
+     `_REWARD_MULT_MAX`, `_REP_MIN/MAX`, `_CEASEFIRE_FREE_AT`,
+     `_CEASEFIRE_PER_POINT`, `_ALLIANCE_STANDING`).
+   - New `reputation_configure(rep_cfg)`: **reset to defaults first** (module
+     globals persist process-wide, so re-selecting a universe must not leak prior
+     config), then rebuild `_REP_POLES` from `axes:` and apply any tuning overrides.
+   - `_axis_sign`, `clan_offer_tier`, `clan_reward_mult`, `clan_ceasefire_cost`,
+     and `clan_work_offers`' foe gate read the globals instead of literals.
+   - New getter `clan_alliance_standing()` (so the comms route stops hardcoding 60).
+2. **`universe.mast`**
+   - Load block: after `UNIVERSE_DOC` is parsed, call
+     `reputation_configure((universe_root_node(UNIVERSE_DOC).get("data") or {}).get("reputation"))`.
+   - Station comms route: replace the literal `dip_standing >= 60` with
+     `dip_standing >= clan_alliance_standing()`.
+3. **`default.amd`**: add the explicit default `reputation:` block above - it both
+   documents the feature and serves as the authoring template (no behavior change,
+   since it equals the built-in defaults).
+
+### Save / compat / test
+
+- **Additive, no version bump.** Per-captain rep stays keyed by **canonical axis
+  name**. Authoring caveat: *renaming* axes in an existing universe orphans
+  previously-saved values for those axes (acceptable; a different universe is a
+  different rep context anyway). Document it.
+- **Test:** unit-test `reputation_configure` (axes replace; tuning override;
+  no-block fallback; reset-between-loads). Headless: a probe universe with custom
+  axes (`pious/heretical`) - leans, `clan_standing`, job gating, and a `rep:` block
+  all resolve on the custom poles; and the default universe is byte-for-byte
+  unchanged in behavior.
+
+> Out of scope (Phase C, flag only): **per-clan** forgiveness/grudge *rates* (decay
+> over time, asymmetric gain/loss) - a different flexibility axis than the set of
+> axes; revisit separately so this stays declarative.
+
+---
+
 ## Persistence additions (all additive to the universe save)
 
 New state each epic stores. All are **new keys read with `.get(default)`**, so per
@@ -784,6 +1017,138 @@ system composition; POI-activation standby. Remaining are **tuning + spikes**:
     `universe_chatter_card` / `universe_info_card`; HTBM-style cards
     (name/color/history/auto-dismiss). [explore] promote a `comms_info_card`
     helper into sbs_utils (see Epic G note).
+
+- **Authoring format (Epic I capstone) - DONE:**
+  - DONE: **one `universe.amd`** merged file (clans + jobs + narrative + dialogue
+    sections), legacy split-file fallback; reputation axes + tuning authored in the
+    root `reputation:` block (`reputation_configure`).
+  - DONE: **friendly fact-sheet syntax** - `Label: value` fact lines instead of
+    YAML inside the `---` fence (comma lists, `name N` weights, `N% Race` makeup,
+    `a / b` pole pairs, English quest triggers). `universe_amd.py` translates a
+    fence to the internal data dict; a fence using YAML flow delegates to YAML, so
+    legacy/LM files are unchanged. Enabled by a `data_parser` hook on
+    `document_get_amd_file` (sbs_utils, default = YAML).
+  - DONE: **simplified headings** - `# Display` / `# Display (key)` instead of
+    `# [Display](key)`. Gated behind `allow_bare_headings` (sbs_utils, default off)
+    so document/help AMD that uses bare `#` as rendered markdown content is
+    unaffected; OU opts in.
+  - DONE: **section includes** - a section's fence may carry one or more
+    `File: path.amd` (repeat the line or a comma `Files:` list); the loader reads
+    each and splices its top-level entries into the section, in order. So
+    `universe.amd` stays a slim table of contents and a growing section fans out
+    into files (e.g. `dialogue/ashfang.amd`, `dialogue/verdant.amd` - one per clan).
+    One level (included files are entries, not further includes).
+    `universe_includes` / `universe_splice`; the mast reads via
+    `media_read_relative_file` (subfolders resolve).
+  - DONE (first cut): the **movie-script dialogue flavor** - a `## Dialogue`
+    section authors clan conversations as scenes (`Speaker` = a clan; `When: comms`
+    = the hail entry; `%` lines; choices = markdown links with optional
+    `if <guard>` and `; <outcomes>`). Driven at runtime by `universe_dialogue.py`
+    (parse + guard eval + outcome apply) and the `//comms/dialogue` scene loop; a
+    station Hail opens it. Declarative only (no loops/vars), per the "writer's room"
+    rule. Parsing + guards unit-tested; interactive comms flow wants a GUI pass.
+  - DONE (first cut): **NPC captains + rivals** (`## Captains` section, per-clan
+    files). A captain is an authored person: Clan, Title, Values (the reputation
+    poles he embodies), Flies, Roams (hailable at that station). The player holds a
+    **personal reputation** with him - the same per-(agent, subject) rep store keyed
+    by his key, so `clan_standing` / dialogue guards + outcomes work on a captain
+    record unchanged (free). He's a **dialogue Speaker** (scenes `Speaker: <his
+    key>` resolve his name/face/clan-color and read PERSONAL standing). A captain
+    turns **rival** when his authored `Rival when: <guard>` holds - emergent from
+    conduct, self-undoing, no script (reuses the dialogue guard grammar).
+    `universe_captains.py`; sample Vex Karr (Ashfang). Parse + rival guard + speaker
+    resolution unit-tested; headless PASS. **Follow-up:** the rival actually
+    spawning as a ship that hunts you across systems (spawn integration + GUI).
+  - IN PROGRESS: **the cast (lifeforms)** on the library substrate
+    (`sbs_utils.procedural.lifeform`: a named Agent with a face, roles, a host, and
+    a comms `path` = its voice). A `## Lifeforms` section authors characters
+    (per-clan/per-file); the driver spawns each via `lifeform_spawn` and points its
+    `path` at one bridge route (`//comms/universe_cast`) that plays the lifeform's
+    `Scene` through the dialogue driver - so a comms character's voice IS a dialogue
+    scene. `dialogue_speaker` now resolves a captain, a cast lifeform, or a clan.
+    Done (slice 1): host-less galaxy comms NPCs (sample Frontier Command), parse +
+    speaker + face unit-tested, headless PASS.
+    Done (slice 2): **passenger delivery**. A passenger is a lifeform you transport -
+    pick up at a station, it boards your ship (`lifeform_spawn` host=ship), and
+    disembarks on reaching its destination system (the cargo-run `on_reach` quest
+    pays the fare). B = authored named passengers (a cast lifeform with Pickup +
+    Deliver to + Pays + a voice, e.g. Doctor Sela Voss home -> Verdant); A = a generic
+    traveler the station offers to the deterministic cargo destination. Reuses the
+    lifeform substrate + `universe_helpers.universe_delivery_target`. Parse/lookup
+    unit-tested; headless PASS.
+    Done (slice 3): **saboteur** (HTBM script-driven pattern, tied to delivery - the
+    passenger you carry can be the saboteur). A lifeform with a `Sabotage:` list of
+    ship systems is a hidden saboteur (tagged `saboteur` on board); while one is
+    aboard, `universe_saboteur_run` damages those systems one at a time
+    (`grid_damage_system` + `sbs.SHPSYS`, the HTBM primitives) with crew alerts, until
+    a Detain choice in his dialogue emits `detain_saboteur` (removes the role -> the
+    task breaks -> off the ship). Sample: A Nervous Courier (Iron home -> home base,
+    pays suspiciously well). Declarative (author lists the systems); the loop is
+    engine-room. Parse + compile unit-tested; headless PASS. The interactive
+    sabotage/detain wants a GUI pass. Richer follow-up: grid-walking boarders / hero
+    grid items via morph-to-grid + a grid brain. Then fold captains onto lifeforms.
+
+- **Generation knobs (capstone gap) - DONE.** The galaxy's shape is now authored in
+  the universe root `generation:` block (friendly % fields): system-kind mix
+  (Station/Enemy/Nebula/Anomaly), with Danger scaling enemy density on top, and
+  POI-deck weights (Loot max, Derelict/Outpost/Mine chance). `generation_configure`
+  applies them (defaults reproduce the built-in generator); `universe_system_kind`
+  (the mix + Danger) and `universe_system_deck` (the deck) read the config. So "a
+  peaceful trade galaxy vs. a brutal warzone" is a content edit - unit-verified
+  (parse + distribution retuning: warzone floods enemy systems, peaceful zeroes
+  them) + headless PASS.
+
+- **Regions (per-area identity) - DONE (first cut).** A `## Regions` section authors
+  named map areas - a Center + Radius (a Chebyshev square in i,j) with a Skybox and
+  Music. On arrival the system's region sets the sky + music (the global
+  skybox/music gap); cells no region claims keep the default. `universe_regions.py`
+  (parse + region_for_system point-in-region lookup); samples The Ashen Reach
+  (Ashfang) + The Verdant Belt (Verdant). Lookup unit-tested; headless PASS (the
+  visual change wants a GUI pass).
+- **Per-region generation overrides - DONE.** A region's fence may carry the same
+  generation knobs (Station/Enemy/Nebula/Anomaly mix, deck chances) - they override
+  the global within the region's bounds, so a region is its own warzone or haven.
+  `regions_configure` registers them; `universe_system_kind` (map + spawn, via
+  `_gen_for_cell`) and `universe_system_deck` (i,j-aware) both apply the merge. The
+  Ashen Reach is now a warzone (enemy-dense, mined), the Verdant Belt a haven (no
+  raiders, ports everywhere). Verified: within-region distribution shifts as
+  authored; headless PASS. Follow-up: region coloring on the galaxy map.
+
+- **Lore / Codex - DONE.** A readable in-game **Codex** tab renders the universe's
+  lore. `universe_codex.mast` registers the tab and reuses the LegendaryMissions
+  documents addon's `document_screen` renderer; the content is `universe/lore.amd` -
+  a classic documents AMD (markdown, bare `#`/`##` headings rendered as content,
+  parsed by the default reader not the friendly one). Per-universe (a universe can
+  ship its own lore.amd). Sample lore: intro, the clans, reputation/diplomacy, the
+  regions. Parse + tab load verified headless; the rendered tab wants a GUI pass.
+
+- **Landmarks - DONE.** A `## Landmarks` section pins named stations/wrecks to a
+  system (the legendary places, layered over the procedural content). Each has an At
+  (coords) + Kind (station / derelict); a station may name a Side and Art.
+  `universe_landmarks.py` (parse + `universe_landmarks_in_system` +
+  deterministic-per-landmark position); spawned on arrival in `universe_enter_system`.
+  Samples: the Drifting Cathedral (Choir wreck), Tycho Station (TSN post). Headless
+  PASS. (Note: a landmark naming a Side that no clan spawns logs a harmless
+  `Side not found` - Tycho's `tsn`.)
+- **Goods - DONE.** A `## Goods` section authors the loot pool (good keys + Weight);
+  the POI deck scatters loot drawn from this weighted pool. `universe_goods.py`
+  (`universe_parse_goods`, `goods_configure` reset-first, `universe_loot_pick`);
+  defaults reproduce the built-in five. Good keys must be registered items (the LM
+  items mastlib). Weighted distribution + headless PASS.
+- **Goals / win-lose - DONE (first cut).** A `## Goals` section authors the
+  campaign's end conditions: a goal is a shared quest (Scope/State/When like a
+  narrative step) flagged `Win` or `Lose`. On completion, `//signal/quest_finished`
+  announces the end on the info panel (optional `Citation` = its text) and broadcasts
+  `universe_victory` / `universe_defeat` for an end screen to hook (the screen itself
+  is the GUI follow-up). Omit the section for an open-ended sandbox. Granted at start
+  via `quest_grant_amd` (like narrative). Sample: break the Ashfang (kill 20 -> Win).
+  Parse + headless PASS.
+- **Region map coloring - DONE.** A region's optional `Color` washes its cells on the
+  Navigation galaxy map (forced low alpha so clan/quest/current/selected colors still
+  override), so a region's geography reads at a glance; shown even in fog (geography,
+  not intel). `region_map_color` + `_region_faint` in `universe_regions.py`; applied
+  in the map repaint below clan ownership. This closes the Regions follow-up. Tint
+  helper unit-tested; headless PASS (the visual wants a GUI pass).
 
 > Fixed: universe_jump_to's console loops crashed (`'int' object has no
 > attribute 'client_id'`) when role("console") yielded a raw client id instead

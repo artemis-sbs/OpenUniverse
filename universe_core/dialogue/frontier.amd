@@ -1,0 +1,72 @@
+// Frontier Command's voice - the dialogue scenes for the cast lifeform
+// `frontier_command` (Speaker = his key). Spliced into the `## Dialogue` section.
+
+# [Frontier Command](frontier_hail)
+---
+Speaker: frontier_command
+When: comms
+---
+% Frontier Command here, captain. You're a long way from home.
+% Report when able. We read what the clans make of you out there.
+
+- [Report in](frontier_done)
+- [Request guidance](frontier_advice)
+
+# [Guidance](frontier_advice)
+---
+Speaker: frontier_command
+---
+% Keep your standing clean with the neutral clans; the foe systems will test you.
+% Watch the Ashfang lanes - their captains hold grudges.
+
+- [Understood](frontier_done)
+
+# [Out](frontier_done)
+---
+Speaker: frontier_command
+---
+% Frontier Command out. Stay sharp, captain.
+
+// Passenger Doctor Sela Voss's voice (Speaker = her lifeform key), hailable while
+// she's aboard.
+# [Doctor Sela Voss](sela_hail)
+---
+Speaker: sela_voss
+When: comms
+---
+% Thank you for the passage, captain. The Verdant worlds are a long way out.
+% Mind the Ashfang lanes - I'd rather arrive in one piece.
+
+- [Reassure her](sela_done)
+- [Say nothing](sela_done)
+
+# [Settled In](sela_done)
+---
+Speaker: sela_voss
+---
+% I'll be in the observation lounge if you need me.
+
+// The saboteur courier's voice. Hail him once the crew report sabotage, then Detain
+// (the choice emits `detain_saboteur`, which stops the sabotage and puts him off).
+# [A Nervous Courier](courier_hail)
+---
+Speaker: courier
+When: comms
+---
+% I paid for passage, not an interrogation. Eyes forward, captain.
+% ...is something wrong? You're looking at me strangely.
+
+- [Let it go](courier_done)
+- [Detain him](courier_caught) ; signal detain_saboteur
+
+# [Caught](courier_caught)
+---
+Speaker: courier
+---
+% You don't know what you've just stopped, captain. They'll send another.
+
+# [Move Along](courier_done)
+---
+Speaker: courier
+---
+% Smart. Mind your own business and we'll get along fine.

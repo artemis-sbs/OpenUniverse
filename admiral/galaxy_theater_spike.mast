@@ -1,0 +1,95 @@
+# The galaxy THEATER command routes (ADMIRAL_CONSOLE.md section 19, "Deploy UX"). The
+# overseer's Galaxy top tab (admiral_galaxy_view in admiral.mast) reassigns the console
+# to the galaxy cam so its 2D view shows the marker board (built out in dead space);
+# helpers in universe_galaxy_theater.py. These routes turn a click on that board into a
+# command. (Was a throwaway spike proving far-coordinate markers select + fire //comms.)
+
+# LEFT-CLICK a galaxy marker -> its command menu in the scrollable comms_control (comms,
+# not a popup, so a long "Send fleet" list scrolls). The client is assigned to the galaxy
+# cambot while viewing the theater, so COMMS_ORIGIN is that cam (galaxy_theater_cam) - the
+# system-view admiral //comms routes gate on `admiral` and don't fire here.
+//enable/comms if has_roles(COMMS_ORIGIN_ID, "galaxy_theater_cam") and has_roles(COMMS_SELECTED_ID, "galaxy_marker")
+
+
+//comms if has_roles(COMMS_ORIGIN_ID, "galaxy_theater_cam") and has_roles(COMMS_SELECTED_ID, "galaxy_marker")
+    spike_kind = get_inventory_value(COMMS_SELECTED_ID, "marker_kind", "?")
+    fd_i = get_inventory_value(COMMS_SELECTED_ID, "marker_i", 0)
+    fd_j = get_inventory_value(COMMS_SELECTED_ID, "marker_j", 0)
+    # Real console client: a //comms handler can run server-side (client_id 0), and Jump
+    # must reassign THIS console. COMMS_ORIGIN (the galaxy cam) carries it as cam_client
+    # (stashed by admiral_galaxy_view); pass it to the handler via data.
+    gt_client = get_inventory_value(COMMS_ORIGIN_ID, "cam_client", 0)
+    # One "Send <captain> here" per live fleet of this overseer's side (handler label +
+    # data dict - the safe in-loop comms-button pattern, not an inline block).
+    for fdf in fleets_of_side(COMMS_ORIGIN.side):
+        fd_name = fleet_officer_name(fdf.get("key"))
+        fd_key = fdf.get("key")
+        + "Send {fd_name} here" fleet_deploy_pick {"DF_KEY": fd_key, "DF_I": fd_i, "DF_J": fd_j}
+    # One "Send <ship> here" per player ship of this side - the overseer directs strategic
+    # movement now that the Nav map is retired (same jump primitive as a fleet deploy).
+    for adm_ps in to_object_list(role("__player__") & role(COMMS_ORIGIN.side)):
+        # Skip a ship already IN the selected system - no point "sending" it there.
+        adm_ps_cell = object_cell(adm_ps.id)
+        if adm_ps_cell[0] != fd_i or adm_ps_cell[1] != fd_j:
+            ps_name = adm_ps.name
+            ps_id = adm_ps.id
+            + "Send {ps_name} here" player_send_pick {"PS_SHIP": ps_id, "PS_I": fd_i, "PS_J": fd_j}
+    + "Jump here [{spike_kind}]" theater_jump_here {"JMP_I": fd_i, "JMP_J": fd_j, "JH_CLIENT": gt_client}
+    # Restores the retired Nav map's quick-nav: a submenu of notable systems.
+    + "Known locations" //comms/admiral/known
+    # No "Close map" button: the framework back tab (the console tab) returns to the
+    # system view - //gui/tab/admiral -> console_selected reassigns to the command cambot.
+
+
+# Order a player ship to jump to the picked system - the overseer moving a crew, now that
+# the Nav map is retired. Same universe_jump_to the old Nav "Jump Here" used.
+=== player_send_pick
+    default PS_SHIP = 0
+    default PS_I = 0
+    default PS_J = 0
+    ->END if PS_SHIP == 0
+    # Record the destination so the ship's board icon shows "->(i,j)" while it travels.
+    set_inventory_value(PS_SHIP, "active_objective", [PS_I, PS_J])
+    task_schedule(universe_jump_to, {"ti": PS_I, "tj": PS_J, "warp_ship": PS_SHIP})
+    ADM_LAST_MSG = "Ordering ship to " + str(PS_I) + "," + str(PS_J) + "."
+    ->END
+
+
+# Known-locations submenu (restores the retired Nav map's quick-nav list): Home Base,
+# clan homes, and active quest targets. Picking one jumps the OVERSEER there (reuses
+# theater_jump_here). Reached via "Known locations" on the marker menu.
+//comms/admiral/known
+    gk_client = get_inventory_value(COMMS_ORIGIN_ID, "cam_client", 0)
+    + "Back" //comms
+    for gk in universe_known_locations(UNIVERSE_CLANS, universe_quest_target_sectors()):
+        gk_name = gk.name
+        gk_i = gk.i
+        gk_j = gk.j
+        + "{gk_name} ({gk_i}, {gk_j})" theater_jump_here {"JMP_I": gk_i, "JMP_J": gk_j, "JH_CLIENT": gk_client}
+
+
+# Dispatch the picked fleet to the picked system (fire-and-forget; the overseer stays on
+# the map). fleet_deploy_to does the cell enter/generate/relocate/leave.
+=== fleet_deploy_pick
+    default DF_KEY = None
+    default DF_I = 0
+    default DF_J = 0
+    ->END if DF_KEY is None
+    task_schedule(fleet_deploy_to, {"DEPLOY_FLEET": DF_KEY, "ti": DF_I, "tj": DF_J})
+    ADM_LAST_MSG = "Fleet deploying to " + str(DF_I) + "," + str(DF_J) + "."
+    ->END
+
+
+# Jump the overseer to the picked system: return the view to the command cambot, then
+# run the camera self-jump (universe_admiral_jump) to the marker's cell. JH_CLIENT is the
+# real console client (threaded from the route, robust to a server-side handler).
+=== theater_jump_here
+    default JMP_I = 0
+    default JMP_J = 0
+    default JH_CLIENT = 0
+    ->END if JH_CLIENT == 0
+    jh_cam = get_inventory_value(JH_CLIENT, "ADMIRAL_CAM", 0)
+    if jh_cam != 0:
+        sbs.assign_client_to_ship(JH_CLIENT, jh_cam)
+        task_schedule(universe_admiral_jump, {"ti": JMP_I, "tj": JMP_J, "cam_id": jh_cam, "jump_client": JH_CLIENT})
+    ->END

@@ -5,6 +5,7 @@ pure function of (seed, i, j): named home systems win, otherwise a keyed pick
 among foe clans - so the galaxy map and what spawns agree. See UNIVERSE_CHANGES.md
 (Epics C/I).
 """
+import os
 import random
 from sbs_utils import scatter
 from sbs_utils.procedural.quest import document_get_amd_file
@@ -13,7 +14,10 @@ from sbs_utils.procedural.sides import side_set_relations
 from sbs_utils.procedural.roles import all_roles
 from sbs_utils.procedural.gui import gui_row, gui_text
 from sbs_utils.procedural.comms import comms_info_card
+from sbs_utils.procedural.media import media_read_relative_file
+from sbs_utils.fs import get_mission_dir_filename
 from sbs_utils.mast.mast_node import MastDataObject
+from sbs_utils.agent import Agent
 
 # Fallback race pool when a clan declares no makeup.
 _DEFAULT_RACES = ["Kralien", "Torgoth", "Arvonian", "Ximni"]
@@ -101,16 +105,149 @@ def universe_narrative_file(display):
     return _universe_field(display, "narrative", "narrative.amd")
 
 
+def universe_file(display):
+    """The single merged universe.amd filename for the selected universe.
+
+    The primary authoring format is one file holding identity + clans + jobs +
+    narrative (see UNIVERSE_CHANGES.md capstone). A registry label names it with
+    `universe:`. Labels that predate the merge name a split `clans:` file instead;
+    fall back to that so old universes keep loading.
+    """
+    return _universe_field(display, "universe", None) or universe_clans_file(display)
+
+
+def universe_read_content(fname):
+    """Read a universe .amd file (or an include) as text. Tries the CONSUMER MISSION
+    folder first (get_mission_dir_filename) so a standalone mission built on the
+    universe_core mastlib can supply its OWN universe content, then falls back to
+    code/lib-relative (media_read_relative_file) for OU's bundled universes - which
+    also reads from inside a packaged mastlib zip (Phase 2b foundation work). Backward
+    compatible: OU's own .amd files live next to universe.mast, so when a consumer
+    provides no such file in its mission dir, the fallback loads them exactly as before."""
+    if fname:
+        mission_path = get_mission_dir_filename(fname)
+        if mission_path is not None and os.path.isfile(mission_path):
+            with open(mission_path, "r") as f:
+                return f.read()
+    return media_read_relative_file(fname)
+
+
+# --- Merged universe document (one file, nested sections) --------------------
+# A universe.amd parses to a tree: one level-1 heading (the universe root) whose
+# children are `## [Clans]`/`## [Jobs]`/`## [Narrative]` section nodes, each
+# holding `###` entries. The parser already builds this nesting (heading level ->
+# depth) and attaches each heading's `---` data fence, so no new AMD syntax is
+# needed. Legacy split files have their entries as level-1 headings (no sections);
+# the section helpers return None there so callers fall back to flat iteration.
+def universe_doc(content):
+    """Parse universe.amd (or a legacy flat clans.amd) into a document tree, using
+    the friendly fact-sheet reader for fenced data (YAML still works via delegate).
+
+    Headings are the LINK form `# [Display](key)` (same as the document/help viewers),
+    NOT the old bare `# Display (key)`. This keeps `#` STRUCTURAL only, so a leading
+    `#` inside a description body is free to be gui_text_area markdown (a heading in
+    rich prose) instead of being swallowed as a new node. The whole OU corpus was
+    migrated to link-form; bare headings are retired here (OU had no production release,
+    so no back-compat concern)."""
+    return document_get_amd_file(None, "Universe", content=content, data_parser=universe_amd_data)
+
+
+def universe_root_node(doc):
+    """The single level-1 universe heading node (the file's root content), or None."""
+    kids = doc.get("children", []) if doc else []
+    return kids[0] if kids else None
+
+
+def universe_section(doc, key):
+    """The named section node (`clans`/`jobs`/`narrative`) under the universe root,
+    or None when absent (a legacy flat file -> caller iterates the root instead)."""
+    root = universe_root_node(doc)
+    if root is None:
+        return None
+    for n in root.get("children", []):
+        if n.get("key") == key:
+            return n
+    return None
+
+
+# --- Section includes (split a large universe across files) ------------------
+# A section heading may carry `File: path.amd` in its fence; the loader reads that
+# file, parses it, and splices its top-level entries into the section - so the main
+# universe.amd stays a slim table of contents and big sections (dialogue, jobs) live
+# in their own files. One level: an included file holds entries, not further File:s.
+def universe_includes(doc):
+    """One (section key, file) per file to splice in - a section may name several
+    (repeat `File:` or a comma `Files:` list), spliced in order. The mast reads each
+    file and calls universe_splice."""
+    root = universe_root_node(doc)
+    out = []
+    if root is not None:
+        for sec in root.get("children", []):
+            files = (sec.get("data") or {}).get("file") or []
+            if isinstance(files, str):
+                files = [files]
+            for f in files:
+                out.append(MastDataObject({"key": sec.get("key"), "file": f}))
+    return out
+
+
+def universe_splice(doc, section_key, included_doc):
+    """Append an included file's top-level entries as children of the named section."""
+    root = universe_root_node(doc)
+    if root is None or included_doc is None:
+        return
+    for sec in root.get("children", []):
+        if sec.get("key") == section_key:
+            sec.get("children").extend(included_doc.get("children", []))
+            return
+
+
+def universe_reputation_cfg(doc):
+    """The universe root's `reputation:` config block (axes + standing tuning), or
+    None when absent (-> the built-in defaults). Fed to reputation_configure."""
+    root = universe_root_node(doc)
+    data = (root.get("data") if root is not None else None) or {}
+    return data.get("reputation")
+
+
+def universe_shared_id():
+    """The game-wide SHARED agent id - where shared narrative arcs are granted
+    (quest_grant_amd routes scope: shared steps here). Lets the mast grant the
+    `narrative` section without referencing Agent in MAST scope."""
+    return Agent.SHARED_ID
+
+
+def universe_clans_from_doc(doc):
+    """Clan records from a parsed universe doc: the `clans` section's children if
+    present, else the doc's top-level children (a legacy flat clans.amd).
+
+    A modern universe file is one root heading (identity fence + section
+    children); if it simply has no ## Clans section that means NO clans - don't
+    mistake the root itself for a legacy flat-file clan entry."""
+    section = universe_section(doc, "clans")
+    if section is not None:
+        return _clans_from_nodes(section.get("children", []))
+    kids = doc.get("children", []) if doc else []
+    if len(kids) == 1 and (kids[0].get("children") or (kids[0].get("data") or {}).get("display")):
+        return []
+    return _clans_from_nodes(kids)
+
+
 def universe_parse_clans(content):
-    """Parse clans.amd content into a list of clan records (MastDataObject).
+    """Parse universe.amd / clans.amd content into a list of clan records
+    (MastDataObject). Section-aware with a legacy flat-file fallback.
 
     Each record: key, name, desc, color, archetype, diplomacy (foe/neutral),
-    homes [[i,j],...], leans {axis:val}, quest_pool [..], and enemies (csv for
-    prefab_side_generic - "tsn" for foe clans, "" for neutral).
+    homes [[i,j],...], leans {axis:val}, quest_pool [..]. A foe clan's hostile
+    relations are set at spawn against the live player-side roster (universe.mast),
+    not baked here - so "foe" means foe of whatever sides are playing.
     """
-    doc = document_get_amd_file(None, "Clans", content=content)
+    return universe_clans_from_doc(universe_doc(content))
+
+
+def _clans_from_nodes(nodes):
     clans = []
-    for n in doc.get("children", []):
+    for n in nodes:
         data = n.get("data") or {}
         diplomacy = data.get("diplomacy", "neutral")
         clans.append(MastDataObject({
@@ -130,7 +267,6 @@ def universe_parse_clans(content):
             # Optional comms-card identity (info panel): a face string + an icon.
             "face": data.get("face"),
             "icon": data.get("icon"),
-            "enemies": "tsn" if diplomacy == "foe" else "",
         }))
     return clans
 

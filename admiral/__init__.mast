@@ -1,0 +1,21 @@
+# admiral - the OpenUniverse Admiral RTS economy addon (worldlets + extraction, fleets,
+# skirmish, fabricator, research, war-state, the galaxy command theater, and the Admiral
+# console). Split from the former monolithic `universe/` addon in Phase 2b.
+#
+# LOADS ON TOP OF universe_core: a mission that wants the RTS lists BOTH mastlibs in its
+# story.json - universe_core FIRST, then admiral. A story/campaign mission omits this one.
+# Order-independent from core at load: core's admiral_present() (universe_mode.py) detects
+# admiralty_configure in the shared MAST namespace at runtime, so it does not matter that
+# local sibling-folder discovery compiles `admiral` before `universe_core` alphabetically.
+#
+# No import-time calls into core here (only function DEFS, which resolve core names lazily
+# at call time) - so admiral compiling before core is safe.
+import universe_worldlets.py
+import universe_research.py
+import universe_fleets.py
+import universe_skirmish.py
+import universe_fabricator.py
+import universe_warstate.py
+import universe_galaxy_theater.py
+import admiral.mast
+import galaxy_theater_spike.mast

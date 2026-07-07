@@ -1,0 +1,121 @@
+// Archetype A (FOUNDATION_PLAN.md): a multi-admiral PvP SKIRMISH universe.
+// `Mode: skirmish` makes the player sides (TSN, Orion) mutually hostile, runs the
+// Admiral economy at a brisk pace, and ends the match on the LAST SIDE STANDING -
+// a side is out when it holds no Headquarters. Needs 2+ player ships (the mission's
+// PLAYER_LIST puts player two on Orion). Selectable from the Universe dropdown.
+
+# [The Broken Accord](the_broken_accord)
+---
+Display: Skirmish - The Broken Accord
+---
+Two fleets, one field of worldlets, and a truce that lasted exactly as long as the
+ore did. Build an economy, raise a navy, and end the other admiral's war - the last
+side with a Headquarters keeps the Reach.
+
+## [Scenario](scenario)
+---
+Mode: skirmish
+---
+Multi-admiral PvP. Set Player Ships to 2 or more - player two flies for Orion. Each
+side starts in its OWN home system (worlds apart), so build an economy and a navy at
+home, then jump the fleet toward the enemy to engage - use the Navigation galaxy map.
+Victory is the last side standing (raze every enemy Headquarters); a well-placed
+strike on the enemy's first HQ - its capital - ends it faster.
+
+## [Worldlets](worldlets)
+
+The resource bodies both admirals fight over - build Extractors on them, refine and
+bank the yield, spend it on platforms and fleets. A dry worldlet stops producing.
+
+### [Cinder World](cinder)
+---
+Yields: ore 8
+Reserve: 4000
+Palette: base #8c2f1c, emissive #48180c, clouds #776655
+---
+A cracked, mineral-rich ember of a world. Miners love it; nobody else does.
+
+### [Veiled Giant](veiled_giant)
+---
+Yields: gas 10
+Reserve: 6000
+Palette: base #2c4a8c, clouds #b8c4e0, bands 3.7
+---
+A banded gas giant, its high winds rich in fuel-grade volatiles.
+
+### [Haven World](haven)
+---
+Yields: crew 2, ore 2, gas 2
+Reserve: unlimited
+Palette: base #2f6e3a, clouds #ffffff
+---
+A small settled world. People, modest industry, and somewhere to hold.
+
+## [Admiralty](admiralty)
+---
+Worldlet chance: 70%
+---
+A resource-rich arena (worldlets in most systems) so the fight is over ground worth
+holding, not over finding any at all. Economy pace comes from `Mode: skirmish`
+(brisk); override it here with `Economy pace:` if you want a slower or faster match.
+
+## [Officers](officers)
+
+Example Academy roster for testing the Admiral navy: named fleet captains any admiral
+can commission at the Shipyard once an Academy stands. Values use the reputation poles
+and drive each officer's fleet bonuses (by-the-book runs leaner on gas, resourceful
+salvages richer, fearsome engages farther). Placeholder flavor for now: authored voices
+come later. Currently a shared pool both sides draw from (per-side rosters are a later
+design pass).
+
+### [Commodore Ansel Vale](vale)
+---
+Title: the Quartermaster
+Values: by-the-book 40, honest 30, kind 10
+Face: male
+---
+Ran the academy logistics course for a decade and the lanes know it. Fleets under Vale
+come home fueled, patched, and on schedule.
+
+### [Captain Iris Kade](kade)
+---
+Title: Old Thunder
+Values: fearsome 40, violent 20, generous 10
+Face: female
+---
+Leads from the front and shoots first. Kade's fleets hit harder and scare weaker prey
+off the board before a shot lands.
+
+### [Captain Juno Ashwell](ashwell)
+---
+Title: the Magpie
+Values: resourceful 40, intellectual 20, selfish 10
+Face: female
+---
+Never met a wreck she could not strip or a sensor shadow she could not slip through.
+Ashwell's fleets salvage more and die less.
+
+### [Commander Rho Serval](serval)
+---
+Title: the Blade
+Values: fearsome 30, by-the-book 20, honest 10
+Face: male
+---
+Precise and relentless. Serval keeps a disciplined line that holds under fire.
+
+### [Captain Mira Voss](voss)
+---
+Title: the Fox
+Values: resourceful 30, intellectual 30, generous 10
+Face: female
+---
+Reads a battle two moves ahead and wastes neither a shot nor a ton of ore.
+
+### [Commander Dax Orlan](orlan)
+---
+Title: the Anvil
+Values: by-the-book 30, generous 20, kind 20
+Face: male
+---
+Steady under pressure and never leaves a wingman behind. Orlan's fleets hold together
+long past when they should have broken.

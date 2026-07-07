@@ -1,0 +1,26 @@
+# universe_core - the generic multi-system exploration engine (OpenUniverse Phase 2b
+# split of the former monolithic `universe/` addon). A story/campaign mission loads
+# THIS mastlib alone (Mode: story / campaign - no admiral economy). The admiral RTS
+# lives in the separate `admiral/` addon (admiral mastlib); core detects it at RUNTIME
+# via admiral_present() (universe_mode.py), so loading core WITHOUT admiral is fully
+# valid - every admiral call-site in core is guarded by admiral_present()/admiralty_active().
+#
+# Helpers/data first, then the registries, then the map itself (shared MAST namespace:
+# later files call the earlier helpers by bare name).
+import universe_helpers.py
+import universe_mode.py
+import universe_sides.py
+import universe_amd.py
+import universe_clans.py
+import universe_reputation.py
+import universe_clan_quests.py
+import universe_dialogue.py
+import universe_captains.py
+import universe_lifeforms.py
+import universe_regions.py
+import universe_landmarks.py
+import universe_goods.py
+import universe_systems.py
+import universe_codex.mast
+import universes.mast
+import universe.mast

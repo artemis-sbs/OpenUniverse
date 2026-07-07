@@ -10,7 +10,9 @@ stays open - a clan can later carry bespoke quests and these remain the baseline
 See UNIVERSE_CHANGES.md.
 """
 from sbs_utils.procedural.quest import (
-    document_get_amd_file, quest_add, quest_get_state, QuestState)
+    document_get_amd_file, quest_add, quest_get_state, QuestState,
+    quest_kill_count_for_difficulty)
+from sbs_utils.procedural.execution import get_shared_variable
 from sbs_utils.mast.mast_node import MastDataObject
 # NOTE: no relative sibling imports. Mission .py files are loaded by __init__.mast
 # (`import universe_clans.py`, `import universe_reputation.py`) into one shared engine
@@ -21,8 +23,19 @@ from sbs_utils.mast.mast_node import MastDataObject
 
 
 def universe_parse_clan_quests(content):
-    """Parse clan_quests.amd into a doc (each heading key is a pool job type)."""
+    """Parse a standalone clan_quests.amd into a doc (each heading key is a pool job
+    type). Legacy split-file path; the merged format uses universe_jobs_from_doc."""
     return document_get_amd_file(None, "ClanQuests", content=content)
+
+
+def universe_jobs_from_doc(doc):
+    """The `jobs` section node of a merged universe doc, whose children are the job
+    types (the shape clan_work_offers / _clan_job_node expect). None when the doc
+    has no jobs section (a legacy split file) so the caller falls back to a
+    standalone clan_quests.amd. universe_section is defined in universe_clans.py -
+    this cross-file bare call works because all of a mission's .py files now share
+    one namespace (the engine shared-namespace fix)."""
+    return universe_section(doc, "jobs")
 
 
 def _clan_job_node(doc, job_type):
@@ -47,7 +60,7 @@ def clan_work_offers(agent_id, clans, clan_key, doc):
     if clan is None or doc is None:
         return []
     standing = clan_standing(agent_id, clan)
-    if clan.get("diplomacy") == "foe" and standing < 20:
+    if clan.get("diplomacy") == "foe" and standing < clan_foe_deal_standing():
         return []
     tier = clan_offer_tier(standing)
     mult = clan_reward_mult(standing)
@@ -94,6 +107,14 @@ def universe_grant_clan_job(agent_id, clans, clan_key, job_type, doc):
     base = data["reward"].get("credits", 0)
     data["reward"]["credits"] = int(base * mult)
     data["clan"] = clan_key
+    # Scale a grind kill target (e.g. "destroy N raiders") to difficulty - the
+    # authored count is the DIFFICULTY 5 baseline; single/boss kills (<3) are left
+    # as authored. Copy the on_kill dict first so the shared AMD doc isn't mutated.
+    kill = data.get("on_kill")
+    if isinstance(kill, dict) and kill.get("role") and kill.get("count"):
+        kill = dict(kill)
+        kill["count"] = quest_kill_count_for_difficulty(kill.get("count", 1), get_shared_variable("DIFFICULTY", 5))
+        data["on_kill"] = kill
     # Completing clan work earns standing with that clan along its valued poles.
     data["rep"] = {clan_key: {pole: 5 * tier for pole in (clan.get("leans") or {})}}
     title = str(clan.get("name")) + ": " + str(node.get("display_text"))

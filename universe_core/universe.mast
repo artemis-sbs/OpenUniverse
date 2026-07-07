@@ -1,0 +1,1359 @@
+#
+# Open Universe - a procedurally generated, jump-between-sectors map.
+#
+# A sector's contents are a pure function of (universe_seed, i, j), so the whole
+# universe is "stored" in its seed. Only the current sector is instantiated,
+# always at the origin (full float precision, tiny memory); jumping clears the
+# sector and regenerates the destination at the origin. See universe_helpers.py.
+#
+# This is step 3a: keyed terrain + travel. Sector features (stations, enemies,
+# anomalies) and persistence come in later steps.
+#
+
+# Gate the Navigation console to this map only (other maps leave it False).
+default shared UNIVERSE_ACTIVE = False
+# Sector-generation options (host-selectable). Declared top-level so they exist
+# when the start-screen property panel renders.
+default shared DANGER = "Quiet"
+default shared ENCOUNTERS = "On Arrival"
+default shared universe_kind = "home"
+default shared START_MODE = "Continue"
+# Start-screen dials that used to be set ONLY by the @map metadata panel. Now that the
+# @map lives in each MISSION (universe_core carries none - see universe_map_begin), give
+# them defaults here so a consumer @map that does NOT expose them (e.g. a story mission
+# with a minimal start screen) still resolves. A mission's own @map panel overrides.
+default shared TERRAIN_SELECT = "some"
+default shared seed_value = 0
+default shared universe_sectors = {}
+default shared MAP_REVEAL = "Fog of War"
+default shared UNIVERSE_SELECT = "Default"
+default shared universe_diplomacy = {}
+# Active dialogue scene + speaker clan (set when a player hails; see the dialogue
+# routes near the station comms).
+default shared DLG_SCENE = None
+default shared DLG_CLAN = None
+# Engine-network culling: park terrain beyond this radius from all players.
+default shared UNIVERSE_CULL = True
+default shared UNIVERSE_CULL_RADIUS = 25000
+# Player Navigation grid map: retired by default (the Admiral theater is the single
+# strategic map; quests move players). Flip on for solo / no-admiral / Mode fallback.
+default shared NAV_CONSOLE_ENABLED = False
+# Admiral ECONOMY/BUILD mode toggle. True = full RTS economy (pools, extraction, build
+# queue, worldlet building). False = a "simple" overseer that just MOVES units (player
+# ships + any fleets) from the theater - no economy, no building. The economy code stays
+# intact; this only gates whether that mode runs/shows it. A Mode preset flips it.
+default shared ADMIRALTY_ECONOMY = True
+# Opt into the LM Quests tab's "Engage" button: movement is quest-driven, so a player
+# engages a job's on_reach target from the Quests tab (//signal/quest_engage jumps).
+default shared QUEST_ENGAGE_ENABLED = True
+# Auto-waypoints: with no galaxy map, quest-driven-nav missions have no way back to a
+# place once its lead completes. When on, arriving at a NAMED location (a landmark, or
+# home) charts it as a "Charted Locations" waypoint the player can re-Engage from the
+# Quests tab. Off by default (galaxy-map missions don't need it); story missions opt in.
+default shared WAYPOINTS_ENABLED = False
+
+
+# The player-side agents. LM's server start fires signal_emit("create_sides")
+# BEFORE player ships spawn and before any map runs; the route that answers it
+# lived in LegendaryMissions/maps (watch_for_end.mast) and did not travel when
+# the universe moved to its own mission. Without it there is no tsn side AGENT,
+# and everything that lives on it (credits, the Admiralty pools) reads 0.
+# Synchronous on purpose (no await): server_console relies on the sides
+# existing when signal_emit returns. NO ->END here: the route executes
+# inline in the server-start task, and ending "the task" would end (and
+# error) the caller - it ends implicitly at the next label, like the LM
+# original.
+//shared/signal/create_sides
+    universe_clear_player_sides()
+    prefab_spawn(prefab_side_generic, data={"key":"tsn"})
+    side_set_display_name("tsn", "TSN")
+    side_set_description("tsn", "The Terran Stellar Navy")
+    side_set_icon_color("tsn", "#07F")
+    universe_register_player_side("tsn")
+    # A second PLAYER side (a co-op Admiral) - registering it in the roster is all
+    # it takes for the economy/fleet loops + consoles to run for it too. Allied
+    # with TSN here (a universe author sets rival relations below for PvP).
+    prefab_spawn(prefab_side_generic, data={"key":"orion", "name": "Orion", "color": "#0c8", "desc":"The Orion Concord"})
+    universe_register_player_side("orion")
+    prefab_spawn(prefab_side_generic, data={"key":"raider", "name": "Raider", "color": "#F00", "desc":"Hostile Aliens"})
+    prefab_spawn(prefab_side_generic, data={"key":"civ", "name": "Civ", "color": "white", "desc":"Civilians."})
+    side_set_relations("tsn", "raider", sbs.DIPLOMACY.HOSTILE)
+    side_set_relations("raider", "civ", sbs.DIPLOMACY.HOSTILE)
+    side_set_relations("civ", "tsn", sbs.DIPLOMACY.NEUTRAL)
+    side_set_relations("orion", "raider", sbs.DIPLOMACY.HOSTILE)
+    side_set_relations("orion", "civ", sbs.DIPLOMACY.NEUTRAL)
+    side_set_relations("orion", "tsn", sbs.DIPLOMACY.ALLIED)
+    # Mode-driven PvP (Foundation Phase 3): skirmish/war make the PLAYER sides
+    # mutually HOSTILE, overriding the co-op relations above. sandbox/campaign/story
+    # leave them as authored. Applied last so the Mode wins; a free-for-all default
+    # (every player side hostile to every other) - explicit teams come later.
+    if universe_mode_is_pvp():
+        for _pa in universe_player_sides():
+            for _pb in universe_player_sides():
+                if _pa != _pb:
+                    side_set_relations(_pa, _pb, sbs.DIPLOMACY.HOSTILE)
+    sim.set_diplomacy_color(sbs.DIPLOMACY.HOSTILE, "#F00")
+    sim.set_diplomacy_color(sbs.DIPLOMACY.NEUTRAL, "#077")
+
+
+# The universe setup, as a REUSABLE label (OpenUniverse Phase 2b foundation). A mission
+# supplies its OWN `@map/<key>` - the presentation surface: title, description, and the
+# start-screen Properties panel - sets UNIVERSE_SELECT (which universe .amd to load), then
+# `jump universe_map_begin`. universe_core carries NO @map of its own, so a consumer's map
+# is the only one the start screen shows (no inherited "Open Universe" / demo dropdown).
+# OU's own `@map/universe` (with its dropdown of demo universes) lives in the OU mission's
+# story.mast; StormsBeacon's `@map/stormsbeacon` lives in its story.mast. Both jump here.
+=== universe_map_begin
+    UNIVERSE_ACTIVE = True
+    # Load the selected universe from one merged AMD file (identity + clans + jobs
+    # + narrative; see UNIVERSE_CHANGES.md capstone). Parsed once into UNIVERSE_DOC;
+    # clans/jobs/narrative are sections of it. Legacy split-file universes have no
+    # sections, so jobs fall back to a standalone clan_quests.amd.
+    shared UNIVERSE_DOC = universe_doc(universe_read_content(universe_file(UNIVERSE_SELECT)))
+    # Section includes: a section with `File: x.amd` in its fence pulls its entries
+    # from that file (so the main universe.amd stays a table of contents). One level.
+    for _inc in universe_includes(UNIVERSE_DOC):
+        universe_splice(UNIVERSE_DOC, _inc.key, universe_doc(universe_read_content(_inc.file)))
+    # Reputation axes + standing tuning from the universe's root `reputation:` block
+    # (resets to the built-in 7 axes + defaults when absent). Must run before any
+    # rep read/write below.
+    reputation_configure(universe_reputation_cfg(UNIVERSE_DOC))
+    # Generation knobs (the root `generation:` block): system-kind mix + POI-deck
+    # weights. Must run before universe_enter_system / the galaxy map use them.
+    generation_configure(universe_generation_cfg(UNIVERSE_DOC))
+    # Clans -> spawned as sides below. The player sides already exist from the
+    # server-start create_sides signal, so foe clans' hostile relations resolve.
+    shared UNIVERSE_CLANS = universe_clans_from_doc(UNIVERSE_DOC)
+    # Generic clan jobs: the universe's `jobs` section. Legacy split-file universes
+    # may still carry a standalone clan_quests.amd; a modern universe with no
+    # ## Jobs section (and no legacy file) simply offers no clan work.
+    shared UNIVERSE_CLAN_QUESTS = universe_jobs_from_doc(UNIVERSE_DOC)
+    if UNIVERSE_CLAN_QUESTS is None:
+        legacy_jobs = universe_read_optional_file("clan_quests.amd")
+        if legacy_jobs is not None:
+            UNIVERSE_CLAN_QUESTS = universe_parse_clan_quests(legacy_jobs)
+    # Shared narrative arcs (the `narrative` section, may be None); granted below.
+    shared UNIVERSE_NARRATIVE = universe_section(UNIVERSE_DOC, "narrative")
+    # Campaign goals (the `goals` section, may be None): shared quests like narrative,
+    # but a goal flagged Win/Lose ends the campaign when it completes (handled in
+    # //signal/quest_finished). Granted game-wide below alongside the narrative.
+    shared UNIVERSE_GOALS = universe_section(UNIVERSE_DOC, "goals")
+    # Dialogue scenes (the `dialogue` section): key -> scene node, driven by the
+    # //comms/dialogue route when a player hails a clan station.
+    shared UNIVERSE_DIALOGUE = dialogue_scenes(UNIVERSE_DOC)
+    # Named NPC captains (the `captains` section): people with a personal reputation
+    # who can be hailed where they roam and turn rival per their `Rival when:` guard.
+    shared UNIVERSE_CAPTAINS = universe_parse_captains(UNIVERSE_DOC)
+    # The cast (the `lifeforms` section): hosted comms characters built on the engine
+    # lifeform. Host-less ones are galaxy comms NPCs spawned now; their `path`
+    # bridges to the dialogue driver (//comms/universe_cast).
+    shared UNIVERSE_LIFEFORMS = universe_parse_lifeforms(UNIVERSE_DOC)
+    for _lf in UNIVERSE_LIFEFORMS:
+        if _lf.host is None and _lf.deliver_to is None:
+            universe_spawn_lifeform(_lf, None)
+    # Regions (the `regions` section): named map areas that set the sky + music on
+    # arrival (universe_enter_system), and whose local generation overrides reshape
+    # the system mix within their bounds (regions_configure -> universe_system_kind).
+    shared UNIVERSE_REGIONS = universe_parse_regions(UNIVERSE_DOC)
+    regions_configure(UNIVERSE_REGIONS)
+    # Landmarks (the `landmarks` section): named hand-placed stations/wrecks pinned
+    # to a system, spawned on arrival (universe_enter_system).
+    shared UNIVERSE_LANDMARKS = universe_parse_landmarks(UNIVERSE_DOC)
+    # Goods (the `goods` section): the authored loot pool the POI deck scatters.
+    goods_configure(universe_parse_goods(UNIVERSE_DOC))
+    # Mission Mode gate (CORE): resolves mission_mode() from the ## Scenario / ## Admiralty
+    # chapter. admiralty_active() stays False until the admiral addon (if loaded) enables it.
+    universe_mode_configure(universe_admiralty_cfg(UNIVERSE_DOC))
+    # Admiral economy addon (ADMIRAL_CONSOLE.md): parse + register its content ONLY when
+    # the admiral mastlib is loaded. A story/campaign mission omits that mastlib, so
+    # admiral_present() is False and none of these admiral symbols are ever evaluated -
+    # this if-block IS the optional-addon boundary (Phase 2b). Inactive (zero worldlets,
+    # no Admiral game) unless the universe also authors an Admiralty chapter + worldlets.
+    if admiral_present():
+        worldlets_configure(universe_parse_worldlets(UNIVERSE_DOC))
+        admiralty_configure(universe_admiralty_cfg(UNIVERSE_DOC))
+        research_configure(universe_parse_research(UNIVERSE_DOC))
+        officers_configure(universe_parse_officers(UNIVERSE_DOC))
+        fleet_chatter_configure(UNIVERSE_DOC)
+    for _clan in UNIVERSE_CLANS:
+        # A foe clan is hostile to every player side (the live roster), not just a
+        # hardcoded "tsn" - so foes stay foes no matter which sides are playing.
+        _clan_enemies = ",".join(universe_player_sides()) if _clan.diplomacy == "foe" else ""
+        await prefab_spawn(prefab_side_generic, {"key": _clan.key, "name": _clan.name, "desc": _clan.desc, "color": _clan.color, "enemies": _clan_enemies})
+    # Seed the Admiral side's starting stockpiles (guarded - once per campaign)
+    # and start the extraction economy + the fleet order loop (admiral.mast).
+    default shared UNIVERSE_GAME_OVER = False
+    if admiralty_active():
+        for _side in universe_player_sides():
+            admiralty_seed_pools(_side)
+        skirmish_reset()
+        fabricator_reset()
+        # Simple (economy-off) mode skips the extraction/persistence tick entirely -
+        # the overseer just moves units. Fleets still operate (admiralty_fleet_loop).
+        if ADMIRALTY_ECONOMY:
+            task_schedule(admiralty_economy_tick)
+        task_schedule(admiralty_fleet_loop)
+        task_schedule(admiralty_skirmish_loop)
+        task_schedule(admiralty_fabricator_loop)
+        # War-state watcher (Foundation Phase 3): with >=2 player sides it reports
+        # eliminations + last-side-standing as signals; victory policy is quests or
+        # the Mode default (//signal/last_side_standing). Needs HQs, so admiral-only.
+        if len(universe_player_sides()) >= 2:
+            warstate_reset()
+            task_schedule(universe_warstate_loop)
+    shared universe_terrain_value = terrain_to_value(TERRAIN_SELECT)
+    # Continue loads the saved universe (seed + position + deltas); New Game
+    # starts fresh from the Seed property (0 = random) and overwrites the save.
+    saved = universe_load()
+    if START_MODE == "Continue" and saved is not None:
+        shared universe_seed = saved.get("universe_seed", 1)
+        shared universe_i = saved.get("current_sector", [0, 0])[0]
+        shared universe_j = saved.get("current_sector", [0, 0])[1]
+        shared universe_sectors = saved.get("sectors", {})
+        shared universe_diplomacy = saved.get("diplomacy", {})
+    else:
+        shared universe_seed = seed_value if seed_value != 0 else random.randrange(1, 2_000_000_000)
+        shared universe_i = 0
+        shared universe_j = 0
+        shared universe_sectors = {}
+        shared universe_diplomacy = {}
+    universe_save(universe_seed, universe_i, universe_j, universe_sectors)
+    # Re-apply any negotiated relation changes (clans/sides now exist).
+    universe_apply_dip(universe_diplomacy)
+    # Grant the shared narrative arcs (the universe's `narrative` section) game-wide:
+    # state: active steps go live now, secret steps wait for their reveal. Idempotent
+    # (skips already-granted steps), and a no-op when the universe has no narrative.
+    quest_grant_amd(universe_shared_id(), UNIVERSE_NARRATIVE)
+    # Grant the campaign goals the same way (shared, game-wide). A goal completing
+    # is what triggers the Win/Lose end (in //signal/quest_finished).
+    quest_grant_amd(universe_shared_id(), UNIVERSE_GOALS)
+
+    await task_schedule(universe_enter_system)
+    await task_schedule(spawn_players)
+    # Model A: register each player ship as an occupant of the start cell so the
+    # per-ship jump lifecycle knows it's occupied (New Game -> (0,0); Continue ->
+    # the restored current cell).
+    for _p in to_object_list(role("__player__")):
+        universe_cell_enter(universe_i, universe_j, _p.id)
+        ship_set_cell(_p.id, universe_i, universe_j)
+    # PvP (skirmish/war): each side deserves its OWN home system, not a shared brawl
+    # at the origin. Keep the primary side at (universe_i, universe_j); move every
+    # other player side to its own generated cell (spread along the i axis), so sides
+    # build up apart and jump toward each other to fight. New Game only - a Continue
+    # already carries each ship's saved cell.
+    if universe_mode_is_pvp() and START_MODE != "Continue":
+        pvp_slot = 1
+        for pvp_side in universe_player_sides():
+            if pvp_side == universe_primary_side():
+                continue
+            pvp_ships = to_object_list(role("__player__") & role(pvp_side))
+            if len(pvp_ships) == 0:
+                pvp_slot += 1
+                continue
+            pvp_ci = pvp_slot * 3
+            pvp_cj = 0
+            # Generate the side's home system on first entry, then relocate its ships.
+            if universe_cell_enter(pvp_ci, pvp_cj, pvp_ships[0].id):
+                await task_schedule(universe_enter_system, {"ei": pvp_ci, "ej": pvp_cj})
+            pvp_co = universe_cell_origin(pvp_ci, pvp_cj)
+            # (Could be `for pvp_n, pvp_ship in enumerate(...)` - MAST now supports tuple
+            # unpacking - but OU stays index-based so it keeps compiling against the
+            # PACKAGED sbslib until that's rebuilt with the feature.)
+            pvp_n = 0
+            for pvp_ship in pvp_ships:
+                universe_cell_enter(pvp_ci, pvp_cj, pvp_ship.id)
+                universe_cell_leave(universe_i, universe_j, pvp_ship.id)
+                ship_set_cell(pvp_ship.id, pvp_ci, pvp_cj)
+                pvp_ship.pos = Vec3(pvp_co.x + 2000 + pvp_n * 1500, pvp_ship.pos.y, pvp_co.z)
+                pvp_n = pvp_n + 1
+            pvp_slot += 1
+    # Continue restores the saved campaign; a New Game initializes fresh and
+    # must NOT inherit the old save's credits/items/admiralty (restore=False).
+    universe_load_players(START_MODE == "Continue")
+    # The load just restored adm_fleets (a Continue) - enter_system ran before
+    # it, so bring the saved navy back now. Idempotent: no-op on a New Game.
+    if admiralty_active():
+        for _side in universe_player_sides():
+            fleets_respawn(_side, universe_i, universe_j)
+    # Baseline save so the campaign (players, credits, admiralty pools) is
+    # durable even if the crew never jumps this session.
+    universe_save_players()
+    task_schedule(universe_chatter_loop)
+    task_schedule(universe_cull_loop)
+    ->END
+
+
+# Engine-network culling. Terrain is NEVER proximity-culled within a system:
+# parking/retrieving to standby is itself expensive network traffic, and terrain
+# is passive, so it just stays loaded for the whole visit. A system's terrain is
+# torn down only on a jump (universe_clear_system despawns the whole sector).
+# Raider fleets - brained NPCs whose AI is the real ongoing cost - still cull as a
+# unit (an occasional whole-formation park when the players leave them behind).
+=== universe_cull_loop
+--- culloop
+    await delay_sim(3)
+    ->END if not UNIVERSE_ACTIVE
+    if UNIVERSE_CULL:
+        # Fleets cull as a unit (whole formation parked + brain paused when far).
+        standby_cull_fleets("raider_fleet", UNIVERSE_CULL_RADIUS)
+    jump culloop
+
+
+# The antimatter veil's teeth: while the current system is veiled, every
+# player ship heats across all engineering systems (the heat damage channel).
+# Started by enter_system on arrival in a veiled cell; ends itself after a
+# jump out (region_veil_tick returns False when the system is clear).
+=== universe_veil_loop
+    # Scheduled per-enter for the veiled cell it belongs to (vi, vj) - not the shared
+    # global, so it keeps heating this cell's crews after another ship jumps elsewhere.
+    default vi = universe_i
+    default vj = universe_j
+--- veil_loop
+    await delay_sim(3)
+    ->END if not UNIVERSE_ACTIVE
+    ->END if not universe_cell_live(vi, vj)
+    ->END if not region_veil_tick(UNIVERSE_REGIONS, vi, vj, 3)
+    jump veil_loop
+
+
+# Capture: hold a foe clan station's space clear of its ships to take it. Once
+# the garrison is gone and the area stays clear long enough, the station morphs
+# to the player's side (persisted). Ends if you leave or it is destroyed.
+=== universe_capture_watch
+    default cap_station = None
+    default cap_clan = None
+    default cap_hold = 0
+    ->END if cap_station is None
+    # Multi-cell: the watched station fixes the cell (from its position), not the
+    # shared global. The watch ends when that cell despawns (its last viewer left),
+    # replacing the old "did we jump away" == universe_i check.
+    _cap_cell = object_cell(cap_station)
+    cap_i = _cap_cell[0]
+    cap_j = _cap_cell[1]
+--- cwatch
+    await delay_sim(2)
+    ->END if not UNIVERSE_ACTIVE
+    ->END if not object_exists(cap_station)
+    ->END if not universe_cell_live(cap_i, cap_j)
+    near = closest(cap_station, role(cap_clan) - role("station"), 12000)
+    if near is None:
+        cap_hold += 2
+    else:
+        cap_hold = 0
+    if cap_hold >= 20:
+        cap_obj = to_object(cap_station)
+        # The captured station joins the capturing player's side (the nearest
+        # player), falling back to the primary player side.
+        _capturer = closest(cap_station, role("__player__"), 12000)
+        cap_side = _capturer.side if _capturer is not None else universe_primary_side()
+        cap_obj.set_side(cap_side)
+        universe_sectors = universe_set_system_flag(universe_sectors, cap_i, cap_j, "captured")
+        universe_save(universe_seed, cap_i, cap_j, universe_sectors)
+        comms_broadcast(role("__player__"), "Starbase captured!", "#0f0")
+        # Taking the station also empties its brig: captured Admiralty
+        # officers held by this clan walk free (the bloodless rescue raid).
+        for _freed_key in officers_captured_by(cap_clan):
+            officer_release(cap_side, _freed_key)
+            officer_card(_freed_key, "They left my cell unlocked on the way out. Ready for duty.")
+        universe_save_players()
+        await task_schedule(docking_standard_player_station)
+        ->END
+    jump cwatch
+
+
+# Re-capture: a clan tries to retake a captured station. If its re-assault fleet
+# is destroyed, the attempt fails (you keep it). If the clan holds the station's
+# space (no player near) long enough, it reverts to the clan.
+=== universe_recapture_watch
+    default cap_station = None
+    default cap_clan = None
+    default cap_hold = 0
+    ->END if cap_station is None
+    # Multi-cell: cell fixed by the station's position; watch ends when it despawns.
+    _cap_cell = object_cell(cap_station)
+    cap_i = _cap_cell[0]
+    cap_j = _cap_cell[1]
+--- rwatch
+    await delay_sim(2)
+    ->END if not UNIVERSE_ACTIVE
+    ->END if not object_exists(cap_station)
+    ->END if not universe_cell_live(cap_i, cap_j)
+    # Re-assault repelled once no clan ships remain in the system.
+    foes = closest(cap_station, role(cap_clan) - role("station"), 60000)
+    ->END if foes is None
+    pl = closest(cap_station, role("__player__"), 12000)
+    if pl is None:
+        cap_hold += 2
+    else:
+        cap_hold = 0
+    if cap_hold >= 20:
+        cap_obj = to_object(cap_station)
+        cap_obj.set_side(cap_clan)
+        universe_sectors = universe_set_system_flag(universe_sectors, cap_i, cap_j, "captured", False)
+        universe_save(universe_seed, cap_i, cap_j, universe_sectors)
+        comms_broadcast(role("__player__"), "Starbase retaken by the enemy!", "#f00")
+        ->END
+    jump rwatch
+
+
+# Ambient chatter: occasional clan lines while in their space (flavor only).
+=== universe_chatter_loop
+--- loop
+    await delay_sim(45)
+    ->END if not UNIVERSE_ACTIVE
+    loop_owner = universe_system_clan(UNIVERSE_CLANS, universe_seed, universe_i, universe_j, universe_system_kind(universe_seed, universe_i, universe_j, DANGER))[0]
+    if loop_owner is not None:
+        loop_clan = clan_get(UNIVERSE_CLANS, loop_owner)
+        loop_chatter = universe_chatter_line(loop_clan)
+        if loop_chatter:
+            universe_chatter_card(loop_clan, loop_chatter)
+    # Near-POI: hint when a player is close to an unscanned derelict (discovery).
+    loop_players = to_object_list(role("__player__"))
+    if len(loop_players) > 0:
+        near_der = closest(loop_players[0], role("universe_derelict"), 7000)
+        if near_der is not None:
+            universe_info_card("Sensors flag a derelict nearby - science could scan it.", title="Sensors")
+    jump loop
+
+
+# Persist items + shared side credits whenever they change (universe only).
+//signal/item_changed if UNIVERSE_ACTIVE
+    universe_save_players()
+    ->END
+
+
+# Persist a station's market stock to the sector delta on buy/sell. Multi-cell:
+# key the save to the STATION'S cell (from its position), not the shared global -
+# a trade in a split-off player's system must land in that system's delta.
+//signal/item_bought if UNIVERSE_ACTIVE
+    mkt_cell = object_cell(station_id)
+    universe_sectors = universe_set_system_value(universe_sectors, mkt_cell[0], mkt_cell[1], "market", market_snapshot(station_id))
+    universe_save(universe_seed, mkt_cell[0], mkt_cell[1], universe_sectors)
+    ->END
+
+//signal/item_sold if UNIVERSE_ACTIVE
+    mkt_cell = object_cell(station_id)
+    universe_sectors = universe_set_system_value(universe_sectors, mkt_cell[0], mkt_cell[1], "market", market_snapshot(station_id))
+    universe_save(universe_seed, mkt_cell[0], mkt_cell[1], universe_sectors)
+    ->END
+
+
+# Apply a completed quest's declarative rep: block to the captain (universe).
+//signal/quest_finished if UNIVERSE_ACTIVE
+    reputation_apply(AGENT_ID, DATA.get("rep"))
+    # On-change chatter: clans note a shift in your standing.
+    if DATA.get("rep") is not None:
+        universe_info_card("Word of your deeds spreads among the clans.", title="Comms Chatter")
+    # A campaign goal carrying Win/Lose ends the campaign when it completes. The end
+    # is announced on the info panel and broadcast as a signal so an end screen (or
+    # any addon) can hook it; the goal's own prose is the citation.
+    if DATA.get("end_win"):
+        UNIVERSE_GAME_OVER = True
+        universe_info_card(DATA.get("citation", "The frontier is yours."), title="VICTORY")
+        signal_emit("universe_victory", DATA)
+    if DATA.get("end_lose"):
+        UNIVERSE_GAME_OVER = True
+        universe_info_card(DATA.get("citation", "The frontier is lost."), title="DEFEAT")
+        signal_emit("universe_defeat", DATA)
+
+
+# War-state watcher loop (Foundation Phase 3): reports eliminations + last-side-
+# standing as signals so victory POLICY can live in quests or the Mode default. A
+# side is "eliminated" once it has held an HQ and then holds none (conquest); the
+# decapitation quick-win is an authored quest against the <side>_capital role.
+=== universe_warstate_loop
+--- ws_loop
+    await delay_sim(4)
+    ->END if not UNIVERSE_ACTIVE
+    ->END if UNIVERSE_GAME_OVER
+    for _wev in warstate_tick():
+        match _wev.type:
+            case "eliminated":
+                signal_emit("side_eliminated", {"SIDE": _wev.side})
+                # Also fire the quest escape hatch so an authored CONQUEST quest can
+                # hook it: `When: signal eliminated_<side>` + `Win: true` (LM quest_
+                # driver.quest_on_signal). This is conquest-as-quest (Foundation 3c).
+                signal_emit("quest_signal", {"SIGNAL_NAME": "eliminated_" + _wev.side})
+                universe_info_card(_wev.side + " has lost its last Headquarters.", "War Room", "#f66")
+            case "last_standing":
+                signal_emit("last_side_standing", {"WIN_SIDE": _wev.side if _wev.side is not None else ""})
+                signal_emit("quest_signal", {"SIGNAL_NAME": "last_side_standing"})
+    ->END if warstate_done()
+    jump ws_loop
+
+
+# Mode default win: skirmish/war end when one player side remains. An authored
+# victory QUEST (e.g. `destroy 1 <enemy>_capital` for a decapitation win) fires
+# universe_victory earlier via //signal/quest_finished; this is the fallback
+# conquest win. Only PvP Modes act on it - co-op ignores last-standing.
+//signal/last_side_standing if universe_mode_is_pvp()
+    UNIVERSE_GAME_OVER = True
+    if WIN_SIDE == "":
+        universe_info_card("The war ends in mutual destruction - a draw.", "War Room", "#fa4")
+    else:
+        comms_broadcast(role("__player__"), WIN_SIDE + " stands victorious - the last side in command.", "#0f0")
+        universe_info_card("VICTORY - " + WIN_SIDE + " is the last side standing.", "War Room", "#0f0")
+    signal_emit("universe_victory", {"citation": "Last side standing.", "win": True, "WIN_SIDE": WIN_SIDE})
+    ->END
+
+
+# Scanning a universe derelict yields a one-time salvage reward (the science
+# addon shows the scan; this grants credits). on_scan quests also fire.
+//science if UNIVERSE_ACTIVE and has_role(SCIENCE_SELECTED_ID, "universe_derelict")
+    if get_inventory_value(SCIENCE_SELECTED_ID, "looted", 0) == 0:
+        set_inventory_value(SCIENCE_SELECTED_ID, "looted", 1)
+        salvage_side = to_side_id(get_side(SCIENCE_ORIGIN_ID))
+        set_inventory_value(salvage_side, "credits", get_inventory_value(salvage_side, "credits", 0) + 150)
+        comms_broadcast(SCIENCE_ORIGIN_ID, "Salvage recovered from the derelict: +150 credits.", "#0cf")
+    ->END
+
+
+# Change + persist a diplomacy relation (negotiation / quest-driven flips).
+# data: REL_A, REL_B, REL_VALUE (a sbs.DIPLOMACY int).
+=== universe_set_relation
+    side_set_relations(REL_A, REL_B, REL_VALUE)
+    universe_diplomacy = universe_set_dip(universe_diplomacy, REL_A, REL_B, REL_VALUE)
+    universe_save_diplomacy(universe_diplomacy)
+    # On-change chatter: a deliberate diplomacy shift makes the rounds.
+    universe_info_card("Diplomatic channels report a shift in relations.", title="Comms Chatter")
+    ->END
+
+
+# Station quest-giver: offer this sector's deterministic cargo run. The
+# destination is keyed to the sector (same station, same run); reaching it
+# completes the quest (on_reach) and pays out. Persists on the player ship.
+//comms if UNIVERSE_ACTIVE and has_role(COMMS_SELECTED_ID, "station")
+    ship_id = COMMS_ORIGIN_ID
+    # Multi-cell: this station is in the HAILING SHIP'S cell, not the shared global
+    # universe_i/j (which tracks the latest jumper - wrong for a player who split off
+    # to another system). Everything keyed to "this system" below (captains, cargo
+    # runs, passengers) reads the ship's own cell.
+    hail_cell = ship_cell(ship_id)
+    h_i = hail_cell[0]
+    h_j = hail_cell[1]
+    # Hail: open a conversation (universe_dialogue.py + the //comms/dialogue route)
+    # with the station's clan, and with any named captain who roams this system. A
+    # captain entry scene is keyed the same way (Speaker = his key, When: comms).
+    hail_clan = get_side(COMMS_SELECTED_ID)
+    hail_entry = dialogue_clan_entry(UNIVERSE_DIALOGUE, hail_clan)
+    if hail_entry is not None:
+        + "Hail {clan_name(UNIVERSE_CLANS, hail_clan)}" universe_dialogue_start {"scene": hail_entry}
+    for hail_cap in captains_in_system(UNIVERSE_CAPTAINS, h_i, h_j):
+        cap_entry = dialogue_clan_entry(UNIVERSE_DIALOGUE, hail_cap.key)
+        if cap_entry is not None:
+            + "Hail {captain_full_name(hail_cap)}" universe_dialogue_start {"scene": cap_entry}
+    # ENGINE RULE (found running in the real engine): `+` button CONDITIONS
+    # are re-evaluated by the comms system outside this route's task, where
+    # loop/task variables and shared-python names (pax, ship_id, QuestState)
+    # do not exist -> NameError spam. Gate buttons with plain `if` STATEMENTS
+    # (these run only here, in this task) and keep buttons condition-free.
+    if universe_delivery_available(ship_id, h_i, h_j):
+        + "Accept Cargo Run":
+            universe_grant_delivery(ship_id, universe_seed, h_i, h_j)
+            universe_save_players()
+            >> "Cargo loaded. The destination is marked on your galaxy map."
+    # Passenger transport: authored named passengers waiting here (B), plus a
+    # generic traveler to the deterministic destination (A). Accepting boards the
+    # passenger lifeform; reaching the destination pays the fare + disembarks them.
+    # Handler label + data (not an inline block): the block would run on click
+    # with the loop's LAST pax, not the clicked one.
+    # NOTE: compare against the integer 0, NOT QuestState.IDLE - QuestState is
+    # a Python enum in the .py files but is NOT in the engine's MAST eval
+    # globals (the mock's are more permissive, so --test never caught it).
+    # QuestState.IDLE == 0; the story_patrol check below already uses 0.
+    for pax in universe_passengers_at(UNIVERSE_LIFEFORMS, h_i, h_j):
+        if quest_get_state(ship_id, "passenger_" + pax.key) == 0:
+            pax_label = f"Transport {pax.name} to ({pax.deliver_to[0]}, {pax.deliver_to[1]})  ({pax.pays} cr)"
+            + "{pax_label}" universe_accept_passenger {"pax": pax}
+    pax_tij = universe_delivery_target(universe_seed, h_i, h_j)
+    if quest_get_state(ship_id, "passenger_traveler_" + str(h_i) + "_" + str(h_j)) == 0:
+        traveler_label = f"Transport a passenger to ({pax_tij[0]}, {pax_tij[1]})"
+        + "{traveler_label}":
+            universe_grant_passenger(ship_id, universe_generic_passenger(h_i, h_j, pax_tij[0], pax_tij[1]))
+            universe_save_players()
+            >> "Passenger aboard. Safe travels."
+    if quest_get_state(ship_id, "story_patrol") == 0:
+        + "Accept Patrol Mission":
+            quest_grant_amd(ship_id, BRIDGE_STORY_DOC)
+            universe_save_players()
+            >> "Patrol orders uploaded. Check your quest log - scan this starbase to begin."
+    # Clan work: if this station belongs to a clan that will deal with you, offer
+    # jobs from its pool (gated + reward-scaled by your standing). One button per
+    # offer; the data dict captures which job for the accept handler.
+    for offer in clan_work_offers(ship_id, UNIVERSE_CLANS, get_side(COMMS_SELECTED_ID), UNIVERSE_CLAN_QUESTS):
+        job_label = f"{offer.title}  ({offer.credits} cr)"
+        + "{job_label}" universe_accept_clan_job {"job_clan": offer.clan, "job_type": offer.type}
+    # Diplomacy: a captain can shift side-wide relations with this clan. A
+    # ceasefire can be bought with a tribute when standing is low (free at
+    # standing>=30); an alliance must be earned (standing>=60). Live relation via
+    # side_get_relations; changes persist (universe_set_dip + save).
+    dip_clan = get_side(COMMS_SELECTED_ID)
+    dip_rec = clan_get(UNIVERSE_CLANS, dip_clan)
+    my_side = get_side(ship_id)
+    if dip_rec is not None and dip_clan != my_side:
+        dip_rel = side_get_relations(my_side, dip_clan)
+        dip_standing = clan_standing(ship_id, dip_rec)
+        dip_side_id = to_side_id(my_side)
+        dip_credits = get_inventory_value(dip_side_id, "credits", 0)
+        ceasefire_cost = clan_ceasefire_cost(dip_standing)
+        # Statement-gated (see the engine rule above): dip_rel/dip_credits are
+        # task variables and must not appear in a button condition.
+        if dip_rel == sbs.DIPLOMACY.HOSTILE and dip_credits >= ceasefire_cost:
+            + "Negotiate Ceasefire":
+                set_inventory_value(dip_side_id, "credits", dip_credits - ceasefire_cost)
+                side_set_relations(my_side, dip_clan, sbs.DIPLOMACY.NEUTRAL)
+                universe_diplomacy = universe_set_dip(universe_diplomacy, my_side, dip_clan, sbs.DIPLOMACY.NEUTRAL)
+                universe_save_diplomacy(universe_diplomacy)
+                >> "We have an understanding. Hostilities are suspended (tribute: {ceasefire_cost} cr)."
+        if dip_rel == sbs.DIPLOMACY.NEUTRAL and dip_standing >= clan_alliance_standing():
+            + "Propose Alliance":
+                side_set_relations(my_side, dip_clan, sbs.DIPLOMACY.ALLIED)
+                universe_diplomacy = universe_set_dip(universe_diplomacy, my_side, dip_clan, sbs.DIPLOMACY.ALLIED)
+                universe_save_diplomacy(universe_diplomacy)
+                >> "Then we stand together. The clan is honored to call you ally."
+        # Ransom: this clan holds captured Admiralty officers (a lapsed MIA
+        # pod they claimed - universe_fleets). Buying them back is priced by
+        # standing (clan_ransom_cost): friends sell prisoners back cheap.
+        for _ransom_key in officers_captured_by(dip_clan):
+            _ransom_o = officer_def(_ransom_key)
+            if _ransom_o is not None:
+                _ransom_cost = clan_ransom_cost(dip_standing)
+                _ransom_label = f"Ransom {_ransom_o.name}  ({_ransom_cost} cr)"
+                if dip_credits >= _ransom_cost:
+                    + "{_ransom_label}" universe_pay_ransom {"ransom_key": _ransom_key, "ransom_cost": _ransom_cost}
+                else:
+                    + "{_ransom_label} - insufficient credits":
+                        >> "Come back when you can pay. The prisoner keeps."
+
+
+# Board a named passenger (from the station comms above). data: pax (the
+# authored passenger record) - a handler label so each button carries ITS
+# passenger, not the loop's last.
+=== universe_accept_passenger
+    default pax = None
+    ->END if pax is None
+    ship_id = COMMS_ORIGIN_ID
+    universe_grant_passenger(ship_id, pax)
+    universe_save_players()
+    # A saboteur passenger starts sabotaging once aboard (slice 3).
+    if pax.sabotage is not None:
+        task_schedule(universe_saboteur_run, {"SAB_SHIP": ship_id, "SAB_SYSTEMS": pax.sabotage})
+    comms_transmit(f"{pax.name} is aboard. Destination marked on your galaxy map.")
+    ->END
+
+
+# Pay a clan's ransom for a captured Admiralty officer (from the station comms
+# above). data: ransom_key (officer), ransom_cost (credits, priced at offer time).
+=== universe_pay_ransom
+    default ransom_key = None
+    default ransom_cost = 0
+    ->END if ransom_key is None
+    ransom_side = get_side(COMMS_ORIGIN_ID)
+    ransom_side_id = to_side_id(ransom_side)
+    ransom_credits = get_inventory_value(ransom_side_id, "credits", 0)
+    ->END if ransom_credits < ransom_cost
+    set_inventory_value(ransom_side_id, "credits", ransom_credits - ransom_cost)
+    officer_release(ransom_side, ransom_key)
+    universe_save_players()
+    officer_card(ransom_key, "Cell door is open and the shuttle is warm. I owe you one - back to work.")
+    ->END
+
+
+# Accept a clan job (from the station comms above). Grants + activates it on the
+# captain's ship with a standing-scaled reward, then persists.
+=== universe_accept_clan_job
+    ship_id = COMMS_ORIGIN_ID
+    universe_grant_clan_job(ship_id, UNIVERSE_CLANS, job_clan, job_type, UNIVERSE_CLAN_QUESTS)
+    universe_save_players()
+    comms_broadcast(ship_id, "Job accepted - check your quest log.", "#0cf")
+    ->END
+
+
+# Dialogue (the movie-script flavor): authored scenes in universe.amd's `## Dialogue`
+# section, driven at runtime by universe_dialogue.py. A Hail opens a clan's entry
+# scene; each scene shows the speaker's line (as a clan comms card) and the choices
+# whose guards pass; picking one applies its outcomes and advances to the next
+# scene. A scene with no choices is the end.
+
+# Start a conversation from a Hail button (clan or captain). The scene's Speaker
+# field decides the voice + the reputation context, so only the scene is needed.
+=== universe_dialogue_start
+    DLG_SCENE = scene
+    jump universe_dialogue_enter
+
+# Show the current scene's spoken line, then render its choices (//comms/dialogue).
+# Reached on hail and after every choice, so each line is delivered exactly once.
+# The Speaker (a captain or a clan) sets the voice AND the rep context - a captain
+# reads the player's PERSONAL standing with him.
+=== universe_dialogue_enter
+    dlg_node = dialogue_get(UNIVERSE_DIALOGUE, DLG_SCENE)
+    if dlg_node is not None:
+        dlg_scene = dialogue_parse(dlg_node)
+        dlg_spk = dialogue_speaker(UNIVERSE_CLANS, UNIVERSE_CAPTAINS, UNIVERSE_LIFEFORMS, dlg_scene.get("speaker"))
+        universe_chatter_card(dlg_spk, dialogue_pick_line(dlg_scene, COMMS_ORIGIN_ID, dlg_spk))
+    comms_navigate("//comms/dialogue")
+    ->END
+
+# Apply a chosen line's outcomes (credits/reputation/signal) and advance. If a cost
+# can't be afforded the pick is refused and the scene re-renders.
+=== universe_dialogue_choose
+    dlg_node = dialogue_get(UNIVERSE_DIALOGUE, DLG_SCENE)
+    dlg_spk = dialogue_speaker(UNIVERSE_CLANS, UNIVERSE_CAPTAINS, UNIVERSE_LIFEFORMS, dialogue_parse(dlg_node).get("speaker"))
+    if dialogue_apply(COMMS_ORIGIN_ID, dlg_spk, outcomes):
+        universe_save_players()
+        DLG_SCENE = to
+        jump universe_dialogue_enter
+    comms_broadcast(COMMS_ORIGIN_ID, "You cannot afford that.", "#f80")
+    comms_navigate("//comms/dialogue")
+    ->END
+
+# The dialogue page: one button per eligible choice, plus Leave. The spoken line was
+# already delivered by universe_dialogue_enter.
+//comms/dialogue if UNIVERSE_ACTIVE and DLG_SCENE is not None
+    dlg_node = dialogue_get(UNIVERSE_DIALOGUE, DLG_SCENE)
+    if dlg_node is not None:
+        dlg_scene = dialogue_parse(dlg_node)
+        dlg_spk = dialogue_speaker(UNIVERSE_CLANS, UNIVERSE_CAPTAINS, UNIVERSE_LIFEFORMS, dlg_scene.get("speaker"))
+        for dlg_ch in dialogue_choices(dlg_scene, COMMS_ORIGIN_ID, dlg_spk):
+            + "{dlg_ch.label}" universe_dialogue_choose {"to": dlg_ch.target, "outcomes": dlg_ch.outcomes}
+    + !0 "Leave" //comms
+
+
+# Cast bridge: a hailed lifeform's `path` is this route. It reads the selected
+# lifeform's authored Scene and plays it through the dialogue driver - so a comms
+# character's voice is just a dialogue scene. (lifeforms set path here at spawn.)
+//comms/universe_cast if has_role(COMMS_ORIGIN_ID, "__player__")
+    # COMMS_LIFEFORM_ID is only set once a lifeform badge is selected (this route is
+    # its path) - guard it so the first menu eval, before any selection, is safe.
+    default COMMS_LIFEFORM_ID = None
+    cast_scene = None
+    if COMMS_LIFEFORM_ID is not None:
+        cast_scene = get_inventory_value(COMMS_LIFEFORM_ID, "scene", None)
+    if cast_scene is not None:
+        DLG_SCENE = cast_scene
+        jump universe_dialogue_enter
+    + !0 "Back" //comms/comms_badge
+
+
+# Saboteur (slice 3, HTBM-style): while a saboteur lifeform is aboard, damage the
+# authored ship systems one at a time with crew alerts, until detained. Data:
+# SAB_SHIP, SAB_SYSTEMS (system names). Declarative - the author lists the systems
+# (Sabotage:); this loop is the engine-room part. grid_damage_system + sbs.SHPSYS
+# are the same primitives HereThereBeMonsters' saboteur uses.
+=== universe_saboteur_run
+    for sab_sys in SAB_SYSTEMS:
+        await delay_sim(45)
+        break if not UNIVERSE_ACTIVE
+        break if len(role("saboteur")) == 0
+        if sab_sys == "sensors":
+            grid_damage_system(SAB_SHIP, sbs.SHPSYS.SENSORS)
+        elif sab_sys == "weapons":
+            grid_damage_system(SAB_SHIP, sbs.SHPSYS.WEAPONS)
+        elif sab_sys == "engines":
+            grid_damage_system(SAB_SHIP, sbs.SHPSYS.ENGINES)
+        elif sab_sys == "shields":
+            grid_damage_system(SAB_SHIP, sbs.SHPSYS.SHIELDS)
+        comms_broadcast(SAB_SHIP, "ALERT: the " + sab_sys + " just took unexplained damage - someone aboard is sabotaging us!", "#f40")
+    ->END
+
+# Detain: a Detain choice in a saboteur's dialogue emits this signal. It ends the
+# sabotage (removes the role -> the task breaks) and puts them off the ship.
+//signal/detain_saboteur if UNIVERSE_ACTIVE
+    for sab_id in role("saboteur"):
+        remove_role(sab_id, "saboteur")
+        lifeform_transfer(sab_id, None)
+    comms_broadcast(role("__player__"), "Saboteur detained. The sabotage stops.", "#0f0")
+    ->END
+
+
+#
+# Navigation console: the player galaxy-grid jump map. RETIRED by default - strategic
+# movement is the Admiral's (theater "Send <ship> here") and quests move players by
+# purpose, so a free-form player map isn't needed. Kept behind NAV_CONSOLE_ENABLED as a
+# Mode-gated fallback (solo / no-admiral games can flip it back on); universe_galaxy_map_gui
+# stays intact for that.
+#
+@console/jump !0 ^9 "Navigation" if UNIVERSE_ACTIVE and NAV_CONSOLE_ENABLED
+    " Galaxy map and jump drive (only shown in the universe map).
+    default JUMP_I = "0"
+    default JUMP_J = "0"
+    jump universe_galaxy_map_gui
+
+
+# Missions console: the player's purposeful-nav surface that REPLACES the free-form Nav
+# map. Movement is quest-driven now - this lists the ship's active on_reach objectives;
+# Engage arms the chosen one (active_objective) and jumps there via the shared
+# universe_jump_to (the same primitive the Admiral "Send <ship> here" uses).
+# Quest-driven jump: no separate Missions console - objectives live in the shared LM
+# Quests tab. Its opt-in "Engage" button (QUEST_ENGAGE_ENABLED) emits quest_engage with
+# the selected quest's owner + key; here we resolve that quest's on_reach target sector
+# and jump the ship there via the same universe_jump_to the Admiral's Send uses.
+//signal/quest_engage
+    default QE_SHIP = 0
+    default QE_AGENT = 0
+    default QE_KEY = ""
+    ->END if QE_SHIP == 0
+    qe_sec = universe_quest_reach_sector(QE_AGENT, QE_KEY)
+    if qe_sec is None:
+        comms_broadcast(linked_to(QE_SHIP, "consoles"), "That job has no travel destination.", "#fa4")
+    else:
+        set_inventory_value(QE_SHIP, "active_objective", qe_sec)
+        task_schedule(universe_jump_to, {"ti": qe_sec[0], "tj": qe_sec[1], "warp_ship": QE_SHIP})
+
+
+# The player Navigation console's galaxy map + jump drive: a GUI grid overlay, so the
+# player stays on its own ship (its client can't be reassigned to a cam without breaking
+# helm/weapons). The Admiral overseer uses the 2D-view theater instead (admiral_galaxy_view)
+# - it's a detached camera, so its view can ride the galaxy cam. The go_btn still routes by
+# the client's ship role (defensive), but in practice only player ships reach this map now.
+=== universe_galaxy_map_gui
+    default GALAXY_BACK = None
+--- repaint
+    gui_tab_back(CONSOLE_SELECT)
+    gui_tab_enable("galaxy")
+
+    # This console shows the cell THIS client's ship is in (Model A: ships can be
+    # in different cells at once). cur_i/cur_j replace the old shared universe_i/j.
+    _cc = ship_cell(sbs.get_ship_of_client(client_id))
+    cur_i = _cc[0]
+    cur_j = _cc[1]
+    # View center (pan to explore) and selected system - persist across repaints;
+    # both start at the current system. _last_cur tracks an actual jump so we can
+    # recenter on arrival.
+    default VIEW_I = cur_i
+    default VIEW_J = cur_j
+    default SEL_I = cur_i
+    default SEL_J = cur_j
+    default _last_cur_i = cur_i
+    default _last_cur_j = cur_j
+    if _last_cur_i != cur_i or _last_cur_j != cur_j:
+        VIEW_I = cur_i
+        VIEW_J = cur_j
+        SEL_I = cur_i
+        SEL_J = cur_j
+        _last_cur_i = cur_i
+        _last_cur_j = cur_j
+    prev_i = cur_i
+    prev_j = cur_j
+    cur_res = universe_system_clan(UNIVERSE_CLANS, universe_seed, cur_i, cur_j, universe_system_kind(universe_seed, cur_i, cur_j, DANGER))
+    cur_owner = cur_res[0]
+    cur_kind = cur_res[1]
+    sec_name = clan_name(UNIVERSE_CLANS, cur_owner) if cur_owner is not None else ""
+    gui_section(style="area: 4, 3, 96, 11; background:#1578;")
+    """justify:center; font:gui-5; $text:System ({cur_i}, {cur_j})  {sec_name}  [{cur_kind}]"""
+
+    # Galaxy map: a 7x7 grid around the VIEW center (north = +j on top). Click a
+    # cell to SELECT it (info on the right) - it does not jump. @ = you are here,
+    # > = selected.
+    quest_targets = universe_quest_target_sectors()
+    gui_section(style="area: 4, 11, 56, 79;")
+    for dj in [3, 2, 1, 0, -1, -2, -3]:
+        gui_row("row-height: 2em;")
+        for di in [-3, -2, -1, 0, 1, 2, 3]:
+            ci = VIEW_I + di
+            cj = VIEW_J + dj
+            txt = universe_map_cell_text(universe_seed, ci, cj, DANGER, universe_sectors, MAP_REVEAL)
+            cell_bg = "#0006"
+            home_owner = clan_home_owner(UNIVERSE_CLANS, ci, cj)
+            cell_owner = universe_system_clan(UNIVERSE_CLANS, universe_seed, ci, cj, universe_system_kind(universe_seed, ci, cj, DANGER))[0]
+            cell_revealed = universe_cell_known(universe_sectors, ci, cj, MAP_REVEAL)
+            if home_owner is not None:
+                txt = clan_name(UNIVERSE_CLANS, home_owner)
+                cell_bg = clan_color(UNIVERSE_CLANS, home_owner)
+            elif cell_owner is not None and cell_revealed:
+                cell_bg = clan_color(UNIVERSE_CLANS, cell_owner)
+            else:
+                # Region wash (geography backdrop): only where no clan colors the cell.
+                region_bg = region_map_color(UNIVERSE_REGIONS, ci, cj)
+                if region_bg is not None:
+                    cell_bg = region_bg
+            if (ci, cj) in quest_targets:
+                cell_bg = "#a60"
+            cell_mark = ""
+            if ci == cur_i and cj == cur_j:
+                cell_bg = "#0a6"
+                cell_mark = "@"
+            if ci == SEL_I and cj == SEL_J:
+                cell_bg = "#cc0"
+                cell_mark = cell_mark + ">"
+            cell = gui_button(f"$text:{cell_mark}{txt};font:gui-1;justify:center;", style=f"background:{cell_bg};", data={"si": ci, "sj": cj})
+            on gui_message(cell):
+                SEL_I = si
+                SEL_J = sj
+                gui_task_jump("repaint")
+
+    # Scroll the view - the universe is larger than the 7x7 window.
+    gui_section(style="area: 4, 80, 56, 90;")
+    gui_row("row-height: 2.2em;")
+    west_btn = gui_button("$text:< W;font:gui-1;justify:center;")
+    on gui_message(west_btn):
+        VIEW_I = VIEW_I - 3
+        gui_task_jump("repaint")
+    south_btn = gui_button("$text:S v;font:gui-1;justify:center;")
+    on gui_message(south_btn):
+        VIEW_J = VIEW_J - 3
+        gui_task_jump("repaint")
+    north_btn = gui_button("$text:N ^;font:gui-1;justify:center;")
+    on gui_message(north_btn):
+        VIEW_J = VIEW_J + 3
+        gui_task_jump("repaint")
+    east_btn = gui_button("$text:E >;font:gui-1;justify:center;")
+    on gui_message(east_btn):
+        VIEW_I = VIEW_I + 3
+        gui_task_jump("repaint")
+
+    # Selected-system info (explore before committing to a jump).
+    sel_res = universe_system_clan(UNIVERSE_CLANS, universe_seed, SEL_I, SEL_J, universe_system_kind(universe_seed, SEL_I, SEL_J, DANGER))
+    sel_owner = sel_res[0]
+    sel_kind = sel_res[1]
+    sel_known = universe_cell_known(universe_sectors, SEL_I, SEL_J, MAP_REVEAL)
+    info_owner = (clan_name(UNIVERSE_CLANS, sel_owner) if sel_owner is not None else "Unclaimed") if sel_known else "Unknown"
+    info_kind = sel_kind if sel_known else "Unknown"
+    sel_dist = abs(SEL_I - cur_i) + abs(SEL_J - cur_j)
+    gui_section(style="area: 58, 11, 96, 32; background:#1572;")
+    gui_row("row-height:1.5em;")
+    """justify:center; font:gui-3; $text:Selected System"""
+    gui_row("row-height:1.3em;")
+    """ $text:Coords: ({SEL_I}, {SEL_J})"""
+    gui_row("row-height:1.3em;")
+    """ $text:Owner: {info_owner}"""
+    gui_row("row-height:1.3em;")
+    """ $text:Type: {info_kind}"""
+    gui_row("row-height:1.3em;")
+    """ $text:Jumps away: {sel_dist}"""
+    # The veil is geography, not intel - warn even for unexplored cells.
+    if region_is_veiled(UNIVERSE_REGIONS, SEL_I, SEL_J):
+        gui_row("row-height:1.3em;")
+        """ $text:ANTIMATTER VEIL - unsurvivable to linger;color:#f80"""
+
+    # Known locations: pick one to select + center the map on it. The listbox's
+    # own title shows the label, so it uses the whole section.
+    gui_section(style="area: 58, 33, 96, 57; background:#1572;")
+    loc_box = gui_list_box(universe_known_locations(UNIVERSE_CLANS, quest_targets), "row-height:0.1em;", item_template=universe_location_template, title_template=universe_location_title, select=True)
+    on change loc_box.get_value():
+        loc_sel = loc_box.get_value()
+        if loc_sel is not None:
+            SEL_I = loc_sel.i
+            SEL_J = loc_sel.j
+            VIEW_I = loc_sel.i
+            VIEW_J = loc_sel.j
+            gui_task_jump("repaint")
+
+    # Type coordinates directly to select them.
+    gui_section(style="area: 58, 58, 96, 67;")
+    gui_row("row-height:2em;")
+    """ $text:Go to (i, j):"""
+    ji = gui_input("desc: i;", var="JUMP_I")
+    jj = gui_input("desc: j;", var="JUMP_J")
+    typed_btn = gui_button("$text:Go;justify:center;")
+    on gui_message(typed_btn):
+        SEL_I = safe_int(JUMP_I)
+        SEL_J = safe_int(JUMP_J)
+        VIEW_I = safe_int(JUMP_I)
+        VIEW_J = safe_int(JUMP_J)
+        gui_task_jump("repaint")
+
+    gui_section(style="area: 58, 68, 96, 90;")
+    gui_row("row-height: 2.2em;")
+    go_btn = gui_button("$text:Jump Here;justify:center;", style="background:#0a6;")
+    # Route by the client's CURRENT ship, not a persistent flag. The Admiral rides a
+    # detached cambot (role admiral_cam) -> the camera self-jump; a player on their own
+    # ship -> the player jump. (Keying off a client-inventory flag broke this:
+    # ADMIRAL_CAM lingers on a client that later drives a player ship, so its nav jump
+    # wrongly took the admiral path.)
+    on gui_message(go_btn):
+        nav_ship = sbs.get_ship_of_client(client_id)
+        if has_role(nav_ship, "admiral_cam"):
+            task_schedule(universe_admiral_jump, {"ti": SEL_I, "tj": SEL_J, "cam_id": nav_ship, "jump_client": client_id})
+        else:
+            task_schedule(universe_jump_to, {"ti": SEL_I, "tj": SEL_J, "warp_ship": nav_ship})
+    gui_row("row-height: 2.2em;")
+    center_btn = gui_button("$text:Center on Selected;justify:center;")
+    on gui_message(center_btn):
+        VIEW_I = SEL_I
+        VIEW_J = SEL_J
+        gui_task_jump("repaint")
+    gui_row("row-height: 2.2em;")
+    recenter_btn = gui_button("$text:Recenter on Me;justify:center;")
+    on gui_message(recenter_btn):
+        VIEW_I = cur_i
+        VIEW_J = cur_j
+        SEL_I = cur_i
+        SEL_J = cur_j
+        gui_task_jump("repaint")
+
+    gui_sub_task_schedule("nav_watch")
+    await gui()
+
+--- nav_watch
+    # Repaint the map when a jump changes our sector.
+    await delay_sim(1)
+    ->END if not UNIVERSE_ACTIVE
+    _nc = ship_cell(sbs.get_ship_of_client(client_id))
+    if prev_i != _nc[0] or prev_j != _nc[1]:
+        gui_task_jump("repaint")
+    jump nav_watch
+
+
+#
+# Generate the current sector: pick a deterministic kind (keyed by the sector),
+# build the keyed terrain (denser for nebula sectors), then spawn the kind's
+# features (all re-seeded from the sector key so a sector is the same each
+# visit). (0,0) is always a safe home with a station. No persistence yet, so a
+# revisited sector regenerates its station/enemies (deltas come in 3c).
+#
+=== universe_enter_system
+    # Cell being entered: defaults to the global (single-cell / party jump); a
+    # per-ship jump passes {"ei":.., "ej":..} to generate a specific cell so cells
+    # can coexist. Everything below uses ei/ej, never the global - cell-agnostic.
+    default ei = universe_i
+    default ej = universe_j
+    key = universe_system_key(universe_seed, ei, ej)
+    # Cell world origin (Model A): slot 0 = (0,0,0) so a single live cell is
+    # unchanged. Spawns below are offset by co so the cell materializes at its
+    # allocated slot instead of always at the origin.
+    co = universe_cell_origin(ei, ej)
+    # Passenger delivery: any aboard passenger bound for this system disembarks
+    # (the on_reach quest pays the fare separately). Reuses the lifeform substrate.
+    for _pax_id in universe_passengers_destined(ei, ej):
+        comms_broadcast(role("__player__"), universe_deliver_passenger(_pax_id) + " delivered safely.", "#0f0")
+    # Base kind (clan-agnostic) + clan overlay: a clan home -> that clan + a
+    # station; a keyed enemy system -> a foe clan. Map and spawn use the same
+    # helper so they agree.
+    base_kind = universe_system_kind(universe_seed, ei, ej, DANGER)
+    res = universe_system_clan(UNIVERSE_CLANS, universe_seed, ei, ej, base_kind)
+    owner = res[0]
+    kind = res[1]
+    universe_kind = kind
+    # Ambient: a clan greeting on arrival in their space (flavor only).
+    if owner is not None:
+        arrival_clan = clan_get(UNIVERSE_CLANS, owner)
+        arrival_chatter = universe_chatter_line(arrival_clan)
+        if arrival_chatter:
+            universe_chatter_card(arrival_clan, arrival_chatter)
+    # Remember we've been here (drives the galaxy-map fog of war).
+    universe_sectors = universe_set_system_flag(universe_sectors, ei, ej, "visited")
+
+    # Region identity: a named area (regions section) sets the sky + music; cells no
+    # region claims keep whatever's current (basic_random_skybox's default).
+    arrival_region = region_for_system(UNIVERSE_REGIONS, ei, ej)
+    if arrival_region is not None:
+        if arrival_region.skybox is not None:
+            skybox_schedule(arrival_region.skybox)
+        if arrival_region.music is not None:
+            music_schedule(arrival_region.music)
+
+    # The antimatter veil (slice 4): a Kind: antimatter region is survivable
+    # only briefly - tinted nebula volume for the eye, continuous heat/system
+    # damage for the teeth (universe_regions.region_veil_tick). The chart's
+    # amber wash is the wall; this is what ignoring it costs.
+    if region_is_veiled(UNIVERSE_REGIONS, ei, ej):
+        random.seed(key + 11)
+        for _v in range(5):
+            vpos = Vec3.rand_in_sphere(6000, 28000, False, True)
+            terrain_spawn_nebula_sphere(vpos.x + co.x, co.y, vpos.z + co.z, radius=8000, density_scale=2.5, density=2, height=24000, cluster_color="red", selectable=False)
+        task_schedule(universe_veil_loop, {"vi": ei, "vj": ej})
+        universe_info_card("ANTIMATTER VEIL - continuous hull heating in every section. Do not linger.", "Science Advisory", "#f80")
+
+    # Terrain (denser in nebula sectors)
+    tv = universe_terrain_value
+    if kind == "nebula":
+        tv = max(tv, 4)
+    # Skirmish testing aid: crank terrain WAY down (little/no nebula + asteroid clutter)
+    # so systems generate and render fast. Skirmish is a PvP arena, not a scenic run;
+    # dial this up later if the frontier should have cover.
+    if mission_mode() == "skirmish":
+        tv = 0
+    universe_generate_system(universe_seed, ei, ej, tv)
+
+    # Features, each re-seeded from the sector key for determinism
+    if kind == "home" or kind == "station":
+        # Skip a station the players have destroyed (persisted).
+        if not universe_system_flag(universe_sectors, ei, ej, "station_destroyed"):
+            random.seed(key + 1)
+            st_type = random.choice(["starbase_command", "starbase_civil", "starbase_science", "starbase_industry"])
+            # Clan-owned systems get the clan's station; a captured one flies the
+            # player's flag; otherwise a friendly base on the primary player side.
+            captured = universe_system_flag(universe_sectors, ei, ej, "captured")
+            st_side = universe_primary_side()
+            st_name = "Starbase"
+            if owner is not None and not captured:
+                st_side = owner
+                st_name = clan_name(UNIVERSE_CLANS, owner)
+            station = npc_spawn(co.x, co.y, co.z, st_name, f"{st_side}, station", st_type, "behav_station")
+            station_id = to_id(station)
+            # Market: restore this sector's saved stock, else seed deterministically.
+            saved_market = universe_system_value(universe_sectors, ei, ej, "market", None)
+            if saved_market is not None:
+                market_restore(station_id, saved_market)
+            else:
+                market_seed(station_id, key)
+            if universe_hostile_to_players(st_side):
+                # Foe clan home: a defending garrison; clear its space and hold to
+                # capture the station (universe_capture_watch).
+                random.seed(key + 7)
+                gpos = Vec3.rand_in_sphere(4000, 9000, False, True)
+                prefab_spawn(prefab_fleet_raider, {"race": clan_pick_race(clan_get(UNIVERSE_CLANS, owner)), "fleet_difficulty": DIFFICULTY, "ship_roles": owner + ", raider", "START_X": gpos.x + co.x, "START_Y": gpos.y + co.y, "START_Z": gpos.z + co.z})
+                task_schedule(universe_capture_watch, {"cap_station": station_id, "cap_clan": owner})
+            else:
+                await task_schedule(docking_standard_player_station)
+                # A captured foe-clan station: the clan mounts a re-assault to
+                # retake it. Defend (clear the fleet) to keep it, or it reverts.
+                if captured and owner is not None and universe_hostile_to_players(owner):
+                    random.seed(key + 9)
+                    rpos = Vec3.rand_in_sphere(15000, 25000, False, True)
+                    prefab_spawn(prefab_fleet_raider, {"race": clan_pick_race(clan_get(UNIVERSE_CLANS, owner)), "fleet_difficulty": DIFFICULTY, "ship_roles": owner + ", raider", "START_X": rpos.x + co.x, "START_Y": rpos.y + co.y, "START_Z": rpos.z + co.z})
+                    task_schedule(universe_recapture_watch, {"cap_station": station_id, "cap_clan": owner})
+    elif kind == "enemy":
+        # Skip enemies in a sector the players have already cleared (persisted).
+        if not universe_system_flag(universe_sectors, ei, ej, "enemy_cleared"):
+            random.seed(key + 3)
+            enemy_clan = clan_get(UNIVERSE_CLANS, owner)
+            count = 1 + int(DIFFICULTY / 3)
+            near = 20_000
+            far = 40_000
+            if ENCOUNTERS == "Dormant":
+                # Spawn at the far edge so arrival isn't an immediate swarm.
+                near = 42_000
+                far = 49_000
+            # The owning foe clan's fleets fly the clan's side (still tagged
+            # "raider" so the clear-check and existing queries keep working).
+            ship_roles = "raider"
+            if owner is not None:
+                ship_roles = owner + ", raider"
+            for n in range(count):
+                pos = Vec3.rand_in_sphere(near, far, False, True)
+                prefab_spawn(prefab_fleet_raider, {"race": clan_pick_race(enemy_clan), "fleet_difficulty": DIFFICULTY, "ship_roles": ship_roles, "START_X": pos.x + co.x, "START_Y": pos.y + co.y, "START_Z": pos.z + co.z})
+            task_schedule(universe_watch_enemy_cleared, {"ei": ei, "ej": ej})
+    elif kind == "anomaly":
+        random.seed(key + 4)
+        terrain_spawn_black_holes(1 + int(DIFFICULTY / 4), center=co)
+        # The anomaly beams a signal: offer each player the mystery once.
+        for p in to_object_list(role("__player__")):
+            if universe_mystery_available(p.id, ei, ej):
+                universe_grant_mystery(p.id, universe_seed, ei, ej)
+        universe_save_players()
+    elif kind == "empty":
+        # An empty-kind cell hits none of the branches above, its POI deck can roll
+        # to nothing, and Terrain: none zeroes the field - so the system can
+        # materialize with literally zero objects. Drop one "unknown" terrain marker
+        # so the cell always holds at least one object: guards against any engine
+        # trouble with a totally void world, and gives science a contact to scan.
+        # long_description is the scan readout (empty system); the player learns it's
+        # empty by scanning the contact.
+        random.seed(key + 13)
+        mpos = Vec3.rand_in_sphere(4000, 9000, False, True)
+        marker = terrain_spawn(mpos.x + co.x, co.y, mpos.z + co.z, "Unknown Contact", "universe_empty_marker", "unknown", "behav_asteroid")
+        marker.data_set.set("name_tag", "Unknown Contact")
+        marker.data_set.set("long_description", "Empty system. Scan detects no stations, vessels, or significant terrain.")
+
+    # Richer systems: a keyed POI deck layered on the template core above
+    # (universe_systems.py). Deterministic per system; loot/derelicts feed
+    # on_collect/on_scan quests, secondary outposts add clan-work givers, and foe
+    # territory seeds mine fields. Decided here in Python, spawned here in MAST.
+    owner_foe = owner is not None and universe_hostile_to_players(owner)
+    owner_arch = clan_archetype(UNIVERSE_CLANS, owner)
+    for poi in universe_system_deck(key, kind, owner, owner_arch, owner_foe, DIFFICULTY, ei, ej):
+        match poi.type:
+            case "loot":
+                item_spawn(poi.item_key, poi.x + co.x, poi.y + co.y, poi.z + co.z)
+            case "derelict":
+                terrain_spawn(poi.x + co.x, poi.y + co.y, poi.z + co.z, "Derelict", "wreck, universe_derelict", "wreck", "behav_wreck")
+            case "outpost":
+                npc_spawn(poi.x + co.x, poi.y + co.y, poi.z + co.z, clan_name(UNIVERSE_CLANS, poi.side) + " Outpost", poi.side + ", station, outpost", poi.art, "behav_station")
+            case "mines":
+                for _m in range(poi.count):
+                    moff = Vec3.rand_in_sphere(600, 2500, False, True)
+                    mine = terrain_spawn(poi.x + moff.x + co.x, poi.y + co.y, poi.z + moff.z + co.z, None, None, "danger_1a", "behav_mine")
+                    mine.data_set.set("damage_done", 8)
+                    mine.data_set.set("blast_radius", 900)
+            case "worldlet":
+                universe_worldlet_spawn(poi.worldlet_type, poi.x + co.x, poi.y + co.y, poi.z + co.z, poi.radius)
+
+    # Landmarks: named hand-placed stations/wrecks/beacons pinned to this system,
+    # layered on top of the procedural content (universe_landmarks.py).
+    for lm in universe_landmarks_in_system(UNIVERSE_LANDMARKS, ei, ej):
+        lmpos = universe_landmark_pos(key, lm)
+        lmpos = (lmpos[0] + co.x, lmpos[1] + co.y, lmpos[2] + co.z)
+        if lm.kind == "derelict":
+            terrain_spawn(lmpos[0], lmpos[1], lmpos[2], lm.name, "wreck, universe_derelict, landmark", universe_landmark_art(lm), "behav_wreck")
+        elif lm.kind == "worldlet":
+            # A hand-placed worldlet (Type: names the ## Worldlets entry).
+            universe_worldlet_spawn(lm.wtype, lmpos[0], 0.0, lmpos[2], 2000)
+        else:
+            npc_spawn(lmpos[0], lmpos[1], lmpos[2], lm.name, lm.side + ", station, landmark", universe_landmark_art(lm), "behav_station")
+        # Terrain envelope: a landmark can author `Terrain: <kind> [color]` to wrap
+        # itself in cover (a nebula pocket / asteroid field), guaranteeing the ruin
+        # sits in terrain regardless of the cell's rolled kind. Regenerated each visit
+        # (like the landmark itself) - no persistence needed.
+        lm_terrain = universe_landmark_terrain(lm)
+        if lm_terrain is not None:
+            if lm_terrain["kind"] == "nebula":
+                _neb_col = lm_terrain["color"] or "blue"
+                terrain_spawn_nebula_sphere(lmpos[0], lmpos[1], lmpos[2], radius=9000, density_scale=2.5, density=2, height=8000, cluster_color=_neb_col, selectable=False)
+            elif lm_terrain["kind"] == "asteroid":
+                terrain_spawn_asteroid_sphere(lmpos[0], lmpos[1], lmpos[2], radius=8000, density_scale=2.0, density=2, height=2000, selectable=True)
+        # Complication: a landmark can author a `Guards:` fleet that contests it -
+        # the episode set-piece (a fighter squad / bounty hunters at the ruin). One-
+        # shot: a persisted `guards_cleared` flag means a revisit doesn't re-ambush.
+        # Tagged landmark_guards (on top of raider) so the watch scopes to just these.
+        lm_guards = universe_landmark_guards(lm, DIFFICULTY)
+        if lm_guards is not None and not universe_system_flag(universe_sectors, ei, ej, "guards_cleared"):
+            random.seed(key + 17)
+            gpos = Vec3.rand_in_sphere(4000, 9000, False, True)
+            prefab_spawn(prefab_fleet_raider, {"race": lm_guards["race"], "fleet_difficulty": lm_guards["difficulty"], "ship_roles": "raider, landmark_guards", "START_X": lmpos[0] + gpos.x, "START_Y": lmpos[1] + gpos.y, "START_Z": lmpos[2] + gpos.z})
+            universe_info_card(lm.name + " is guarded - hostiles on approach.", "Threat", "#f80")
+            task_schedule(universe_watch_guards_cleared, {"ei": ei, "ej": ej})
+
+    # Admiralty persistence: re-apply THIS cell's worldlet depletion and respawn its
+    # platforms from the sectors delta (both scoped to (ei, ej) - restore spawns each
+    # platform beside its own worldlet, which already sits at the cell offset), then
+    # bring the navy through the jump (fleets travel with the flag - respawned at
+    # THIS cell's world origin, ei/ej).
+    if admiralty_active():
+        worldlets_apply_reserves(universe_system_value(universe_sectors, ei, ej, "worldlet_reserves", None), ei, ej)
+        # Restore every side's platforms from the per-side delta (legacy flat-list
+        # saves fall back to the primary side); fleets come back for every side.
+        admiralty_restore_platforms_all(universe_system_value(universe_sectors, ei, ej, "admiral_platforms", None), ei, ej)
+        for _side in universe_player_sides():
+            fleets_respawn(_side, ei, ej)
+
+    # Auto-waypoint (opt-in): chart a NAMED location so the player can jump back to it
+    # from the Quests tab later - the only "way home / way back" when there's no galaxy
+    # map. Only landmarks and home (0,0) chart, so the list stays meaningful (empty
+    # procedural cells you jump straight past never clutter it). Shared, so it shows in
+    # every ship's Quests tab; idempotent, so re-visiting doesn't duplicate.
+    if WAYPOINTS_ENABLED:
+        _wp_lms = universe_landmarks_in_system(UNIVERSE_LANDMARKS, ei, ej)
+        if len(_wp_lms) > 0 or (ei == 0 and ej == 0):
+            _wp_name = _wp_lms[0].name if len(_wp_lms) > 0 else "Home Port"
+            if universe_add_waypoint(universe_shared_id(), ei, ej, _wp_name):
+                universe_info_card("Location charted: " + _wp_name + ". Jump back anytime from the Quests tab (Engage).", "Navigation", "#8cf")
+
+    # Tell the quest driver we've arrived (completes on_reach cargo runs).
+    signal_emit("universe_arrived", {"ARRIVE_I": ei, "ARRIVE_J": ej})
+    ->END
+
+
+#
+# Persistence hooks: record player-made changes so a revisited sector keeps
+# them. The base universe still regenerates from the seed; only these deltas
+# are stored (see universe_save in universe_helpers.py).
+#
+//damage/killed if UNIVERSE_ACTIVE and has_role(DAMAGE_SELECTED_ID, "station") and not has_role(DAMAGE_SELECTED_ID, "outpost")
+    # KILLED (not DESTROY): the station is still registered here, so its cell and
+    # side read correctly. DESTROY is a lifetime-removal event (fires for script
+    # deletes too, victim can already be gone), wrong for combat accounting. The
+    # victim on the killed route is DAMAGE_SELECTED_ID.
+    # Key the "station destroyed" delta to the STATION'S cell (from its position),
+    # not the shared global - the station could be in a split-off player's system.
+    dstr_cell = object_cell(DAMAGE_SELECTED_ID)
+    universe_sectors = universe_set_system_flag(universe_sectors, dstr_cell[0], dstr_cell[1], "station_destroyed")
+    universe_save(universe_seed, dstr_cell[0], dstr_cell[1], universe_sectors)
+    # The rescue raid: bringing down a captor clan's station frees every
+    # Admiralty officer it holds (the other way out of a ransom).
+    for _freed_key in officers_captured_by(get_side(DAMAGE_SELECTED_ID)):
+        officer_release(universe_primary_side(), _freed_key)
+        officer_card(_freed_key, "Found my own way out when the walls came down. Nice shooting.")
+    universe_save_players()
+    ->END
+
+
+=== universe_watch_enemy_cleared
+    # Mark a sector cleared once its raider ships are gone (and the cell is still
+    # live). Scheduled with its own ei/ej, so it survives another ship's jump.
+    default ei = universe_i
+    default ej = universe_j
+--- wait
+    await delay_sim(5)
+    ->END if not universe_cell_live(ei, ej)
+    # Raiders confined to THIS cell (objects_in_cell) - a bare role("raider") spans
+    # every live combat system, so two of them would keep each other from clearing.
+    if len(objects_in_cell(to_object_list(role("raider") - role("raider_fleet")), ei, ej)) == 0:
+        universe_sectors = universe_set_system_flag(universe_sectors, ei, ej, "enemy_cleared")
+        universe_save(universe_seed, ei, ej, universe_sectors)
+        ->END
+    jump wait
+
+
+=== universe_watch_guards_cleared
+    # Mark a landmark's Guards complication cleared once its ships are gone, and
+    # persist it so a revisit doesn't re-ambush (mirrors universe_watch_enemy_cleared,
+    # but scoped to the landmark_guards role). Scheduled with its own ei/ej so it
+    # survives another ship's jump.
+    default ei = universe_i
+    default ej = universe_j
+--- guards_wait
+    await delay_sim(5)
+    ->END if not universe_cell_live(ei, ej)
+    if len(objects_in_cell(to_object_list(role("landmark_guards")), ei, ej)) == 0:
+        universe_sectors = universe_set_system_flag(universe_sectors, ei, ej, "guards_cleared")
+        universe_save(universe_seed, ei, ej, universe_sectors)
+        ->END
+    jump guards_wait
+
+
+#
+# Perform a jump: hyperspace screen on, recenter on the destination sector at
+# the origin, reposition the ships, hyperspace screen off.
+#
+=== universe_jump_to
+    default ti = universe_i
+    default tj = universe_j
+    default warp_ship = 0
+    # Per-ship jump (Model A): the nav console passes warp_ship (its client's
+    # ship) so a ship jumps to its own cell without disturbing others. A legacy
+    # caller passes none -> fall back to the first player so old call sites work.
+    if warp_ship == 0:
+        _pl = to_object_list(role("__player__"))
+        warp_ship = _pl[0].id if len(_pl) > 0 else 0
+    ->END if warp_ship == 0
+    sobj = to_object(warp_ship)
+    ->END if sobj is None
+    src = ship_cell(warp_ship)
+    ->END if ti == src[0] and tj == src[1]
+
+    # Hyperspace screen on for THIS ship's consoles only.
+    for c in to_object_list(linked_to(warp_ship, "consoles")):
+        cobj = to_object(c)
+        cid = cobj.client_id if cobj is not None else c
+        hull = sobj.art_id if sobj is not None else ""
+        sbs.super_hyper_warp_mode(cid, hull, 1)
+
+    await delay_sim(2)
+
+    # Enter the destination cell; generate it if this ship is its first occupant
+    # (a cell already live because another ship is there is simply re-used).
+    dest_new = universe_cell_enter(ti, tj, warp_ship)
+    if dest_new:
+        await task_schedule(universe_enter_system, {"ei": ti, "ej": tj})
+
+    # Leave the source cell; if this ship was its last occupant, despawn it
+    # (return parked terrain first so the scoped box-delete sees it).
+    if universe_cell_leave(src[0], src[1], warp_ship):
+        standby_cull_clear()
+        universe_clear_cell(src[0], src[1])
+
+    # Move this ship to the destination cell's origin.
+    ship_set_cell(warp_ship, ti, tj)
+    dco = universe_cell_origin(ti, tj)
+    # Preserve height: players sit at y=0, the Admiral camera rides at y=1000.
+    sobj.pos = Vec3(dco.x + 2000.0, sobj.pos.y, dco.z)
+
+    # Point the shared "server focus" at the latest jumper's cell. Economy, damage,
+    # saves, veil and fleet orders are all per-cell now (Phase 2e); this global only
+    # still drives the skirmish-pressure cell, ambient chatter, and the default
+    # skybox - the "where is the story looking" pointer, not a correctness input.
+    universe_i = ti
+    universe_j = tj
+    universe_save(universe_seed, ti, tj, universe_sectors)
+    universe_save_players()
+
+    await delay_sim(1)
+
+    # Hyperspace screen off for this ship's consoles.
+    for c in to_object_list(linked_to(warp_ship, "consoles")):
+        cobj = to_object(c)
+        cid = cobj.client_id if cobj is not None else c
+        sbs.super_hyper_warp_mode(cid, "", 0)
+    ->END

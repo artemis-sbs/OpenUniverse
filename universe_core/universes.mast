@@ -1,0 +1,48 @@
+# Discoverable universes for the Open Universe start-screen "Universe" dropdown.
+# Each label registers a universe (type: universe/<key>). The primary format names
+# a single merged `universe:` AMD file (identity + clans + jobs + narrative in one
+# place - see UNIVERSE_CHANGES.md capstone). Legacy labels may instead name split
+# `clans:` / `narrative:` files; the loader falls back to those (universe_file).
+# Add more universes by adding more labels here.
+
+=== universe_default
+metadata:``` yaml
+type: universe/default
+key: default
+display: Default
+universe: default.amd
+```
+    ->END
+
+# The worked example from the writer's walkthrough (mkdocs/docs/writing/).
+# Copy this label + silver_reach.amd to start a new universe.
+=== universe_silver_reach
+metadata:``` yaml
+type: universe/silver_reach
+key: silver_reach
+display: The Silver Reach
+universe: silver_reach.amd
+```
+    ->END
+
+# Archetype D (FOUNDATION_PLAN.md): a minimal single-ship STORY universe -
+# Mode: story (RTS off), a distress beacon, a win on scanning the derelict.
+=== universe_scout_signal
+metadata:``` yaml
+type: universe/scout_signal
+key: scout_signal
+display: The Fading Signal
+universe: scout_signal.amd
+```
+    ->END
+
+# Archetype A (FOUNDATION_PLAN.md): a multi-admiral PvP SKIRMISH universe -
+# Mode: skirmish (hostile player sides, brisk economy, last-standing victory).
+=== universe_skirmish_arena
+metadata:``` yaml
+type: universe/skirmish_arena
+key: skirmish_arena
+display: Skirmish - The Broken Accord
+universe: skirmish_arena.amd
+```
+    ->END

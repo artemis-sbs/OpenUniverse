@@ -44,6 +44,16 @@ missions/
 - Library API or procedural helpers → **sbs_utils**.
 - Reusable addon behavior (consoles, comms, prefabs, quests, …) → **LegendaryMissions**, then **rebuild the mastlibs** (below).
 - **Concurrency:** other agents may be editing sbs_utils / LM at the same time.
+
+> **SEARCH DISCIPLINE — check dependencies first (learned the hard way):** this
+> mission's **`story.json`** lists everything it loads (`sbslib` + the LM `mastlib`
+> list) — that's the map of where its mechanics live. When a mechanic isn't found
+> here, **search the dependencies it declares**, especially **LegendaryMissions** (the
+> shared drivers — quest completion, docking, fleets, comms, consoles — live in LM
+> mastlibs, NOT here or in sbs_utils). **Grep all of `story.json`'s deps
+> (`../sbs_utils`, `../LegendaryMissions`, here) before concluding a mechanic is
+> missing/opaque/broken.** e.g. the quest driver is
+> `../LegendaryMissions/quests/quest_driver.{py,mast}`.
   Keep edits to those repos minimal and coordinated; one owner per sbs_utils push
   at a time (a branch+tag name collision once broke pushes). Stay inside this repo
   when you can.
@@ -61,19 +71,35 @@ OpenUniverse/
 ├── description.yaml     # mission-browser entry
 ├── __lib__.json         # {"version": "v1.4.0"} (packaging tag)
 ├── UNIVERSE_CHANGES.md  # roadmap + status (the plan)
+├── mkdocs/              # docs site (writer's walkthrough + AMD label reference)
+│   └── docs/writing/        # "Build a Universe" walkthrough for non-programmer authors
 └── universe/            # the mission's local addon (auto-loaded like any addon)
     ├── __init__.mast        # imports the files below, in order
     ├── universe.mast        # @map/universe + comms/science/damage routes + Navigation console + system generation
     ├── universe_helpers.py  # generation, delta save + migration, quest-target sectors
-    ├── universe_clans.py    # clans (clans.amd) + chatter cards + race "makeup"
+    ├── universe_clans.py    # clans + chatter cards + race "makeup"
     ├── universe_reputation.py    # per-captain reputation + clan standing/tier/ceasefire
-    ├── universe_clan_quests.py   # clan quest pools (clan_quests.amd)
+    ├── universe_clan_quests.py   # clan quest pools (jobs)
     ├── universe_systems.py  # keyed POI deck (loot/derelict/outpost/mines)
     ├── universe_standby.py  # engine-network culling (terrain/NPC/POI/fleet)
+    ├── admiral.mast + universe_worldlets/_fleets/_research/_fabricator/_skirmish.py  # the Admiral console (optional; see "The Admiral console")
+    ├── universe_regions.py / _landmarks.py / _goods.py  # regions, landmarks, trade goods
+    ├── universe_captains.py / _lifeforms.py / _dialogue.py  # named NPCs, cast, dialogue scenes
+    ├── universe_amd.py      # the "friendly fact sheet" AMD reader (data_parser)
     ├── universes.mast       # universe registry (start-screen dropdown)
-    ├── clans.amd            # authored clans
-    └── clan_quests.amd      # authored generic clan jobs (by pool type)
+    ├── universe_codex.mast  # Codex tab (lore.amd document viewer)
+    ├── default.amd          # THE authored universe (capstone: clans/jobs/story/regions/...)
+    ├── silver_reach.amd     # the walkthrough's worked example universe (ships registered)
+    ├── jobs.amd / lore.amd  # spliced sections: generic jobs, codex lore
+    └── captains/ cast/ dialogue/  # per-clan captains, cast, dialogue scenes (spliced via File:)
 ```
+
+Writer-facing docs live in `mkdocs/` (same structure as LegendaryMissions' docs).
+It's wired into the main sbs_utils site via a multirepo `!import` line (like LM) —
+so pushing OU docs to `origin/v1.4.0_dev` publishes them into the combined site.
+`docs/writing/` is the author walkthrough (incl. `admiralty.md`); `docs/playing/`
+is player-facing (`admiral.md`). GFM tables render by default (Material) — use them.
+Keep the walkthrough + reference in sync with any AMD label changes.
 
 `universe/__init__.mast` import order matters: helpers/clans/reputation/clan_quests/
 systems/standby, then `universes.mast`, then `universe.mast` last.
@@ -111,6 +137,37 @@ python sbs.pyz lib LegendaryMissions   # builds v1.4.0 mastlibs (incl. quests) i
 
 ---
 
+## The Admiral console (overseer)
+
+A strategic, RTS-flavored console **on the player side** (worldlets -> ore/gas/crew
+economy -> platforms -> fleets -> research), layered on the universe. **Optional:**
+it only wakes up when the universe has an `## Admiralty` chapter (+ `## Worldlets`);
+Silver Reach has none, so it's inert there. Full design + shipped status:
+**`ADMIRAL_CONSOLE.md`** (section 18 = status/commits). Player + author docs:
+`mkdocs/docs/playing/admiral.md` and `mkdocs/docs/writing/admiralty.md`.
+
+Files (`universe/`): **`admiral.mast`** (the console GUIs + every Admiral `//comms`
+route + the server econ/fleet/skirmish/fabricator loops), `universe_worldlets.py`
+(economy, pools, `ADM_PLATFORMS`, build/scan), `universe_fleets.py` (officers,
+fleets, the six orders, veterancy), `universe_research.py` (tech ladder),
+`universe_fabricator.py` (build model B), `universe_skirmish.py` (border raids),
+`universe_regions.py` (antimatter veil).
+
+- **The overseer is the Admiral UI** (the old tabbed `bridge` console was retired).
+  It's a detached camera + comms 2D view where
+  you **select objects to act**: worldlet -> build; fleet hull -> orders; platform
+  -> its actions (Shipyard = commission, Lab = research, HQ = subsidy + requisition).
+  A Galaxy top tab (the `//gui/tab` framework) reuses the player Navigation console's
+  galaxy map for jumping between systems. The
+  detached-console / comms-refresh / side-wide-scan / role-from-art patterns live in
+  `../sbs_utils/MAST_CLAUDE.md` ("Detached command consoles").
+- **Multi-side rule (will bite you):** derive the side from context
+  (`COMMS_ORIGIN.side`, a platform's `.side`), **never a `"tsn"` literal.** The
+  build path already does; the **server econ loops still assume `"tsn"`** — the one
+  remaining single-side assumption to generalize. Don't add new `"tsn"` literals.
+
+---
+
 ## Conventions & gotchas (will bite you)
 
 - **`.mast` comments use `#`.** `//` at column 0 starts a **route** (`//comms`),
@@ -126,7 +183,8 @@ python sbs.pyz lib LegendaryMissions   # builds v1.4.0 mastlibs (incl. quests) i
   `:` in them, and identifiers starting with `jump`.
 - Full MAST/AMD references live in the sibling repo — read when needed:
   `../sbs_utils/CLAUDE.md`, `../sbs_utils/MAST_CLAUDE.md`,
-  `../sbs_utils/MAST_MISSION_CLAUDE.md`, and `../AMD_AUTHORS_GUIDE.md`.
+  `../sbs_utils/MAST_MISSION_CLAUDE.md`, **`../sbs_utils/GUI.md`** (GUI best
+  practices + gotchas), and `../AMD_AUTHORS_GUIDE.md`.
 
 ---
 
@@ -153,5 +211,9 @@ python sbs.pyz lib LegendaryMissions   # builds v1.4.0 mastlibs (incl. quests) i
   not per-mission). Versioned with a `save_version` + `_MIGRATIONS` ladder — bump +
   add a migration when you change the save shape.
 
-## Branches
-- `main` (default) and `v1.4.0_dev`. Do dev work on `v1.4.0_dev`.
+## Branches & push workflow
+- All three repos (OU, LM, **sbs_utils**) work on **`v1.4.0_dev`**; `main` is the
+  default/release branch. (There is no `admiral_dev` anymore — its work was
+  cherry-picked onto `v1.4.0_dev`.)
+- **Push to origin only after the user confirms** — every push, each repo. Never
+  PR/merge to `main`. (See the `feedback-branch-push-workflow` memory for state.)

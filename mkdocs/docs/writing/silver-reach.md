@@ -1,0 +1,331 @@
+# The complete example - The Silver Reach
+
+Everything the walkthrough built, in one file. **This universe ships with the
+mission** - it lives at `OpenUniverse/universe/silver_reach.amd` and is
+playable from the Universe dropdown as *The Silver Reach*. Copy the file (and
+its registration entry) as the starting point for your own galaxy, as shown in
+[Getting started](getting-started.md).
+
+Note the additions over the walkthrough pages: every character with a
+`Scene:` has that scene written in `## Dialogue`, and Mara Dusk has a hail of
+her own - one that reads her *personal* standing with the player.
+
+```
+// The Silver Reach - a small example universe for the Open Universe.
+// Two clans, honest work, a three-chapter story, a war to win, and a
+// pirate captain who holds a grudge.
+
+# [The Silver Reach](the_silver_reach)
+---
+Display: The Silver Reach
+---
+A ribbon of frontier stars beyond the last patrol line. Freight moves by
+lantern-light convoys, and the dark between systems belongs to whoever
+claims it.
+
+## [Clans](clans)
+
+### [The Lantern Combine](lantern)
+---
+Color: #ffcc44
+Archetype: trader
+Disposition: neutral
+Home: -4, 2
+Values: honest 40, generous 30, peaceful 20
+Offers: escort, bounty
+Flies: Arvonian
+---
+Convoy families who keep the freight lanes lit. Fair dealers with long
+memories for a kept promise - and longer ones for a broken cargo contract.
+
+### [The Red Veil](veil)
+---
+Color: #cc2244
+Archetype: pirate
+Disposition: foe
+Home: 5, -4
+Values: violent 40, fearsome 30, selfish 20
+Offers: smuggle, bounty
+Flies: Torgoth
+---
+Corsairs of the outer dark. They take what the light forgets, and they
+respect exactly one thing: a captain more dangerous than they are.
+
+## [Jobs](jobs)
+
+### [Convoy Escort](escort)
+---
+Tier: 1
+Goal: dock station
+Pays: 260 credits
+---
+A lantern convoy needs a shepherd through the dark miles. See it safe to
+port and the Combine settles up.
+
+### [Veil Bounty](bounty)
+---
+Tier: 1
+Goal: destroy 3 raiders
+Pays: 300 credits
+---
+The Veil has been working the lanes again. There is a standing price on
+their hulls - three will do for a start.
+
+### [Quiet Cargo](smuggle)
+---
+Tier: 2
+Goal: recover 2 contraband
+Pays: 480 credits
+---
+Sealed crates, no manifest, no questions. Bring them in quietly and be
+paid the same way.
+
+## [Narrative](narrative)
+
+### [The Dimming: A Cold Lane](dimming_1)
+---
+Scope: shared
+State: active
+When: reach -4, 2
+Then: reveal dimming_2
+---
+Three Combine convoys have gone dark in a month, and the Combine is
+quietly asking for outside help. Their harbormaster waits at the home
+lanterns at (-4, 2).
+
+### [The Dimming: Ash on the Manifest](dimming_2)
+---
+Scope: shared
+State: secret
+When: scan 2 derelicts
+Then: reveal dimming_3
+Pays: 200 credits
+---
+The lost convoys did not vanish - something left the wrecks adrift off
+the lanes. Find them and read what is left in the hulls.
+
+### [The Dimming: The Long Answer](dimming_3)
+---
+Scope: shared
+State: secret
+When: destroy 5 veil
+Pays: 600 credits
+Earns: lantern honest 15, lantern generous 10
+---
+The manifests all point one way: the Red Veil is bleeding the lanes dry.
+The Combine will not say the word "war" - but they will pay well for
+captains who end this quietly.
+
+## [Goals](goals)
+
+### [Break the Veil](goal_break_veil)
+---
+Scope: shared
+State: active
+When: destroy 15 veil
+Win: true
+Citation: The Red Veil is broken and the lanterns burn the length of the Reach. The convoy families will tell this captain's story for a generation.
+---
+End the Veil's grip on the Reach for good - fifteen of their hulls, however
+long it takes - and win the lanes their peace.
+
+## [Regions](regions)
+
+### [The Veilfall](veilfall)
+---
+Center: 5, -4
+Radius: 3
+Skybox: sky-neb2-rvb
+Music: Artemis2
+Color: #cc2244
+Enemy mix: 40%
+Station mix: 5%
+Mine chance: 75%
+---
+Veil country. Red skies, salted lanes, and no honest ports for miles.
+
+### [The Lantern Lanes](lantern_lanes)
+---
+Center: -4, 2
+Skybox: sky-delight
+Radius: 3
+Color: #ffcc44
+Enemy mix: 0%
+Station mix: 30%
+---
+The Combine's home lanes - calm, bright, and busy. The safest miles in
+the Reach.
+
+## [Landmarks](landmarks)
+
+### [The Pale Ark](pale_ark)
+---
+At: 1, -2
+Kind: derelict
+---
+A colony ship a century adrift, lanterns long cold. Every spacer in the
+Reach has a story about what still walks her corridors.
+
+### [Lighthouse Station](lighthouse)
+---
+At: -4, 2
+Kind: station
+Side: lantern
+Art: starbase_science
+---
+The Combine's great beacon at the heart of the home lanes - half port,
+half promise.
+
+## [Captains](captains)
+
+### [Mara Dusk](mara)
+---
+Clan: veil
+Title: the Lanternless
+Values: fearsome 40, violent 30, resourceful 20
+Flies: Torgoth
+Roams: 5, -4
+Rival when: standing < -20
+---
+The Veil's sharpest knife, said to have cut her own name out of the
+Combine's convoy rolls. She keeps accounts, and she always collects.
+
+## [Lifeforms](lifeforms)
+
+### [Harbormaster Quill](quill)
+---
+Face: terran
+Roles: lantern
+Scene: quill_hail
+Color: #ffcc44
+---
+The Combine's unflappable harbormaster - the voice that has talked a
+thousand freighters through the dark, and does not intend to lose yours.
+
+### [Brother Calen](calen)
+---
+Face: male
+Roles: civilian
+Pickup: -4, 2
+Deliver to: 5, -4
+Pays: 500 credits
+Scene: calen_hail
+---
+A quiet pilgrim paying convoy rates for passage into Veil country, of all
+places. He does not say why, and he pays in advance.
+
+## [Dialogue](dialogue)
+
+// The Red Veil's station hail.
+
+### [Veil Hail](veil_hail)
+---
+Speaker: veil
+When: comms
+---
+% Well now. Fresh freight, flying no colors we fear.
+% You are a long way from the lanterns, captain.
+
+- [Back away slowly](veil_parting)
+- [Warn them off](veil_standoff) if fearsome > 20
+- [Offer a toll](veil_toll) if credits >= 200
+
+### [The Toll](veil_toll)
+---
+Speaker: veil
+---
+% Smart. The Reach teaches quick or it buries slow. Leave the crates.
+
+- [Pay it](veil_parting) ; costs 200 credits, earns veil selfish 5
+
+### [Standoff](veil_standoff)
+---
+Speaker: veil
+---
+% Big words for a convoy dog. Say them again with your guns lit.
+
+- [Hold your course](veil_parting) ; earns veil fearsome 10
+- [Stand down](veil_parting) ; earns veil cowardly 5
+
+### [Parting](veil_parting)
+---
+Speaker: veil
+---
+% Fly on, then. The dark is patient.
+
+// Mara Dusk's personal hail - her lines read the player's standing with HER.
+
+### [Mara Dusk](mara_hail)
+---
+Speaker: mara
+When: comms
+---
+%{standing < -20} You. The Reach is not wide enough for what you owe me.
+%{standing >= 30} The Lanternless remembers her friends, captain. Speak.
+% Mara Dusk. You have heard the name. Choose your next words with care.
+
+- [Match her menace](mara_parting) ; earns mara fearsome 10
+- [Offer respect](mara_parting) ; earns mara kind 5
+- [Say nothing](mara_parting)
+
+### [Mara Parting](mara_parting)
+---
+Speaker: mara
+---
+% We will meet again, captain. The dark keeps all appointments.
+
+// Harbormaster Quill - the Combine's galaxy-wide voice.
+
+### [Quill Hail](quill_hail)
+---
+Speaker: quill
+When: comms
+---
+% Lighthouse control to wandering freight - state your heading, captain.
+% Quill here. The lanes are listening, so make it brief and make it honest.
+
+- [Ask about work](quill_work)
+- [Sign off](quill_done)
+
+### [Quill on Work](quill_work)
+---
+Speaker: quill
+---
+% The Combine posts work at every lantern port. Fly honest and it pays
+% Convoys need shepherds and the Veil needs thinning. Take your pick.
+
+- [Understood](quill_done)
+
+### [Quill Out](quill_done)
+---
+Speaker: quill
+---
+% Lighthouse out. Keep your running lights on, captain.
+
+// Brother Calen - hailable while aboard.
+
+### [Calen Hail](calen_hail)
+---
+Speaker: calen
+When: comms
+---
+% Thank you for the berth, captain. I am no trouble; I keep to my prayers.
+% The Veilfall, yes. Everyone asks. Some debts are paid where they were made.
+
+- [Ask what awaits him there](calen_why)
+- [Leave him be](calen_done)
+
+### [Calen's Reason](calen_why)
+---
+Speaker: calen
+---
+% A grave, captain. I go to tend a grave. The rest is between me and the dark.
+
+- [Say nothing more](calen_done)
+
+### [Calen Settles](calen_done)
+---
+Speaker: calen
+---
+% Peace to your bridge, captain. I will be no bother.
+```
