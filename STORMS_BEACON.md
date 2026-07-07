@@ -334,9 +334,18 @@ buy-market substrate (LM `casino/market.mast`, `items/item_market.mast`).
    (`XORN_DWELL_FINALE=15`) at the origin (6,-2) so the climax always confronts. All in
    `story.mast` (XORN is content, not engine). *Remaining: cross-cell "follows you in"
    trailing, a scripted first-sighting flyby, and browser cadence tuning.*
-5. **Crazy Eddy's Emporium** (§7 decision: real stats) — market surface reusing the
-   casino/items substrate + **resolve the apply-upgrade-on-launch TODO** so purchases hit
-   ship stats + the up/downgrade gamble. Wire rep → prices + lead quality. *(next)*
+5. **Crazy Eddy's Emporium** (§7 decision: real stats) — ✅ **shop + gamble DONE
+   (2026-07-07).** Eddy is a second host-less advisor (a comms badge like Storm); his shop
+   is **declarative `.amd` dialogue** — each deal gated `if credits >= N`, charged by
+   `; costs N credits`, wired to a `//signal/eddy_buy_*` MAST route. Each route applies a
+   **real, permanent** ship modifier via the *same `*_upgrade_coeff` engine the items addon
+   uses* — a **positive value is an upgrade, a negative value a downgrade** — so the
+   apply-to-ship happens *immediately on purchase* (sidesteps the casino launch-apply TODO
+   entirely). Four deals: an honest sensor boost, a 60/40 impulse-coil gamble, a
+   disguised-downgrade "bargain plating" (tiny shield, big turn penalty), and a pure-coinflip
+   Mystery Crate (2 gems / 2 lemons). Storm fronts 500 seed credits at hunt start. *Remaining
+   (Phase 2/3): rep → prices + lead quality; fence-relics; Eddy's own station + midpoint
+   episode (he's virtual-crew-only for now); a "refit" path to shed a bad modifier.*
 
 ### Phase 2 — Cast & reputation
 
