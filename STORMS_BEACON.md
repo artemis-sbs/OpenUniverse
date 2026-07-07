@@ -385,7 +385,17 @@ buy-market substrate (LM `casino/market.mast`, `items/item_market.mast`).
    sequel hook. Dispatcher is still one `_eps` list (+ an `also` field for side-objective
    reveals); adding a piece is still append-one-row. *≈7 beats (5 jumps + Cradle buy + gated
    finale).*
-9. **Polish (remaining):** XORN cadence tuning; crafting depth (§8); rep→Eddy prices deeper;
-   the "who fights for you" tactical gate (needs friendly factions); more ruin variety;
-   save/continue verification across the full tree; optional extra procedural pieces.
+9. ✅ **Second antagonist track — Madame Skarr + the bounty hunters (2026-07-07).** A
+   **Skaraan rival broker** (Madame Skarr) hell-bent on *selling* the Beacon — a foil to
+   Storm (history) and XORN (fear). She's a hailable advisor you can **bribe** (300cr →
+   `hunters_bribed` flag) to call off her hired **bounty hunters**: a *second, lighter chaser*
+   (the Second Wind, `skaraan_enforcer`) with its own dwell watch (30s fuse, so they arrive
+   before XORN — escalation: clean < 30s, hunters < 45s, hunters + XORN after). On spawn they
+   **auto-hail crew banter** featuring the apathetic **Dobbs** ("...whatever."). Bribing
+   suppresses only the hunters; XORN is a different debt. All in `story.mast` + `.amd`
+   dialogue (Skarr/bounty_crew lifeforms).
+
+10. **Polish (remaining):** XORN + bounty cadence tuning; crafting depth (§8); rep→Eddy prices
+    deeper; hire-the-hunters / rep-driven bounty behavior; the "who fights for you" tactical
+    gate (needs friendly factions); more ruin variety; save/continue verification.
 ```
