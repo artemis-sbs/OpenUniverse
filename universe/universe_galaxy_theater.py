@@ -15,7 +15,7 @@ universe_cell_known come from sibling modules via the merged MAST namespace.
 from sbs_utils.procedural.spawn import terrain_spawn, player_spawn
 from sbs_utils.procedural.roles import role, remove_role
 from sbs_utils.procedural.query import to_object_list, to_object
-from sbs_utils.procedural.inventory import set_inventory_value
+from sbs_utils.procedural.inventory import set_inventory_value, get_inventory_value
 from sbs_utils.procedural.science import science_set_scan_data
 from sbs_utils.helpers import FrameContext
 from sbs_utils.vec import Vec3
@@ -46,6 +46,30 @@ def galaxy_theater_marker_pos(di, dj):
     return Vec3(GALAXY_THEATER.x + di * THEATER_SPACING,
                 GALAXY_THEATER.y,
                 GALAXY_THEATER.z + dj * THEATER_SPACING)
+
+
+def _unit_health_color(s):
+    """A unit icon's at-a-glance HEALTH tint from its shield fraction (front + rear):
+    green healthy -> amber -> red. Shields are the readable live health proxy (a true
+    hull % isn't one field); shield_val/shield_max_val index 0=front, 1=rear."""
+    cur = (s.data_set.get("shield_val", 0) or 0) + (s.data_set.get("shield_val", 1) or 0)
+    mx = (s.data_set.get("shield_max_val", 0) or 0) + (s.data_set.get("shield_max_val", 1) or 0)
+    frac = 1.0 if mx <= 0 else cur / mx
+    if frac >= 0.66:
+        return "#33ff66"
+    if frac >= 0.33:
+        return "#ffcc33"
+    return "#ff4444"
+
+
+def _unit_label(s, cell):
+    """A unit icon's label: ship name, plus '->(i,j)' when it has an active objective in
+    a DIFFERENT system (so the board shows who's headed where). active_objective is set by
+    the Missions Engage and the Admiral 'Send <ship> here'."""
+    dest = get_inventory_value(s.id, "active_objective", None)
+    if dest and len(dest) == 2 and (int(dest[0]) != cell[0] or int(dest[1]) != cell[1]):
+        return s.name + " ->(" + str(int(dest[0])) + "," + str(int(dest[1])) + ")"
+    return s.name
 
 
 def galaxy_theater_ensure_cam():

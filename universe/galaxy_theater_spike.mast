@@ -28,10 +28,15 @@
     # One "Send <ship> here" per player ship of this side - the overseer directs strategic
     # movement now that the Nav map is retired (same jump primitive as a fleet deploy).
     for adm_ps in to_object_list(role("__player__") & role(COMMS_ORIGIN.side)):
-        ps_name = adm_ps.name
-        ps_id = adm_ps.id
-        + "Send {ps_name} here" player_send_pick {"PS_SHIP": ps_id, "PS_I": fd_i, "PS_J": fd_j}
+        # Skip a ship already IN the selected system - no point "sending" it there.
+        adm_ps_cell = object_cell(adm_ps.id)
+        if adm_ps_cell[0] != fd_i or adm_ps_cell[1] != fd_j:
+            ps_name = adm_ps.name
+            ps_id = adm_ps.id
+            + "Send {ps_name} here" player_send_pick {"PS_SHIP": ps_id, "PS_I": fd_i, "PS_J": fd_j}
     + "Jump here [{spike_kind}]" theater_jump_here {"JMP_I": fd_i, "JMP_J": fd_j, "JH_CLIENT": gt_client}
+    # Restores the retired Nav map's quick-nav: a submenu of notable systems.
+    + "Known locations" //comms/admiral/known
     # No "Close map" button: the framework back tab (the console tab) returns to the
     # system view - //gui/tab/admiral -> console_selected reassigns to the command cambot.
 
@@ -43,9 +48,24 @@
     default PS_I = 0
     default PS_J = 0
     ->END if PS_SHIP == 0
+    # Record the destination so the ship's board icon shows "->(i,j)" while it travels.
+    set_inventory_value(PS_SHIP, "active_objective", [PS_I, PS_J])
     task_schedule(universe_jump_to, {"ti": PS_I, "tj": PS_J, "warp_ship": PS_SHIP})
     ADM_LAST_MSG = "Ordering ship to " + str(PS_I) + "," + str(PS_J) + "."
     ->END
+
+
+# Known-locations submenu (restores the retired Nav map's quick-nav list): Home Base,
+# clan homes, and active quest targets. Picking one jumps the OVERSEER there (reuses
+# theater_jump_here). Reached via "Known locations" on the marker menu.
+//comms/admiral/known
+    gk_client = get_inventory_value(COMMS_ORIGIN_ID, "cam_client", 0)
+    + "Back" //comms
+    for gk in universe_known_locations(UNIVERSE_CLANS, universe_quest_target_sectors()):
+        gk_name = gk.name
+        gk_i = gk.i
+        gk_j = gk.j
+        + "{gk_name} ({gk_i}, {gk_j})" theater_jump_here {"JMP_I": gk_i, "JMP_J": gk_j, "JH_CLIENT": gk_client}
 
 
 # Dispatch the picked fleet to the picked system (fire-and-forget; the overseer stays on
