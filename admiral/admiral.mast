@@ -351,12 +351,16 @@ default shared ADM_LAST_MSG = ""
 //gui/tab/admiral
     jump console_selected 
 
-# Galaxy top tab (//gui/tab framework, like the hangar's Casino). On the Admiral it
-# opens the 2D strategic THEATER (a marker board out in dead space), NOT the old GUI
-# grid - the overseer is a detached camera, so its view can ride the galaxy cam. The
-# player Navigation console keeps the grid: a player's client is bound to its ship, so
-# it can't be reassigned to a cam without breaking its other consoles (helm/weapons).
-//gui/tab/galaxy if CONSOLE_SELECT == "admiral"
+# Galaxy top tab. On the Admiral it opens the 2D strategic THEATER (a marker board out
+# in dead space), NOT the old GUI grid - the overseer is a detached camera, so its view
+# can ride the galaxy cam. The player Navigation console keeps the grid: a player's
+# client is bound to its ship, so it can't be reassigned to a cam without breaking its
+# other consoles (helm/weapons).
+#
+# CONTENT only - it is scoped by being ENABLED (gui_tab_enable("galaxy") in the admiral
+# console page above), not by a CONSOLE_SELECT gate here. See GUI.md "Adding a console
+# tab (the clean, per-console way)".
+//gui/tab/galaxy
     jump admiral_galaxy_view
 
 # The overseer's galaxy view: reassign this console to the galaxy cam so its
