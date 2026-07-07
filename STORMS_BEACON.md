@@ -268,8 +268,10 @@ want, per the detached-console / spawn-role note in `MAST_CLAUDE.md`.)
    narrative paths open. This is the richer choice; it commits us to authored dialogue
    variance per episode, so the episode template (§12) must bake rep-branch slots in from
    the start. (§5)
-3. **Crafting depth:** is 3–4 items the right ceiling, and does OU already have a crafting
-   substrate to build on, or is this net-new? *(Still open — scope during Phase 3 polish.)* (§8)
+3. **Crafting depth:** ~~is 3–4 items the right ceiling…~~ **RESOLVED (2026-07-07)** — built
+   net-new as the reusable `OpenUniverse.fabrication` addon (salvage → build-timer → gear via
+   the items pipeline). 3 modifier items ship; the custom-effect items (decoy/EMP/probe) are
+   the remaining ceiling. (§8, §12.10)
 4. **XORN cadence:** ~~trailing dread or scripted set-piece?~~ **DECIDED (2026-07-07)** —
    **both:** a light ever-trailing pressure (arrives if you linger) PLUS 2–3 hand-authored
    confrontations (first sighting, midpoint, finale). Most work of the options; richest
@@ -343,9 +345,13 @@ buy-market substrate (LM `casino/market.mast`, `items/item_market.mast`).
    apply-to-ship happens *immediately on purchase* (sidesteps the casino launch-apply TODO
    entirely). Four deals: an honest sensor boost, a 60/40 impulse-coil gamble, a
    disguised-downgrade "bargain plating" (tiny shield, big turn penalty), and a pure-coinflip
-   Mystery Crate (2 gems / 2 lemons). Storm fronts 500 seed credits at hunt start. *Remaining
-   (Phase 2/3): rep → prices + lead quality; fence-relics; Eddy's own station + midpoint
-   episode (he's virtual-crew-only for now); a "refit" path to shed a bad modifier.*
+   Mystery Crate (2 gems / 2 lemons). Storm fronts 500 seed credits at hunt start.
+   ✅ **Crazy Eddy's Spaceship Emporium STATION added (2026-07-07)** — a landmark bazaar
+   station at (3,3); hailing it opens the same shop dialogue in person (a mission `//comms`
+   gated on the emporium's `station`+`landmark` roles → `DLG_SCENE = eddy_hail`), and a
+   `visit_emporium` lead makes it a jumpable destination. Eddy stays on the Ultra-Beam too.
+   *Remaining: rep → prices + lead quality; fence-relics; a dedicated midpoint episode; a
+   "refit" path to shed a bad modifier.*
 
 ### Phase 2 — Cast & reputation — **slice DONE 2026-07-07**
 
@@ -395,7 +401,15 @@ buy-market substrate (LM `casino/market.mast`, `items/item_market.mast`).
    suppresses only the hunters; XORN is a different debt. All in `story.mast` + `.amd`
    dialogue (Skarr/bounty_crew lifeforms).
 
-10. **Polish (remaining):** XORN + bounty cadence tuning; crafting depth (§8); rep→Eddy prices
-    deeper; hire-the-hunters / rep-driven bounty behavior; the "who fights for you" tactical
-    gate (needs friendly factions); more ruin variety; save/continue verification.
+10. **Crafting** — ✅ **DONE (2026-07-07)** as a reusable **`OpenUniverse.fabrication`**
+    addon (engine) + StormsBeacon content. Salvage (from ruin scans) → an Engineering/Science
+    **Fabrication** tab → build-timer → the gear lands in the Upgrades tab. Recipes ARE the
+    item defs (`craft_cost`/`craft_time` metadata). Three modifier items so far (Relic-Scan
+    Booster, Impulse Overcharge, Coolant Flush). *Remaining: the custom-effect items (sensor
+    decoy, EMP charge, scan probe).*
+
+11. **Polish (remaining):** XORN + bounty cadence tuning; rep→Eddy prices deeper;
+    hire-the-hunters / rep-driven bounty behavior; the "who fights for you" tactical gate
+    (needs friendly factions); more ruin variety; the fancy crafting items; save/continue
+    verification.
 ```
