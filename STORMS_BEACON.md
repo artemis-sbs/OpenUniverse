@@ -114,6 +114,16 @@ fly to. Hailing her **is** the start-of-episode beat. This is the campaign's hea
 - "Investigate feeds Storm's research" = the *complication/clue* chapter completes on
   `scan`/`dock`/`comms`, emitting a signal that flips Storm's dialogue to "lead ready."
 
+**Getting back (way home / revisit) — auto-waypoints.** With no galaxy map, a completed
+lead leaves no way *back* to home or a hub. Solved generically in `universe_core`
+(`WAYPOINTS_ENABLED`, opt-in; StormsBeacon turns it on): arriving at a **named** place — a
+landmark, or home (0,0) — charts it under a persistent **"Charted Locations"** parent quest
+in the Quests tab. Each waypoint carries a plain `waypoint` sector (not `on_reach`), so
+`Engage` can jump there but the quest driver never *completes* it — the entry stays a clean,
+permanent nav target (no checkmark). `universe_add_waypoint` (idempotent) + a branch in
+`universe_quest_reach_sector` do the work; empty procedural cells never chart, so the list
+stays meaningful. This is the "way home" and the way back to Eddy's Emporium.
+
 ---
 
 ## 4. Episode structure — spine + procedural filler

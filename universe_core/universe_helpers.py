@@ -609,12 +609,43 @@ def universe_quest_reach_sector(agent_id, qid):
     q = quest_get(agent_id, qid)
     if q is None:
         return None
-    reach = (q.get("data") or {}).get("on_reach")
+    data = q.get("data") or {}
+    reach = data.get("on_reach")
     if isinstance(reach, dict):
         sec = reach.get("sector")
         if sec and len(sec) == 2:
             return [int(sec[0]), int(sec[1])]
+    # Charted-location waypoints (universe_add_waypoint) carry a plain `waypoint`
+    # sector instead of `on_reach`: Engage can travel there, but the quest driver
+    # never sees it as a reach objective, so the waypoint never "completes" and
+    # stays a clean, permanent nav entry (no checkmark).
+    wp = data.get("waypoint")
+    if wp and len(wp) == 2:
+        return [int(wp[0]), int(wp[1])]
     return None
+
+
+def universe_add_waypoint(agent_id, i, j, name):
+    """Chart system (i, j) as a re-visitable "Charted Locations" waypoint on `agent_id`,
+    so the player can jump back to it later from the Quests tab (Engage). Idempotent - a
+    cell already charted is left alone. Returns True only when a NEW waypoint was added
+    (so the caller can announce it once). Waypoints are children of a `waypoints` parent
+    quest and carry a `waypoint` sector (not `on_reach`), so they are Engageable but never
+    complete. For quest-driven-nav missions with no galaxy map (WAYPOINTS_ENABLED)."""
+    i = int(i)
+    j = int(j)
+    # Parent container quest (created lazily on first charting; a plain active grouping
+    # that folds its waypoint children in the Quests tab).
+    if quest_get(agent_id, "waypoints") is None:
+        quest_add(agent_id, "waypoints", "Charted Locations",
+                  "Places you have been. Select one and Engage to jump back.",
+                  state=QuestState.ACTIVE)
+    key = "waypoints/wp_%d_%d" % (i, j)
+    if quest_get(agent_id, key) is not None:
+        return False
+    quest_add(agent_id, key, name, "Jump back to " + name + ".",
+              state=QuestState.ACTIVE, data={"waypoint": [i, j]})
+    return True
 
 
 # --- Sector kind + galaxy map ------------------------------------------------
