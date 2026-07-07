@@ -1,4 +1,4 @@
 {
     "version": "v1.4.0",
-    "mastlib": ["universe_core", "admiral"]
+    "mastlib": ["universe_core", "admiral", "fabrication"]
 }
