@@ -51,7 +51,7 @@ players see, and your filename. Copy, rename, done.
 Put this in your file:
 
 ```
-# The Silver Reach
+# [The Silver Reach](the_silver_reach)
 ---
 Display: The Silver Reach
 ---

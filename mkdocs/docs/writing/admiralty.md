@@ -32,9 +32,9 @@ resource world. Use the **same three-part shape as everything else** - a heading
 with a `(key)`, a `---` fence of facts, and a line of prose:
 
 ```
-## Worldlets
+## [Worldlets](worldlets)
 
-### Cinder World (cinder)
+### [Cinder World](cinder)
 ---
 Yields: ore 8
 Reserve: 4000
@@ -55,7 +55,7 @@ Add an `## Admiralty` chapter. You can leave its fence **completely empty** -
 every setting has a sensible default:
 
 ```
-## Admiralty
+## [Admiralty](admiralty)
 ---
 ---
 ```
@@ -84,7 +84,7 @@ One world is thin. Add a couple more types - a gas giant, a settled world - so
 different systems feel different:
 
 ```
-### Veiled Giant (veiled_giant)
+### [Veiled Giant](veiled_giant)
 ---
 Yields: gas 10
 Reserve: 6000
@@ -92,7 +92,7 @@ Palette: base #2c4a8c, clouds #b8c4e0, bands 3.7
 ---
 A banded gas giant, its high winds rich in fuel-grade volatiles.
 
-### Haven World (haven)
+### [Haven World](haven)
 ---
 Yields: crew 2, ore 2, gas 2
 Reserve: unlimited
@@ -114,9 +114,9 @@ roster. Their **Values** use the **same reputation poles as your clans**
 `resourceful` salvages richer, `fearsome` fights farther out.
 
 ```
-## Officers
+## [Officers](officers)
 
-### Commodore Ansel Vale (vale)
+### [Commodore Ansel Vale](vale)
 ---
 Title: the Quartermaster
 Values: by-the-book 40, honest 30, kind 10
@@ -145,9 +145,9 @@ Each milestone names its **Branch**, what it **Costs**, its **Time**, any
 milestone it **Requires** first, and what it **Unlocks** in plain English:
 
 ```
-## Research
+## [Research](research)
 
-### Expanded Silos (eng_silos)
+### [Expanded Silos](eng_silos)
 ---
 Branch: engineering
 Costs: ore 120, gas 40
@@ -156,7 +156,7 @@ Unlocks: storage 500
 ---
 Bigger tanks and deeper bunkers - the stockpiles hold more.
 
-### Refined Extraction (eng_refining)
+### [Refined Extraction](eng_refining)
 ---
 Branch: engineering
 Costs: ore 180, gas 90
@@ -209,7 +209,7 @@ foundation grows on (see `FOUNDATION_PLAN.md`). Author it in a mission-level
 **`## Scenario`** chapter — so a `story` universe needs no `## Admiralty` block at all:
 
 ```
-## Scenario
+## [Scenario](scenario)
 ---
 Mode: story
 ---

@@ -43,7 +43,7 @@ Your whole universe is one `.amd` file, and every piece of it - a faction, a
 job, a chapter of story - has the same three-part shape:
 
 ```
-### The Red Veil (veil)          <- a heading: a NAME and a (key)
+### [The Red Veil](veil)         <- a heading: a NAME in [ ] and a (key)
 ---                              <- a fence: 3 dashes on their own line
 Color: #cc2244                   <- the fact sheet: one fact per line
 Disposition: foe
@@ -52,15 +52,17 @@ Corsairs of the outer dark.      <- the prose: what players read
 They take what the light forgets.
 ```
 
-- **The heading** names the thing. The part in `(...)` is its **key** - a
-  short one-word nickname, lowercase, no spaces. Other lines refer to it by
-  this key, the way a screenplay refers to `INT. BRIDGE` after introducing it
-  once. Keys must be unique.
+- **The heading** names the thing: the display name in `[...]`, then its **key**
+  in `(...)` - a short one-word nickname, lowercase, no spaces. Other lines refer
+  to it by this key, the way a screenplay refers to `INT. BRIDGE` after introducing
+  it once. Keys must be unique. (The brackets are what make it a *heading*; that
+  keeps `#` free to be a markdown heading in your prose - see below.)
 - **The fence** holds the fact sheet: `Label: value`, one per line, like the
   header of a character sheet. Skip any fact you don't care about.
 - **The prose** is yours. Everything under the fence that isn't a heading is
-  description - the flavor text players actually read. This is where you
-  write.
+  description - the flavor text players actually read. It renders as **markdown**,
+  so you can use `#`/`##` headings, `-` bullet lists, blank-line paragraphs, and
+  inline `image://` / `ship://` / `face://` objects to make it rich.
 
 The number of `#` marks is the outline level, exactly like headings in a
 document: `#` is the universe itself, `##` is a chapter (Clans, Jobs,

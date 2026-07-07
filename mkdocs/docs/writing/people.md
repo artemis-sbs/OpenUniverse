@@ -10,9 +10,9 @@ dramatic hinge: `Rival when:` - the standing threshold at which they stop
 being a character you talk to and start being a character who hunts you.
 
 ```
-## Captains
+## [Captains](captains)
 
-### Mara Dusk (mara)
+### [Mara Dusk](mara)
 ---
 Clan: veil
 Title: the Lanternless
@@ -35,9 +35,9 @@ location is hailable anywhere: your recurring narrator, dispatcher, or mystery
 voice.
 
 ```
-## Lifeforms
+## [Lifeforms](lifeforms)
 
-### Harbormaster Quill (quill)
+### [Harbormaster Quill](quill)
 ---
 Face: terran
 Roles: lantern
@@ -58,7 +58,7 @@ A cast member with a `Pickup`, a `Deliver to`, and a `Pays` becomes a
 **passenger** - offered for transport at one station, delivered to another:
 
 ```
-### Brother Calen (calen)
+### [Brother Calen](calen)
 ---
 Face: male
 Roles: civilian

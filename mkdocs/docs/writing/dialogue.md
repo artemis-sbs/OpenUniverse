@@ -8,9 +8,9 @@ it has gone wrong.
 Add a `## Dialogue` chapter:
 
 ```
-## Dialogue
+## [Dialogue](dialogue)
 
-### Veil Hail (veil_hail)
+### [Veil Hail](veil_hail)
 ---
 Speaker: veil
 When: comms
@@ -22,7 +22,7 @@ When: comms
 - [Warn them off](veil_standoff) if fearsome > 20
 - [Offer a toll](veil_toll) if credits >= 200
 
-### The Toll (veil_toll)
+### [The Toll](veil_toll)
 ---
 Speaker: veil
 ---
@@ -30,7 +30,7 @@ Speaker: veil
 
 - [Pay it](veil_parting) ; costs 200 credits, earns veil selfish 5
 
-### Standoff (veil_standoff)
+### [Standoff](veil_standoff)
 ---
 Speaker: veil
 ---
@@ -39,7 +39,7 @@ Speaker: veil
 - [Hold your course](veil_parting) ; earns veil fearsome 10
 - [Stand down](veil_parting) ; earns veil cowardly 5
 
-### Parting (veil_parting)
+### [Parting](veil_parting)
 ---
 Speaker: veil
 ---

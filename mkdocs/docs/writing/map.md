@@ -8,9 +8,9 @@ to the chart.
 ## Regions
 
 ```
-## Regions
+## [Regions](regions)
 
-### The Veilfall (veilfall)
+### [The Veilfall](veilfall)
 ---
 Center: 5, -4
 Radius: 3
@@ -23,7 +23,7 @@ Mine chance: 75%
 ---
 Veil country. Red skies, salted lanes, and no honest ports for miles.
 
-### The Lantern Lanes (lantern_lanes)
+### [The Lantern Lanes](lantern_lanes)
 ---
 Center: -4, 2
 Radius: 3
@@ -56,9 +56,9 @@ Landmarks are the opposite of procedural: single, named, hand-placed places -
 the locations of legend your dialogue and story can point at.
 
 ```
-## Landmarks
+## [Landmarks](landmarks)
 
-### The Pale Ark (pale_ark)
+### [The Pale Ark](pale_ark)
 ---
 At: 1, -2
 Kind: derelict
@@ -66,7 +66,7 @@ Kind: derelict
 A colony ship a century adrift, lanterns long cold. Every spacer in the
 Reach has a story about what still walks her corridors.
 
-### Lighthouse Station (lighthouse)
+### [Lighthouse Station](lighthouse)
 ---
 At: -4, 2
 Kind: station

@@ -28,24 +28,24 @@ optional, every entry the same heading / fact sheet / prose shape:
 ```
 # The Silver Reach              <- the title and the world's prose
 ## Clans                        <- the factions (character sheets)
-### The Lantern Combine (lantern)
-### The Red Veil (veil)
+### [The Lantern Combine](lantern)
+### [The Red Veil](veil)
 ## Jobs                         <- the work clans offer
-### Convoy Escort (escort)
+### [Convoy Escort](escort)
 ## Narrative                    <- the story, chapter by chapter
-### The Dimming: A Cold Lane (dimming_1)
+### [The Dimming: A Cold Lane](dimming_1)
 ## Goals                        <- how the campaign ends
-### Break the Veil (goal_break_veil)
+### [Break the Veil](goal_break_veil)
 ## Regions                      <- the map's moods
-### The Veilfall (veilfall)
+### [The Veilfall](veilfall)
 ## Landmarks                    <- the legendary places
-### The Pale Ark (pale_ark)
+### [The Pale Ark](pale_ark)
 ## Captains                     <- the named people
-### Mara Dusk (mara)
+### [Mara Dusk](mara)
 ## Lifeforms                    <- the comms cast and passengers
-### Harbormaster Quill (quill)
+### [Harbormaster Quill](quill)
 ## Dialogue                     <- the words
-### Veil Hail (veil_hail)
+### [Veil Hail](veil_hail)
 ```
 
 The rest is world-building - and that part was always your job, not the

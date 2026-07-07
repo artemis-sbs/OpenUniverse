@@ -56,9 +56,9 @@ as loot. Omit it for the built-in five (`provisions`, `ore`, `gas`, `tech`,
 `contraband`).
 
 ```
-## Goods
+## [Goods](goods)
 
-### Provisions (provisions)
+### [Provisions](provisions)
 ---
 Weight: 30
 ---
@@ -74,7 +74,7 @@ One file is right for a small universe. When a chapter outgrows the page, move
 its entries to their own file and leave a pointer:
 
 ```
-## Dialogue
+## [Dialogue](dialogue)
 ---
 File: dialogue/veil.amd
 File: dialogue/lantern.amd

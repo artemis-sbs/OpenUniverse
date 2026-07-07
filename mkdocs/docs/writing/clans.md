@@ -7,9 +7,9 @@ value, and what kind of people they are.
 Add a `## Clans` chapter with two entries:
 
 ```
-## Clans
+## [Clans](clans)
 
-### The Lantern Combine (lantern)
+### [The Lantern Combine](lantern)
 ---
 Color: #ffcc44
 Archetype: trader
@@ -21,7 +21,7 @@ Flies: Arvonian
 Convoy families who keep the freight lanes lit. Fair dealers with long
 memories for a kept promise - and longer ones for a broken cargo contract.
 
-### The Red Veil (veil)
+### [The Red Veil](veil)
 ---
 Color: #cc2244
 Archetype: pirate

@@ -10,9 +10,9 @@ Each beat has a trigger (`When:` - the same English phrases as job goals) and
 points at the next beat (`Then: reveal ...`).
 
 ```
-## Narrative
+## [Narrative](narrative)
 
-### The Dimming: A Cold Lane (dimming_1)
+### [The Dimming: A Cold Lane](dimming_1)
 ---
 Scope: shared
 State: active
@@ -23,7 +23,7 @@ Three Combine convoys have gone dark in a month, and the Combine is
 quietly asking for outside help. Their harbormaster waits at the home
 lanterns at (-4, 2).
 
-### The Dimming: Ash on the Manifest (dimming_2)
+### [The Dimming: Ash on the Manifest](dimming_2)
 ---
 Scope: shared
 State: secret
@@ -34,7 +34,7 @@ Pays: 200 credits
 The lost convoys did not vanish - something left the wrecks adrift off
 the lanes. Find them and read what is left in the hulls.
 
-### The Dimming: The Long Answer (dimming_3)
+### [The Dimming: The Long Answer](dimming_3)
 ---
 Scope: shared
 State: secret
@@ -69,9 +69,9 @@ A goal is written exactly like a story beat, plus one fact: `Win: true` (or
 on the end card - write it like the closing lines of the episode.
 
 ```
-## Goals
+## [Goals](goals)
 
-### Break the Veil (goal_break_veil)
+### [Break the Veil](goal_break_veil)
 ---
 Scope: shared
 State: active

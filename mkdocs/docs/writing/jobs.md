@@ -6,9 +6,9 @@ put it in a clan's offer list.
 Add a `## Jobs` chapter:
 
 ```
-## Jobs
+## [Jobs](jobs)
 
-### Convoy Escort (escort)
+### [Convoy Escort](escort)
 ---
 Tier: 1
 Goal: dock station
@@ -17,7 +17,7 @@ Pays: 260 credits
 A lantern convoy needs a shepherd through the dark miles. See it safe to
 port and the Combine settles up.
 
-### Veil Bounty (bounty)
+### [Veil Bounty](bounty)
 ---
 Tier: 1
 Goal: destroy 3 raiders
@@ -26,7 +26,7 @@ Pays: 300 credits
 The Veil has been working the lanes again. There is a standing price on
 their hulls - three will do for a start.
 
-### Quiet Cargo (smuggle)
+### [Quiet Cargo](smuggle)
 ---
 Tier: 2
 Goal: recover 2 contraband
