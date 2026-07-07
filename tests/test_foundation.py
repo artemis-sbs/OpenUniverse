@@ -17,7 +17,12 @@ import os, sys
 # Portable paths (a test file may use __file__ - reliable; the fs.py caveat is about
 # production script.py only). OU universe + the sibling sbs_utils.
 _HERE = os.path.dirname(os.path.abspath(__file__))
-OU  = os.path.join(_HERE, "..", "universe")
+# Phase 2b split the monolithic universe/ into two addons: the core .py + all the
+# .amd content in universe_core, the RTS .py in admiral. This test execs BOTH into one
+# namespace (mimicking the runtime per-lib merge) and reads .amd from universe_core.
+OU_CORE = os.path.join(_HERE, "..", "universe_core")
+ADMIRAL = os.path.join(_HERE, "..", "admiral")
+OU  = OU_CORE   # .amd files (scout_signal, skirmish_arena) live in universe_core
 SBS = os.path.abspath(os.path.join(_HERE, "..", "..", "sbs_utils"))
 sys.path.insert(0, SBS)
 
@@ -45,13 +50,32 @@ FrameContext.context = Context(mock_sbs.sim, mock_sbs, FakeEvent())
 SpaceObject.clear()
 
 # --- exec the OU modules into ONE shared namespace (the MAST merge) --------------
+# Exec every .py from BOTH addons (core then admiral). Bodies only define functions +
+# constants; cross-module free globals (objects_in_cell, admiralty_active, ...) resolve
+# at CALL time, the way the merged runtime namespace does - so load order is safe.
+import glob as _glob
 NS = {"__name__": "ou_merged", "__builtins__": __builtins__}
-for fn in ("universe_helpers.py", "universe_sides.py", "universe_amd.py",
-           "universe_regions.py", "universe_worldlets.py", "universe_clans.py",
-           "universe_fleets.py", "universe_skirmish.py", "universe_warstate.py"):
-    with open(os.path.join(OU, fn), "r", encoding="utf-8") as f:
-        code = compile(f.read(), fn, "exec")
-    exec(code, NS)
+for _dir in (OU_CORE, ADMIRAL):
+    for _path in sorted(_glob.glob(os.path.join(_dir, "*.py"))):
+        with open(_path, "r", encoding="utf-8") as f:
+            exec(compile(f.read(), os.path.basename(_path), "exec"), NS)
+
+# Phase 2b split the setup into two calls: core resolves the Mode
+# (universe_mode_configure), then the admiral addon fills the economy
+# (admiralty_configure). The runtime always does both in that order (universe.mast).
+# Wrap admiralty_configure to mirror that, so the test's `admiralty_configure({mode:..})`
+# calls set the Mode too, and initialize defaults before the worldlet checks below.
+_ou_mode_configure = NS["universe_mode_configure"]
+_ou_adm_configure = NS["admiralty_configure"]
+def _ou_configure(cfg):
+    _ou_mode_configure(cfg)
+    _ou_adm_configure(cfg)
+NS["admiralty_configure"] = _ou_configure
+# _PLAYTEST_SPEED is a TEMP blanket economy accelerator (universe_worldlets.py) that
+# economy_pace_mult multiplies in. Pin it to 1.0 so this test verifies the PURE pace
+# presets + reserve scaling, independent of that debug knob's current value.
+NS["_PLAYTEST_SPEED"] = 1.0
+_ou_configure({})   # sandbox / standard defaults, like the runtime's setup pass
 
 # Pull what we need out of the merged namespace.
 universe_cell_enter   = NS["universe_cell_enter"]
