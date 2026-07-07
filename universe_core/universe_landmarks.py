@@ -28,8 +28,61 @@ def universe_parse_landmarks(doc):
                 "roles": data.get("roles"),
                 # Kind: worldlet landmarks name their worldlet type (Type: cinder).
                 "wtype": data.get("type"),
+                # Guards: an optional complication fleet contesting this landmark -
+                # `Guards: <race> [difficulty]` (e.g. "skaraan" or "torgoth 3").
+                # Spawned on arrival, one-shot (persisted), by universe.mast.
+                "guards": data.get("guards"),
+                # Terrain: an optional terrain envelope wrapping this landmark -
+                # `Terrain: <kind> [color]` (nebula / asteroids; color is nebula-only).
+                # Guarantees the ruin sits in cover regardless of the cell's rolled
+                # kind; spawned on arrival by universe.mast.
+                "terrain": data.get("terrain"),
             }))
     return out
+
+
+def universe_landmark_guards(lm, default_difficulty=5):
+    """A landmark's optional complication fleet, parsed from its `Guards:` field.
+
+    `Guards: <race> [difficulty]` -> {"race": <str>, "difficulty": <int>}. The race
+    is passed straight to prefab_fleet_raider (author picks a valid one, e.g.
+    skaraan / torgoth / kralien); an omitted difficulty falls back to the mission's.
+    Returns None when the landmark authors no guards.
+    """
+    g = lm.get("guards")
+    if not g:
+        return None
+    toks = str(g).split()
+    if not toks:
+        return None
+    diff = default_difficulty
+    if len(toks) >= 2:
+        try:
+            diff = int(toks[1])
+        except ValueError:
+            diff = default_difficulty
+    return {"race": toks[0], "difficulty": diff}
+
+
+def universe_landmark_terrain(lm):
+    """A landmark's optional terrain envelope, from its `Terrain:` field.
+
+    `Terrain: <kind> [color]` -> {"kind": <str>, "color": <str|None>}. kind is
+    normalized to singular ("asteroids"->"asteroid"); the color applies to nebula
+    only (a color name the engine knows, e.g. blue/violet/red). Returns None when
+    the landmark authors no terrain.
+    """
+    t = lm.get("terrain")
+    if not t:
+        return None
+    toks = str(t).split()
+    if not toks:
+        return None
+    kind = toks[0].strip().lower()
+    if kind.endswith("s"):
+        kind = kind[:-1]
+    color = toks[1].strip() if len(toks) >= 2 else None
+    return {"kind": kind, "color": color}
 
 
 def universe_landmarks_in_system(landmarks, i, j):

@@ -1177,6 +1177,28 @@ default shared QUEST_ENGAGE_ENABLED = True
             universe_worldlet_spawn(lm.wtype, lmpos[0], 0.0, lmpos[2], 2000)
         else:
             npc_spawn(lmpos[0], lmpos[1], lmpos[2], lm.name, lm.side + ", station, landmark", universe_landmark_art(lm), "behav_station")
+        # Terrain envelope: a landmark can author `Terrain: <kind> [color]` to wrap
+        # itself in cover (a nebula pocket / asteroid field), guaranteeing the ruin
+        # sits in terrain regardless of the cell's rolled kind. Regenerated each visit
+        # (like the landmark itself) - no persistence needed.
+        lm_terrain = universe_landmark_terrain(lm)
+        if lm_terrain is not None:
+            if lm_terrain["kind"] == "nebula":
+                _neb_col = lm_terrain["color"] or "blue"
+                terrain_spawn_nebula_sphere(lmpos[0], lmpos[1], lmpos[2], radius=9000, density_scale=2.5, density=2, height=8000, cluster_color=_neb_col, selectable=False)
+            elif lm_terrain["kind"] == "asteroid":
+                terrain_spawn_asteroid_sphere(lmpos[0], lmpos[1], lmpos[2], radius=8000, density_scale=2.0, density=2, height=2000, selectable=True)
+        # Complication: a landmark can author a `Guards:` fleet that contests it -
+        # the episode set-piece (a fighter squad / bounty hunters at the ruin). One-
+        # shot: a persisted `guards_cleared` flag means a revisit doesn't re-ambush.
+        # Tagged landmark_guards (on top of raider) so the watch scopes to just these.
+        lm_guards = universe_landmark_guards(lm, DIFFICULTY)
+        if lm_guards is not None and not universe_system_flag(universe_sectors, ei, ej, "guards_cleared"):
+            random.seed(key + 17)
+            gpos = Vec3.rand_in_sphere(4000, 9000, False, True)
+            prefab_spawn(prefab_fleet_raider, {"race": lm_guards["race"], "fleet_difficulty": lm_guards["difficulty"], "ship_roles": "raider, landmark_guards", "START_X": lmpos[0] + gpos.x, "START_Y": lmpos[1] + gpos.y, "START_Z": lmpos[2] + gpos.z})
+            universe_info_card(lm.name + " is guarded - hostiles on approach.", "Threat", "#f80")
+            task_schedule(universe_watch_guards_cleared, {"ei": ei, "ej": ej})
 
     # Admiralty persistence: re-apply THIS cell's worldlet depletion and respawn its
     # platforms from the sectors delta (both scoped to (ei, ej) - restore spawns each
@@ -1235,6 +1257,23 @@ default shared QUEST_ENGAGE_ENABLED = True
         universe_save(universe_seed, ei, ej, universe_sectors)
         ->END
     jump wait
+
+
+=== universe_watch_guards_cleared
+    # Mark a landmark's Guards complication cleared once its ships are gone, and
+    # persist it so a revisit doesn't re-ambush (mirrors universe_watch_enemy_cleared,
+    # but scoped to the landmark_guards role). Scheduled with its own ei/ej so it
+    # survives another ship's jump.
+    default ei = universe_i
+    default ej = universe_j
+--- guards_wait
+    await delay_sim(5)
+    ->END if not universe_cell_live(ei, ej)
+    if len(objects_in_cell(to_object_list(role("landmark_guards")), ei, ej)) == 0:
+        universe_sectors = universe_set_system_flag(universe_sectors, ei, ej, "guards_cleared")
+        universe_save(universe_seed, ei, ej, universe_sectors)
+        ->END
+    jump guards_wait
 
 
 #

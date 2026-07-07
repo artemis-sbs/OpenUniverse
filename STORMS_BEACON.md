@@ -262,15 +262,88 @@ want, per the detached-console / spawn-role note in `MAST_CLAUDE.md`.)
 
 1. **Placement:** ~~confirm path A vs B~~ **DECIDED** — path B: doing OU Phase 2b, Storm's
    Beacon ships as a sibling `data/missions/StormsBeacon/` loading `universe_core`. (§2)
-2. **Reputation's job:** tactical only (who fights for you) or also **narrative branching**
-   (dialogue/story changes)? Drives how much authored variance we commit to. (§5)
+2. **Reputation's job:** ~~tactical only or also narrative branching?~~ **DECIDED
+   (2026-07-07)** — **tactical AND narrative branching.** Rep gates who fights for you,
+   Eddie's prices/leads, and bounty pressure *and* branches what characters say / which
+   narrative paths open. This is the richer choice; it commits us to authored dialogue
+   variance per episode, so the episode template (§12) must bake rep-branch slots in from
+   the start. (§5)
 3. **Crafting depth:** is 3–4 items the right ceiling, and does OU already have a crafting
-   substrate to build on, or is this net-new? (§8)
-4. **XORN cadence:** ever-present dread that trails you into most systems, or an
-   occasional scripted set-piece? Changes how much AI work XORN needs. (§7)
+   substrate to build on, or is this net-new? *(Still open — scope during Phase 3 polish.)* (§8)
+4. **XORN cadence:** ~~trailing dread or scripted set-piece?~~ **DECIDED (2026-07-07)** —
+   **both:** a light ever-trailing pressure (arrives if you linger) PLUS 2–3 hand-authored
+   confrontations (first sighting, midpoint, finale). Most work of the options; richest
+   feel. XORN is the campaign's single largest new mechanic. (§7)
 5. **Episode count for v1:** ship the 3 tentpoles + how many procedural episodes? Suggest
    proving the slice + 2 procedural before authoring all three tentpoles.
 6. **Ancient-station relics:** are ruins *scannable derelicts* (like The Fading Signal's
    Meridian) or *dockable/boardable* interiors? The former is nearly free today; the
    latter is more authoring.
+7. **Eddie's up/downgrades:** ~~real stat effects or narrative flavor?~~ **DECIDED
+   (2026-07-07)** — **real ship-stat effects.** Buying applies to the ship (turn rate, top
+   speed, scan range, shields…) and downgrades genuinely hurt; the gamble matters. Requires
+   resolving the deferred *apply-owned-upgrades-on-launch* TODO (casino Pilot Market). (§9)
+
+---
+
+## 12. Build plan (2026-07-07) — mechanics once, then mass-author
+
+**The discipline:** episode *content* is cheap (`.amd` headings + a landmark); what makes
+episodes good is a small set of mechanics built ONCE and reused. Do NOT author 7–10
+episodes on the current scan-a-derelict spine and retrofit — build the enablers first, lock
+the template, then fill in. The three richer decisions above (§2, §4, §7) raise the
+authoring bar, so the template must bake in rep-branch slots, a complication slot, and a
+terrain hint from day one.
+
+**What `universe_core` already gives us for free** (confirmed in the working tree — do not
+rebuild): per-system terrain by `kind` (nebula/asteroid/black-hole/mines, `universe.mast`
+~994–1145), POI decks (loot/derelict/outpost/mines, `universe_systems.py`), the full
+reputation module (`universe_reputation.py` + `reputation:` `.amd` block), `## Regions`
+(per-area skybox/music/**generation-mix override**/tint + antimatter veil), and a
+buy-market substrate (LM `casino/market.mast`, `items/item_market.mast`).
+
+### Phase 0 — Enablers (build once, before any bulk content) — **DONE 2026-07-07**
+
+1. **Episode complication hook** — ✅ DONE. A landmark authors `Guards: <race> [difficulty]`;
+   `universe_core` spawns a `prefab_fleet_raider` contesting it on arrival, **one-shot** via a
+   persisted `guards_cleared` flag (mirrors the `enemy`-kind `enemy_cleared` pattern). New
+   `universe_landmark_guards()` + spawn + `universe_watch_guards_cleared` watch label.
+2. **Terrain control** — ✅ DONE. Two layers: a **`## Regions`** block (skybox/music/map-tint/
+   nebula-biased generation mix) gives the episode cluster geography, AND a per-landmark
+   **`Terrain: <kind> [color]`** hint (`nebula`/`asteroids`) *guarantees* the ruin sits in
+   cover regardless of the cell's rolled kind. New `universe_landmark_terrain()` + spawn.
+3. **Lock the episode template** — ✅ DONE. The Storm dispatcher is now **data-driven** (an
+   ordered `_eps` list; adding an episode = author its go/scan chapters + landmark, then
+   append one row — no bespoke `if/elif`). Proven by adding **episode 3** (the win moved to
+   it). Copy-ready pattern doc: `StormsBeacon/EPISODE_TEMPLATE.md`.
+
+> **Status:** all three verified headless (`--test` PASS, no runtime errors; parser helpers
+> unit-checked). Dispatcher logic traced across all quest states. **Browser-verify pending**
+> (jump to 2,-1 / 4,1 / 6,-2: ruin-in-terrain + guards + scan-advances-Storm). The
+> `universe_core` primitives (`Guards:`/`Terrain:`) are generic — any universe can use them.
+
+### Phase 1 — The two new mechanics
+
+4. **XORN pursuit** (§7 decision: both) — start minimal: XORN arrives in the episode system
+   after a dwell timer (the light trail), forcing escape-or-get-help; then layer the 2–3
+   authored confrontations. The one piece with real design risk — tune cadence in browser.
+5. **Crazy Eddy's Emporium** (§7 decision: real stats) — market surface reusing the
+   casino/items substrate + **resolve the apply-upgrade-on-launch TODO** so purchases hit
+   ship stats + the up/downgrade gamble. Wire rep → prices + lead quality.
+
+### Phase 2 — Cast & reputation
+
+6. **Cast** (cheap `.amd`): add Lifeforms + Dialogue for Chief Engineer, Eddy-as-virtual-
+   crew, and 1–2 faction voices. Small.
+7. **Reputation** (§2 decision: tactical + narrative) — `reputation_configure` 3 clans to
+   start (Salvage guild, Bounty-Hunter guild, XORN's crew); make ONE tactical gate real
+   (a faction that will/won't fight for you) AND one dialogue branch real, as the pattern
+   the rest of the episodes copy.
+
+### Phase 3 — Content build-out (now fast, because the template + mechanics exist)
+
+8. Author the **3 tentpoles** (Opening / Eddy midpoint / Beacon finale) + **4–6 procedural
+   episodes** from the template = **7–9 episodes**.
+9. **Polish:** XORN tuning, crafting depth (the 3–4 expedition items, §8 — scope here), more
+   relic/clue variety, save/continue verification across the full quest tree.
 ```
