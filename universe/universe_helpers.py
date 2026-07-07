@@ -22,6 +22,7 @@ from sbs_utils.procedural.upgrades import upgrade_add
 from sbs_utils.procedural.persistence import PersistentStore
 from sbs_utils.procedural.quest import (quest_agent_quests, quest_add, quest_set_key,
                                         quest_get_state, QuestState)
+from sbs_utils.mast.mast_node import MastDataObject
 from sbs_utils.agent import Agent
 import random as _random
 
@@ -597,6 +598,27 @@ def universe_quest_target_sectors():
                 sec = reach.get("sector")
                 if sec and len(sec) == 2:
                     out.add((int(sec[0]), int(sec[1])))
+    return out
+
+
+def universe_ship_objectives(ship_id):
+    """This ship's ACTIVE on_reach quests as engageable objectives - a MastDataObject
+    per quest with title + target (ti, tj) + qid. The Missions console lists these;
+    Engage jumps the ship to the selected one's sector (arm-then-engage), replacing the
+    retired free-form Nav map with purposeful, quest-driven movement."""
+    out = []
+    tree = quest_agent_quests(ship_id)
+    children = tree.get("children") if tree is not None else None
+    for qid, q in (children or {}).items():
+        if quest_get_state(ship_id, qid) != QuestState.ACTIVE:
+            continue
+        reach = (q.get("data") or {}).get("on_reach")
+        if isinstance(reach, dict):
+            sec = reach.get("sector")
+            if sec and len(sec) == 2:
+                title = q.get("display_text") or q.get("title") or "Objective"
+                out.append(MastDataObject({"title": title, "ti": int(sec[0]),
+                                           "tj": int(sec[1]), "qid": qid}))
     return out
 
 

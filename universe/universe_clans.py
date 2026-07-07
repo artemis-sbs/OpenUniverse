@@ -44,6 +44,17 @@ def universe_location_title():
     gui_text("$text:Known Locations;justify:left;")
 
 
+# --- Missions console: active objectives (quest-driven jump) -------------------
+def universe_objective_template(item):
+    gui_row("row-height: 1.4em;")
+    gui_text(f"$text:{item.title}  ->  ({item.ti}, {item.tj});justify:left;font:gui-1")
+
+
+def universe_objective_title():
+    gui_row("row-height: 1.2em;padding:6px;background:#1578;")
+    gui_text("$text:Active Objectives - pick one and Engage;justify:left;")
+
+
 # --- Diplomacy deltas (persisted per side/clan pair) -------------------------
 # Authored defaults come from clans.amd (foe/neutral); these deltas override them
 # (e.g. a negotiated ceasefire) and persist in the save. Keyed by a sorted pair.
