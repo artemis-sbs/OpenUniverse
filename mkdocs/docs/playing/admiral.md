@@ -20,7 +20,9 @@ This page is how to play that role, start to finish.
 ## The command view
 
 The Admiral doesn't sit on a ship. You ride a **camera high over the current
-system** - a god's-eye 2D map of everything on your side. You give every order by
+system** - a god's-eye 2D map of everything on your side. (A second view, the
+**Galaxy** tab, zooms out to the whole map of star systems - see [the galaxy
+map](#the-galaxy-map-commanding-across-systems) below.) You give every order by
 **selecting things on that map**:
 
 - **Click empty space** - the view pans there. Use it to reach worldlets and
@@ -99,6 +101,40 @@ captain's pod has only a short window to be **rescued** before they're captured
 on active orders and won't operate inside an antimatter **veil** - keep them
 fuelled and out of the lethal systems.
 
+## The galaxy map - commanding across systems
+
+Everything above is your **home system**. To command the wider galaxy, open the
+**Galaxy** tab. The command camera rides out to a strategic **map of star systems** -
+one icon per system, meshed and coloured by what's there (your bases, foes, nebulae,
+unexplored fog). It's your whole theatre at a glance, and where you move forces
+**between** systems.
+
+**Click a system**, and its orders appear:
+
+- **Send \<captain\> here** - dispatch that fleet to the system. It travels, arrives,
+  and takes orders there (a fleet holds a system *live* while it's on station).
+- **Send \<ship\> here** - vector a **player ship** to the system. You're the strategic
+  navigator: crews fly locally, you move them between systems. (A ship already in the
+  selected system isn't offered - no point sending it where it is.)
+- **Jump here** - take **yourself** (the command camera) to that system to oversee it
+  up close.
+- **Known locations** - a shortcut list of notable systems (home, clan capitals, active
+  objectives) to jump to without hunting the map.
+
+Your own ships show as **live icons** on the map: their **colour is health** (green ->
+amber -> red as shields fall) and their **label shows where they're headed** (`Artemis
+->(2,3)` while travelling). The map updates as they move - no need to reopen it.
+
+!!! note "Your own galaxy map"
+    With more than one Admiral, **each commands its own galaxy map**, centred on its own
+    theatre - your orders and your board never disturb another Admiral's.
+
+!!! note "How crews travel on their own"
+    You aren't the only way a ship moves. A bridge crew **takes a job** and travels to it:
+    the **Quests tab** has an **Engage** button that jumps the ship to its current
+    objective. So movement is *purposeful* - the Admiral vectors the fleet, and crews
+    pursue their own contracts - with no free-roam map to babysit.
+
 ## Research
 
 Build a **Lab**, then click it to see the tech ladder. Each project costs
@@ -121,9 +157,10 @@ at once.
 ## Seeing the galaxy
 
 A **Sensor Relay** doesn't just add a command point - it **charts the neighbouring
-systems**, revealing what's out there without a scout having to fly the jump.
-Relays you leave behind also keep sending a share of their system's income home,
-so an expanding network pays you even while the fleet moves on.
+systems**, revealing what's out there (they light up on the **Galaxy map** above)
+without a scout having to fly the jump. Relays you leave behind also keep sending a
+share of their system's income home, so an expanding network pays you even while the
+fleet moves on.
 
 ---
 

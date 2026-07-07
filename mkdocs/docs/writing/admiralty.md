@@ -196,7 +196,10 @@ Research pace: campaign   // how quickly the tech ladder is meant to be climbed
 
 The Admiral commands from the **overseer**: a detached camera over a system-wide 2D
 map where you select objects to act (worldlet build, fleet orders, platform actions).
-The older tabbed "bridge" console has been retired.
+Its **Galaxy** tab opens a second view - a strategic map of *star systems* - where the
+Admiral sends fleets (and even **player ships**) across the galaxy and jumps to oversee
+any system. Each Admiral gets **its own** galaxy map, centred on its own theatre. The
+older tabbed "bridge" console has been retired.
 
 ### Mode — one dial for the mission's shape
 
@@ -227,6 +230,26 @@ chapter is present — so a story mission can reuse the universe without the RTS
 unknown or omitted mode is `sandbox`. (More of the mission shape — hostile side
 relations, victory/defeat conditions, which subsystems load — folds into `Mode` in
 later phases; today it drives the admiral/economy/skirmish switches.)
+
+#### A mover-only Admiral (no economy)
+
+Between "full economy" and "no Admiral at all" there's a middle setting — an Admiral that
+**only moves units**. It keeps the Galaxy map and its fleet/ship commands but drops the
+resource ticker, build queue, and worldlet building — a light strategic layer over a story
+or co-op game without the whole RTS. Set it with the `ADMIRALTY_ECONOMY` switch (it folds
+into `Mode` as the foundation grows).
+
+### Getting around — the Admiral vectors, quests pull the crew
+
+The Open Universe has **no free-roam player map**; movement is *purposeful*, from two
+sources that need no galaxy grid to scroll:
+
+- **The Admiral vectors forces** — from the Galaxy tab it sends fleets and player ships to
+  any system, and jumps itself to oversee one.
+- **Crews travel by taking jobs** — turn on the Quests tab's **Engage** button with
+  `QUEST_ENGAGE_ENABLED` (the Open Universe sets it True): a crew picks a job in the Quests
+  tab and **Engage** jumps the ship to that job's destination sector. Any job whose goal is
+  to *reach a sector* is engageable.
 
 ### Victory & defeat (via quests + the Mode default)
 
