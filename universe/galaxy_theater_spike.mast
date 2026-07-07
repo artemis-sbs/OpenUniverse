@@ -25,9 +25,27 @@
         fd_name = fleet_officer_name(fdf.get("key"))
         fd_key = fdf.get("key")
         + "Send {fd_name} here" fleet_deploy_pick {"DF_KEY": fd_key, "DF_I": fd_i, "DF_J": fd_j}
+    # One "Send <ship> here" per player ship of this side - the overseer directs strategic
+    # movement now that the Nav map is retired (same jump primitive as a fleet deploy).
+    for adm_ps in to_object_list(role("__player__") & role(COMMS_ORIGIN.side)):
+        ps_name = adm_ps.name
+        ps_id = adm_ps.id
+        + "Send {ps_name} here" player_send_pick {"PS_SHIP": ps_id, "PS_I": fd_i, "PS_J": fd_j}
     + "Jump here [{spike_kind}]" theater_jump_here {"JMP_I": fd_i, "JMP_J": fd_j, "JH_CLIENT": gt_client}
     # No "Close map" button: the framework back tab (the console tab) returns to the
     # system view - //gui/tab/admiral -> console_selected reassigns to the command cambot.
+
+
+# Order a player ship to jump to the picked system - the overseer moving a crew, now that
+# the Nav map is retired. Same universe_jump_to the old Nav "Jump Here" used.
+=== player_send_pick
+    default PS_SHIP = 0
+    default PS_I = 0
+    default PS_J = 0
+    ->END if PS_SHIP == 0
+    task_schedule(universe_jump_to, {"ti": PS_I, "tj": PS_J, "warp_ship": PS_SHIP})
+    ADM_LAST_MSG = "Ordering ship to " + str(PS_I) + "," + str(PS_J) + "."
+    ->END
 
 
 # Dispatch the picked fleet to the picked system (fire-and-forget; the overseer stays on

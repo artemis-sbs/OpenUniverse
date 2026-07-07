@@ -29,6 +29,9 @@ default shared DLG_CLAN = None
 # Engine-network culling: park terrain beyond this radius from all players.
 default shared UNIVERSE_CULL = True
 default shared UNIVERSE_CULL_RADIUS = 25000
+# Player Navigation grid map: retired by default (the Admiral theater is the single
+# strategic map; quests move players). Flip on for solo / no-admiral / Mode fallback.
+default shared NAV_CONSOLE_ENABLED = False
 
 
 # The player-side agents. LM's server start fires signal_emit("create_sides")
@@ -753,9 +756,13 @@ GameCode:
 
 
 #
-# Navigation console: jump between sectors (only shown in the universe map).
+# Navigation console: the player galaxy-grid jump map. RETIRED by default - strategic
+# movement is the Admiral's (theater "Send <ship> here") and quests move players by
+# purpose, so a free-form player map isn't needed. Kept behind NAV_CONSOLE_ENABLED as a
+# Mode-gated fallback (solo / no-admiral games can flip it back on); universe_galaxy_map_gui
+# stays intact for that.
 #
-@console/jump !0 ^9 "Navigation" if UNIVERSE_ACTIVE
+@console/jump !0 ^9 "Navigation" if UNIVERSE_ACTIVE and NAV_CONSOLE_ENABLED
     " Galaxy map and jump drive (only shown in the universe map).
     default JUMP_I = "0"
     default JUMP_J = "0"

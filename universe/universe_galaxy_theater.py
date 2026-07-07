@@ -74,9 +74,11 @@ def galaxy_theater_cam_id():
 
 
 def galaxy_theater_clear():
-    """Despawn the current marker board (for a refresh / re-center)."""
+    """Despawn the current board (system markers + friendly-unit icons)."""
     for m in to_object_list(role("galaxy_marker")):
         m.delete_object()
+    for u in to_object_list(role("galaxy_unit")):
+        u.delete_object()
 
 
 def galaxy_theater_build(seed, danger, clans, sectors, reveal, ci, cj, side, win=3):
@@ -109,6 +111,23 @@ def galaxy_theater_build(seed, danger, clans, sectors, reveal, ci, cj, side, win
                 set_inventory_value(m.id, "marker_i", i)
                 set_inventory_value(m.id, "marker_j", j)
                 set_inventory_value(m.id, "marker_kind", kind)
+    # Friendly UNITS: a small bright icon at each cell holding a player ship of `side`,
+    # so the overseer sees where its crews are (the theater is the single strategic map
+    # now). Display-only (not scanned -> not selectable); role galaxy_unit so the next
+    # build clears them. object_cell resolves via the merged universe_* namespace.
+    if side is not None:
+        for s in to_object_list(role("__player__") & role(side)):
+            sc = object_cell(s.id)
+            sdi = sc[0] - ci
+            sdj = sc[1] - cj
+            if -win <= sdi <= win and -win <= sdj <= win:
+                up = galaxy_theater_marker_pos(sdi, sdj)
+                u = terrain_spawn(up.x + THEATER_SPACING * 0.28, up.y, up.z + THEATER_SPACING * 0.28,
+                                  s.name, "galaxy_unit", "tsn_fighter", "behav_marker")
+                if u is not None:
+                    u.data_set.set("radar_color_override", "#ffee44", 0)
+                    u.data_set.set("icon_scale", 0.8, 0)
+                    u.data_set.set("name_tag", s.name, 0)
 
 
 def galaxy_theater_scan_for(origin_id):
