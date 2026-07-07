@@ -2,7 +2,7 @@
 // `File: dialogue/verdant.amd`. A friendly trader counterpoint to the Ashfang
 // hail; same scene grammar, different voice.
 
-# Verdant Welcome (verdant_hail)
+# [Verdant Welcome](verdant_hail)
 ---
 Speaker: verdant
 When: comms
@@ -14,19 +14,19 @@ When: comms
 - [Ask about honest work](verdant_work)
 - [Move along](verdant_bye)
 
-# A Warm Word (verdant_warm)
+# [A Warm Word](verdant_warm)
 ---
 Speaker: verdant
 ---
 % Kindness costs nothing and buys much out here. Safe travels, captain.
 
-# Honest Work (verdant_work)
+# [Honest Work](verdant_work)
 ---
 Speaker: verdant
 ---
 % Check the board - we always need honest hands, and the pay is fair.
 
-# Farewell (verdant_bye)
+# [Farewell](verdant_bye)
 ---
 Speaker: verdant
 ---

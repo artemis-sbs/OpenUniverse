@@ -1,7 +1,7 @@
 // Frontier Command's voice - the dialogue scenes for the cast lifeform
 // `frontier_command` (Speaker = his key). Spliced into the `## Dialogue` section.
 
-# Frontier Command (frontier_hail)
+# [Frontier Command](frontier_hail)
 ---
 Speaker: frontier_command
 When: comms
@@ -12,7 +12,7 @@ When: comms
 - [Report in](frontier_done)
 - [Request guidance](frontier_advice)
 
-# Guidance (frontier_advice)
+# [Guidance](frontier_advice)
 ---
 Speaker: frontier_command
 ---
@@ -21,7 +21,7 @@ Speaker: frontier_command
 
 - [Understood](frontier_done)
 
-# Out (frontier_done)
+# [Out](frontier_done)
 ---
 Speaker: frontier_command
 ---
@@ -29,7 +29,7 @@ Speaker: frontier_command
 
 // Passenger Doctor Sela Voss's voice (Speaker = her lifeform key), hailable while
 // she's aboard.
-# Doctor Sela Voss (sela_hail)
+# [Doctor Sela Voss](sela_hail)
 ---
 Speaker: sela_voss
 When: comms
@@ -40,7 +40,7 @@ When: comms
 - [Reassure her](sela_done)
 - [Say nothing](sela_done)
 
-# Settled In (sela_done)
+# [Settled In](sela_done)
 ---
 Speaker: sela_voss
 ---
@@ -48,7 +48,7 @@ Speaker: sela_voss
 
 // The saboteur courier's voice. Hail him once the crew report sabotage, then Detain
 // (the choice emits `detain_saboteur`, which stops the sabotage and puts him off).
-# A Nervous Courier (courier_hail)
+# [A Nervous Courier](courier_hail)
 ---
 Speaker: courier
 When: comms
@@ -59,13 +59,13 @@ When: comms
 - [Let it go](courier_done)
 - [Detain him](courier_caught) ; signal detain_saboteur
 
-# Caught (courier_caught)
+# [Caught](courier_caught)
 ---
 Speaker: courier
 ---
 % You don't know what you've just stopped, captain. They'll send another.
 
-# Move Along (courier_done)
+# [Move Along](courier_done)
 ---
 Speaker: courier
 ---

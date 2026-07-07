@@ -3,7 +3,7 @@
 // is a keyword (terran / male / female) or a literal face string; Scene names the
 // dialogue scene that is this character's voice.
 
-# Frontier Command (frontier_command)
+# [Frontier Command](frontier_command)
 ---
 Face: terran
 Roles: tsn, command
@@ -15,7 +15,7 @@ Distant TSN fleet command, keeping a thin watch over the frontier.
 // An authored named passenger (delivery B): a lifeform with a Pickup + Deliver to
 // + Pays. Offered for transport at her pickup station; boards your ship on accept
 // and disembarks (with the fare) on reaching her destination. She has a voice too.
-# Doctor Sela Voss (sela_voss)
+# [Doctor Sela Voss](sela_voss)
 ---
 Face: female
 Roles: civilian
@@ -30,7 +30,7 @@ A xenobiologist needing passage from the home base to the Verdant worlds.
 // A saboteur passenger (delivery + slice 3): a lifeform with a Sabotage list. Pays
 // suspiciously well; once aboard he damages those ship systems one at a time (crew
 // raise the alarm) until you hail and Detain him.
-# A Nervous Courier (courier)
+# [A Nervous Courier](courier)
 ---
 Face: male
 Roles: civilian

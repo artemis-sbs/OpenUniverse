@@ -12,7 +12,7 @@
 // defaults when unwritten. See the writer's walkthrough (mkdocs/docs/writing/)
 // and the label reference (mkdocs/docs/reference/) - or WRITERS_GUIDE.pdf.
 
-# Default
+# [Default](default)
 ---
 Display: Default
 Nebula mix: 4%
@@ -20,7 +20,7 @@ Nebula mix: 4%
 A living frontier of clans, trade, reputation, and contestable space docks. The
 galaxy reacts to who you are, not to a scripted hero.
 
-## Clans
+## [Clans](clans)
 
 The factions that hold this galaxy. Each heading key is the clan's side key; the
 fact sheet sets identity + home systems; the prose is the description. Spawned as
@@ -30,7 +30,7 @@ Flies = the race composition of a clan's ships: a single race (Torgoth), an even
 list (Torgoth, Kralien), or weighted (60% Kralien, 40% Arvonian). Omit for a
 random mix. Races: Kralien, Torgoth, Arvonian, Ximni.
 
-### Iron Concord (iron)
+### [Iron Concord](iron)
 ---
 Color: #3399ff
 Archetype: military
@@ -43,7 +43,7 @@ Flies: 60% Kralien, 40% Arvonian
 Disciplined and territorial. Respects strength and straight dealing; honor a deal
 and the Concord remembers - break one and they remember longer.
 
-### Verdant Pact (verdant)
+### [Verdant Pact](verdant)
 ---
 Color: #44cc88
 Archetype: trader
@@ -56,7 +56,7 @@ Flies: Arvonian
 Green-world traders and farmers. Quick to deal, slow to fight; pay them in
 kindness and they pay you back in goods.
 
-### Free Holders (free)
+### [Free Holders](free)
 ---
 Color: #bb8855
 Archetype: settler
@@ -69,7 +69,7 @@ Flies: Kralien, Torgoth, Arvonian, Ximni
 Independent settlers scratching a living from the drift. Self-reliant and plain-
 spoken; they value a captain who gets things done.
 
-### Mercury Guild (mercury)
+### [Mercury Guild](mercury)
 ---
 Color: #ffbb00
 Archetype: mercenary
@@ -82,7 +82,7 @@ Flies: 40% Ximni, 30% Torgoth, 30% Kralien
 Brokers of muscle and cargo - loyal to the contract, not the cause. Coin and a
 fearsome reputation open their doors.
 
-### Ashfang Raiders (ashfang)
+### [Ashfang Raiders](ashfang)
 ---
 Color: #ee3333
 Archetype: pirate
@@ -95,7 +95,7 @@ Flies: Torgoth
 Opportunist pirates who prey on the lanes. They respect violence and despise the
 weak; only the dangerous bargain with them.
 
-### Hollow Choir (choir)
+### [Hollow Choir](choir)
 ---
 Color: #9933ff
 Archetype: cult
@@ -108,7 +108,7 @@ Flies: Ximni
 A secretive cult chasing forbidden knowledge in the deep dark. Honeyed words hide
 sharp intent; trust them at your peril.
 
-## Jobs
+## [Jobs](jobs)
 ---
 File: jobs.amd
 ---
@@ -117,14 +117,14 @@ Generic clan jobs live in jobs.amd. Each heading key is a pool type (see a
 clan's Offers); a clan offers the jobs in its pool, gated + reward-scaled by the
 captain's standing (universe_clan_quests.py).
 
-## Narrative
+## [Narrative](narrative)
 
 Shared story arcs - game-wide reveal chains spanning systems. Each heading is one
 step; the fact sheet sets scope (shared), starting state (active now / secret =
 revealed later), the trigger (When), the next step (Then: reveal ...), and any
 reward (Pays / Earns). Granted at universe start via quest_grant_amd.
 
-### The Long Truce: Summons (truce_1)
+### [The Long Truce: Summons](truce_1)
 ---
 Scope: shared
 State: active
@@ -133,7 +133,7 @@ Then: reveal truce_2
 ---
 A coded hail from Iron Concord HQ at system (6, 4). Travel there to hear them out.
 
-### The Long Truce: Proof of Resolve (truce_2)
+### [The Long Truce: Proof of Resolve](truce_2)
 ---
 Scope: shared
 State: secret
@@ -144,7 +144,7 @@ Pays: 100 credits
 The Concord wants a broker for a ceasefire with the Ashfang Raiders. Thin the
 raiders - destroy three - to show the Concord you can hold the line.
 
-### The Long Truce: The Accord (truce_3)
+### [The Long Truce: The Accord](truce_3)
 ---
 Scope: shared
 State: secret
@@ -154,7 +154,7 @@ Earns: iron honest 20, iron fearsome 10
 ---
 Return to a Concord starbase to seal the accord.
 
-## Goals
+## [Goals](goals)
 
 The campaign's win/lose conditions - the long game on top of the sandbox. A goal is
 a shared quest (like a narrative step: a Scope, a State, a When trigger), but one
@@ -163,7 +163,7 @@ the info panel (the optional Citation is its text) and broadcast as a signal
 (universe_victory / universe_defeat) for an end screen to hook. Omit this section
 for an open-ended sandbox with no end. Granted at start via quest_grant_amd.
 
-### Break the Ashfang (goal_break_ashfang)
+### [Break the Ashfang](goal_break_ashfang)
 ---
 Scope: shared
 State: active
@@ -174,7 +174,7 @@ Citation: The Ashfang raiders are broken and the lanes run clear. The frontier r
 Shatter the Ashfang Raiders for good - destroy twenty of their ships across the
 galaxy - to win the frontier its peace.
 
-## Regions
+## [Regions](regions)
 
 Named areas of the galaxy with their own identity. A region is a Center + Radius
 (a square in system coordinates) with a Skybox and Music; on arrival the system's
@@ -183,7 +183,7 @@ Color washes the region's cells on the Navigation map (faint, so clan and quest
 colors still show through) - the region's geography at a glance. Author smaller
 regions first so they win over larger ones. Driven by universe_regions.py.
 
-### The Ashen Reach (ashen_reach)
+### [The Ashen Reach](ashen_reach)
 ---
 Center: 8, -5
 Radius: 4
@@ -197,7 +197,7 @@ Mine chance: 80%
 Ashfang raider country - red skies and worse intentions. A warzone: enemy systems
 crowd the lanes and mines lace the dark.
 
-### The Verdant Belt (verdant_belt)
+### [The Verdant Belt](verdant_belt)
 ---
 Center: -5, 3
 Radius: 4
@@ -209,7 +209,7 @@ Station mix: 30%
 The green-world trade lanes of the Verdant Pact - calm, open, prosperous. A haven:
 no raiders, ports everywhere.
 
-### The Antimatter Veil (antimatter_veil)
+### [The Antimatter Veil](antimatter_veil)
 ---
 Center: 0, 7
 Radius: 1
@@ -220,21 +220,21 @@ A curtain of raw antimatter shear across the northern lanes. Lovely to look at,
 lethal to linger in - hulls cook from the inside within minutes. Whatever the
 Reach beyond it hides, it stays hidden for a reason.
 
-## Landmarks
+## [Landmarks](landmarks)
 
 Named, hand-placed stations and wrecks pinned to a system (like clan homes) - the
 legendary places of this galaxy, layered on top of the procedural content. Each
 has an At (system coords) and a Kind (station / derelict); a station may name a
 Side and Art. Driven by universe_landmarks.py.
 
-### The Drifting Cathedral (cathedral)
+### [The Drifting Cathedral](cathedral)
 ---
 At: -4, 6
 Kind: derelict
 ---
 A vast Hollow Choir wreck adrift in the deep dark, said to hold forbidden charts.
 
-### Tycho Station (tycho)
+### [Tycho Station](tycho)
 ---
 At: 3, 3
 Kind: station
@@ -243,43 +243,43 @@ Art: starbase_science
 ---
 An old TSN research post, still broadcasting on a forgotten frequency.
 
-## Goods
+## [Goods](goods)
 
 The trade goods of this galaxy and how common each is as loot. Each heading key is
 a registered trade item; Weight sets how often it scatters. Drop goods or reweight
 them for a different economy. Driven by universe_goods.py.
 
-### Provisions (provisions)
+### [Provisions](provisions)
 ---
 Weight: 30
 ---
 Foodstuffs and stores - common cargo on the frontier lanes.
 
-### Ore (ore)
+### [Ore](ore)
 ---
 Weight: 25
 ---
 Raw mineral ore, hauled from the asteroid drifts.
 
-### Gas (gas)
+### [Gas](gas)
 ---
 Weight: 25
 ---
 Refined gases siphoned from the nebulae.
 
-### Tech Components (tech)
+### [Tech Components](tech)
 ---
 Weight: 15
 ---
 Salvaged and manufactured components - worth more, found less.
 
-### Contraband (contraband)
+### [Contraband](contraband)
 ---
 Weight: 6
 ---
 Quiet cargo, quiet questions. Rare, and not strictly legal.
 
-## Worldlets
+## [Worldlets](worldlets)
 
 The resource bodies of this galaxy (the Admiral console's economy). Each type
 names what it yields per minute per extractor, how much it holds before
@@ -288,7 +288,7 @@ behav_planet surface palette). Placement: procedural via the POI deck
 (Worldlet chance, in Admiralty) or hand-placed as a Landmark with
 Kind: worldlet. Driven by universe_worldlets.py.
 
-### Cinder World (cinder)
+### [Cinder World](cinder)
 ---
 Yields: ore 8
 Reserve: 4000
@@ -296,7 +296,7 @@ Palette: base #8c2f1c, emissive #48180c, clouds #776655
 ---
 A cracked, mineral-rich ember of a world. Miners love it; nobody else does.
 
-### Veiled Giant (veiled_giant)
+### [Veiled Giant](veiled_giant)
 ---
 Yields: gas 10
 Reserve: 6000
@@ -304,7 +304,7 @@ Palette: base #2c4a8c, clouds #b8c4e0, bands 3.7
 ---
 A banded gas giant, its high winds rich in fuel-grade volatiles.
 
-### Haven World (haven)
+### [Haven World](haven)
 ---
 Yields: crew 2, ore 2, gas 2
 Reserve: unlimited
@@ -312,7 +312,7 @@ Palette: base #2f6e3a, clouds #ffffff
 ---
 A small settled world. People, modest industry, and somewhere to come from.
 
-## Scenario
+## [Scenario](scenario)
 ---
 Mode: sandbox
 ---
@@ -320,7 +320,7 @@ The mission's shape. `sandbox` = the full living universe (the default); `skirmi
 / `war` add PvP + last-standing victory; `campaign` = a persistent solo epic;
 `story` = a bounded narrative with the Admiral economy off.
 
-## Admiralty
+## [Admiralty](admiralty)
 ---
 Economy pace: standard
 Worldlet chance: 30%
@@ -340,14 +340,14 @@ Research pace: campaign
 The war effort behind the player fleet - dials for the Admiral console.
 Omit this chapter (and Worldlets) for a universe with no Admiral game.
 
-## Officers
+## [Officers](officers)
 
 The Academy roster - named fleet captains for the player side (the Admiral
 console's navy). Values use the reputation poles and drive each officer's
 fleet bonuses: by-the-book runs leaner (less gas burn), resourceful salvages
 richer, fearsome engages farther. Driven by universe_fleets.py.
 
-### Commodore Ansel Vale (vale)
+### [Commodore Ansel Vale](vale)
 ---
 Title: the Quartermaster
 Values: by-the-book 40, honest 30, kind 10
@@ -357,7 +357,7 @@ Scene: off_vale_hail
 Ran the academy's logistics course for a decade and the lanes know it.
 Fleets under Vale come home fueled, patched, and on schedule.
 
-### Captain Iris Kade (kade)
+### [Captain Iris Kade](kade)
 ---
 Title: Old Thunder
 Values: fearsome 40, violent 20, generous 10
@@ -367,7 +367,7 @@ Scene: off_kade_hail
 Leads from the front and shoots first. Kade's fleets hit harder and
 scare easier prey off the board before a shot is fired.
 
-### Captain Juno Ashwell (ashwell)
+### [Captain Juno Ashwell](ashwell)
 ---
 Title: the Magpie
 Values: resourceful 40, intellectual 20, selfish 10
@@ -377,7 +377,7 @@ Scene: off_ashwell_hail
 Never met a wreck she could not strip or a sensor shadow she could not
 slip through. Ashwell's fleets salvage more and die less.
 
-## Fleet Chatter
+## [Fleet Chatter](fleet_chatter)
 
 The fleet's radio voice - the short lines an officer sends the Admiral as an
 order lands or an event happens. Each entry's key is the event; its body lines
@@ -389,20 +389,20 @@ ack_escort / ack_patrol / ack_strike / ack_hold / ack_salvage / ack_withdraw,
 formed, pod_away, gas_dry, strike_clear, salvage_none, salvage_haul,
 withdraw_home, veil_warn, rescue, captured, lost.
 
-### Order: Strike (ack_strike)
+### [Order: Strike](ack_strike)
 Weapons free. Moving to engage.
 Guns hot, Admiral - closing now.
 Say the word - said. Engaging.
 
-### Salvage Haul (salvage_haul)
+### [Salvage Haul](salvage_haul)
 Wreck stripped: +{ore} ore, +{gas} gas in the hold.
 Good pickings off that hull - {ore} ore and {gas} gas the richer.
 
-### Officer Rescued (rescue)
+### [Officer Rescued](rescue)
 Aboard and breathing, thanks to the {rescuer}. Put me back to work, Admiral.
 The {rescuer} found my beacon. I owe that crew a drink.
 
-## Research
+## [Research](research)
 
 The Admiralty's tech ladder (researched at a Shipyard). Each milestone names
 its branch, what it costs, how long it takes, the milestone it requires, and
@@ -410,7 +410,7 @@ what it unlocks - in plain English: `storage N` raises the stockpile caps,
 `extraction N%` speeds all extractors, `requisition <item>` adds an item to
 the Requisition catalog. Driven by universe_research.py.
 
-### Expanded Silos (eng_silos)
+### [Expanded Silos](eng_silos)
 ---
 Branch: engineering
 Costs: ore 120, gas 40
@@ -420,7 +420,7 @@ Unlocks: storage 500
 Bigger tanks and deeper bunkers. The stockpiles can hold more before the
 quartermasters start turning shipments away.
 
-### Refined Extraction (eng_refining)
+### [Refined Extraction](eng_refining)
 ---
 Branch: engineering
 Costs: ore 180, gas 90
@@ -431,7 +431,7 @@ Unlocks: extraction 25%
 Better drills, hotter crackers. Every extractor in the fleet's employ works
 a quarter again as fast.
 
-### Milspec Fittings (eng_fittings)
+### [Milspec Fittings](eng_fittings)
 ---
 Branch: engineering
 Costs: ore 250, gas 120, crew 10
@@ -442,7 +442,7 @@ Unlocks: requisition tauron_focuser, requisition haplix_overcharger
 Weapons-grade componentry enters the catalog: the yards can now requisition
 serious hardware for the bridge crews.
 
-## Captains
+## [Captains](captains)
 ---
 File: captains/ashfang.amd
 ---
@@ -453,7 +453,7 @@ to a clan, roams a system (hailable at its station), embodies reputation poles
 standing with him. He speaks via dialogue scenes (Speaker = his key). Driven by
 universe_captains.py.
 
-## Lifeforms
+## [Lifeforms](lifeforms)
 ---
 File: cast/frontier.amd
 ---
@@ -463,7 +463,7 @@ a face, roles, a host, and a comms voice). A host-less lifeform is a galaxy-wide
 comms NPC (hailable with no target). Its `Scene` is its voice, played through the
 dialogue driver. Driven by universe_lifeforms.py.
 
-## Dialogue
+## [Dialogue](dialogue)
 ---
 File: dialogue/ashfang.amd
 File: dialogue/verdant.amd

@@ -5,7 +5,7 @@
 // like any other character.
 
 // --- Commodore Ansel Vale, the Quartermaster (by-the-book, honest, kind) ---
-# Vale on the Flag Bridge (off_vale_hail)
+# [Vale on the Flag Bridge](off_vale_hail)
 ---
 Speaker: vale
 ---
@@ -15,7 +15,7 @@ Speaker: vale
 - [How is the fleet holding up?](off_vale_fleet)
 - [Just checking in](off_vale_out)
 
-# The Fleet's Condition (off_vale_fleet)
+# [The Fleet's Condition](off_vale_fleet)
 ---
 Speaker: vale
 ---
@@ -24,14 +24,14 @@ Speaker: vale
 
 - [Good hunting, Commodore](off_vale_out)
 
-# Vale Out (off_vale_out)
+# [Vale Out](off_vale_out)
 ---
 Speaker: vale
 ---
 % Logged. Vale out.
 
 // --- Captain Iris Kade, Old Thunder (fearsome, violent, generous) ---
-# Kade on the Flag Bridge (off_kade_hail)
+# [Kade on the Flag Bridge](off_kade_hail)
 ---
 Speaker: kade
 ---
@@ -41,7 +41,7 @@ Speaker: kade
 - [Anything on your scope?](off_kade_scope)
 - [Carry on, Captain](off_kade_out)
 
-# Kade's Scope (off_kade_scope)
+# [Kade's Scope](off_kade_scope)
 ---
 Speaker: kade
 ---
@@ -50,14 +50,14 @@ Speaker: kade
 
 - [Stay sharp](off_kade_out)
 
-# Kade Out (off_kade_out)
+# [Kade Out](off_kade_out)
 ---
 Speaker: kade
 ---
 % Kade out. Try to leave some for us.
 
 // --- Captain Juno Ashwell, the Magpie (resourceful, intellectual, selfish) ---
-# Ashwell on the Flag Bridge (off_ashwell_hail)
+# [Ashwell on the Flag Bridge](off_ashwell_hail)
 ---
 Speaker: ashwell
 ---
@@ -67,7 +67,7 @@ Speaker: ashwell
 - [Found anything good?](off_ashwell_salvage)
 - [As you were](off_ashwell_out)
 
-# The Magpie's Haul (off_ashwell_salvage)
+# [The Magpie's Haul](off_ashwell_salvage)
 ---
 Speaker: ashwell
 ---
@@ -76,7 +76,7 @@ Speaker: ashwell
 
 - [Keep the fleet in one piece](off_ashwell_out)
 
-# Ashwell Out (off_ashwell_out)
+# [Ashwell Out](off_ashwell_out)
 ---
 Speaker: ashwell
 ---

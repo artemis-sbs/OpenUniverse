@@ -141,8 +141,15 @@ def universe_read_content(fname):
 # the section helpers return None there so callers fall back to flat iteration.
 def universe_doc(content):
     """Parse universe.amd (or a legacy flat clans.amd) into a document tree, using
-    the friendly fact-sheet reader for fenced data (YAML still works via delegate)."""
-    return document_get_amd_file(None, "Universe", content=content, data_parser=universe_amd_data, allow_bare_headings=True)
+    the friendly fact-sheet reader for fenced data (YAML still works via delegate).
+
+    Headings are the LINK form `# [Display](key)` (same as the document/help viewers),
+    NOT the old bare `# Display (key)`. This keeps `#` STRUCTURAL only, so a leading
+    `#` inside a description body is free to be gui_text_area markdown (a heading in
+    rich prose) instead of being swallowed as a new node. The whole OU corpus was
+    migrated to link-form; bare headings are retired here (OU had no production release,
+    so no back-compat concern)."""
+    return document_get_amd_file(None, "Universe", content=content, data_parser=universe_amd_data)
 
 
 def universe_root_node(doc):

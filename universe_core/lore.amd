@@ -8,12 +8,12 @@
 You command a ship on an open frontier - a galaxy you explore one jump at a time,
 the same seed always regenerating the same stars.
 
-## The Frontier
+## [The Frontier](the_frontier)
 Engage the jump drive on the Navigation console to travel between systems. Each is
 a pure function of the universe seed: revisit one and it is unchanged. Clans hold
 territory, traders run lanes, raiders prowl the dark.
 
-## How the galaxy sees you
+## [How the galaxy sees you](how_the_galaxy_sees_you)
 The galaxy reacts to who you are, not to a scripted hero. Every clan keeps a read
 on your conduct across seven spectrums - honest/liar, fearsome/cowardly, and so on.
 Do a clan's work and it warms to you; cross it and it remembers.
@@ -21,28 +21,28 @@ Do a clan's work and it warms to you; cross it and it remembers.
 # [The Clans](clans)
 Six powers divide the frontier. Two are foes by default; the rest are negotiable.
 
-## Iron Concord
+## [Iron Concord](iron_concord)
 Disciplined and territorial military. Respects strength and straight dealing -
 honor a deal and the Concord remembers, break one and they remember longer.
 
-## Verdant Pact
+## [Verdant Pact](verdant_pact)
 Green-world traders and farmers. Quick to deal, slow to fight; pay them in kindness
 and they pay you back in goods.
 
-## Free Holders
+## [Free Holders](free_holders)
 Independent settlers scratching a living from the drift. Self-reliant and plain-
 spoken; they value a captain who gets things done.
 
-## Mercury Guild
+## [Mercury Guild](mercury_guild)
 Brokers of muscle and cargo - loyal to the contract, not the cause. Coin and a
 fearsome reputation open their doors.
 
-## Ashfang Raiders (foe)
+## [Ashfang Raiders](foe)
 Opportunist pirates who prey on the lanes. They respect violence and despise the
 weak; only the dangerous bargain with them. Captain Vex Karr, the Ash-Captain,
 runs the Ashfang home in the Ashen Reach and collects grudges like trophies.
 
-## Hollow Choir (foe)
+## [Hollow Choir](foe)
 A secretive cult chasing forbidden knowledge in the deep dark. Honeyed words hide
 sharp intent; trust them at your peril.
 
@@ -51,7 +51,7 @@ Reputation is per-captain - it follows you across ships. Diplomacy is side-wide 
 whether your fleets are at war. They interact: earn a foe clan's respect and you
 can buy a ceasefire, or in time an alliance.
 
-## Standing
+## [Standing](standing)
 A clan's standing with you is your reputation weighted by what that clan values.
 High standing unlocks better jobs and cheaper ceasefires; low standing with a
 clan's captains can turn them into personal rivals.
@@ -60,10 +60,10 @@ clan's captains can turn them into personal rivals.
 The frontier is not uniform. Named regions carry their own character - and their
 own dangers.
 
-## The Ashen Reach
+## [The Ashen Reach](the_ashen_reach)
 Ashfang raider country off the system (8, -5). A warzone: enemy systems crowd the
 lanes and mines lace the dark. Red skies, worse intentions.
 
-## The Verdant Belt
+## [The Verdant Belt](the_verdant_belt)
 The Verdant Pact's trade lanes around (-5, 3). A haven: no raiders, ports
 everywhere. Calm, open, prosperous.

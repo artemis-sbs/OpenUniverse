@@ -3,7 +3,7 @@
 // When: comms makes it the scene a station hail opens. Body lines are % variants;
 // choices link to the next scene with optional `if <guard>` and `; <outcomes>`.
 
-# Ashfang Hail (ashfang_hail)
+# [Ashfang Hail](ashfang_hail)
 ---
 Speaker: ashfang
 When: comms
@@ -15,7 +15,7 @@ When: comms
 - [Threaten them](ashfang_standoff) if fearsome > 20
 - [Offer a cut of your cargo](ashfang_deal) if credits >= 200
 
-# The Deal (ashfang_deal)
+# [The Deal](ashfang_deal)
 ---
 Speaker: ashfang
 ---
@@ -23,7 +23,7 @@ Speaker: ashfang
 
 - [Hand it over](ashfang_done) ; costs 200 credits, earns ashfang selfish 5, signal ashfang_paid
 
-# Standoff (ashfang_standoff)
+# [Standoff](ashfang_standoff)
 ---
 Speaker: ashfang
 ---
@@ -32,13 +32,13 @@ Speaker: ashfang
 - [Hold your ground](ashfang_done) ; earns ashfang fearsome 10
 - [Think better of it](ashfang_backoff) ; earns ashfang cowardly 5
 
-# Back Off (ashfang_backoff)
+# [Back Off](ashfang_backoff)
 ---
 Speaker: ashfang
 ---
 % Smart. Run along, little ship.
 
-# Done (ashfang_done)
+# [Done](ashfang_done)
 ---
 Speaker: ashfang
 ---
@@ -48,7 +48,7 @@ Speaker: ashfang
 // PERSONAL standing with him (%{standing < -20} etc.), and the choices adjust it -
 // match his menace to earn respect, grovel to earn his contempt. Cross him enough
 // (standing < -20) and his `Rival when:` guard makes him a hunter.
-# Vex Karr (vex_hail)
+# [Vex Karr](vex_hail)
 ---
 Speaker: vex
 When: comms
@@ -61,7 +61,7 @@ When: comms
 - [Grovel](vex_parting) ; earns vex cowardly 10
 - [Say nothing](vex_parting)
 
-# Parting (vex_parting)
+# [Parting](vex_parting)
 ---
 Speaker: vex
 ---

@@ -3,7 +3,7 @@
 // three-chapter story, a war to win, and a pirate captain who holds a grudge.
 // Copy this file to start your own universe - register it in universes.mast.
 
-# The Silver Reach
+# [The Silver Reach](the_silver_reach)
 ---
 Display: The Silver Reach
 ---
@@ -11,9 +11,9 @@ A ribbon of frontier stars beyond the last patrol line. Freight moves by
 lantern-light convoys, and the dark between systems belongs to whoever
 claims it.
 
-## Clans
+## [Clans](clans)
 
-### The Lantern Combine (lantern)
+### [The Lantern Combine](lantern)
 ---
 Color: #ffcc44
 Archetype: trader
@@ -26,7 +26,7 @@ Flies: Arvonian
 Convoy families who keep the freight lanes lit. Fair dealers with long
 memories for a kept promise - and longer ones for a broken cargo contract.
 
-### The Red Veil (veil)
+### [The Red Veil](veil)
 ---
 Color: #cc2244
 Archetype: pirate
@@ -39,9 +39,9 @@ Flies: Torgoth
 Corsairs of the outer dark. They take what the light forgets, and they
 respect exactly one thing: a captain more dangerous than they are.
 
-## Jobs
+## [Jobs](jobs)
 
-### Convoy Escort (escort)
+### [Convoy Escort](escort)
 ---
 Tier: 1
 Goal: dock station
@@ -50,7 +50,7 @@ Pays: 260 credits
 A lantern convoy needs a shepherd through the dark miles. See it safe to
 port and the Combine settles up.
 
-### Veil Bounty (bounty)
+### [Veil Bounty](bounty)
 ---
 Tier: 1
 Goal: destroy 3 raiders
@@ -59,7 +59,7 @@ Pays: 300 credits
 The Veil has been working the lanes again. There is a standing price on
 their hulls - three will do for a start.
 
-### Quiet Cargo (smuggle)
+### [Quiet Cargo](smuggle)
 ---
 Tier: 2
 Goal: recover 2 contraband
@@ -68,9 +68,9 @@ Pays: 480 credits
 Sealed crates, no manifest, no questions. Bring them in quietly and be
 paid the same way.
 
-## Narrative
+## [Narrative](narrative)
 
-### The Dimming: A Cold Lane (dimming_1)
+### [The Dimming: A Cold Lane](dimming_1)
 ---
 Scope: shared
 State: active
@@ -81,7 +81,7 @@ Three Combine convoys have gone dark in a month, and the Combine is
 quietly asking for outside help. Their harbormaster waits at the home
 lanterns at (-4, 2).
 
-### The Dimming: Ash on the Manifest (dimming_2)
+### [The Dimming: Ash on the Manifest](dimming_2)
 ---
 Scope: shared
 State: secret
@@ -92,7 +92,7 @@ Pays: 200 credits
 The lost convoys did not vanish - something left the wrecks adrift off
 the lanes. Find them and read what is left in the hulls.
 
-### The Dimming: The Long Answer (dimming_3)
+### [The Dimming: The Long Answer](dimming_3)
 ---
 Scope: shared
 State: secret
@@ -104,9 +104,9 @@ The manifests all point one way: the Red Veil is bleeding the lanes dry.
 The Combine will not say the word "war" - but they will pay well for
 captains who end this quietly.
 
-## Goals
+## [Goals](goals)
 
-### Break the Veil (goal_break_veil)
+### [Break the Veil](goal_break_veil)
 ---
 Scope: shared
 State: active
@@ -117,9 +117,9 @@ Citation: The Red Veil is broken and the lanterns burn the length of the Reach. 
 End the Veil's grip on the Reach for good - fifteen of their hulls, however
 long it takes - and win the lanes their peace.
 
-## Regions
+## [Regions](regions)
 
-### The Veilfall (veilfall)
+### [The Veilfall](veilfall)
 ---
 Center: 5, -4
 Radius: 3
@@ -132,7 +132,7 @@ Mine chance: 75%
 ---
 Veil country. Red skies, salted lanes, and no honest ports for miles.
 
-### The Lantern Lanes (lantern_lanes)
+### [The Lantern Lanes](lantern_lanes)
 ---
 Center: -4, 2
 Radius: 3
@@ -144,9 +144,9 @@ Station mix: 30%
 The Combine's home lanes - calm, bright, and busy. The safest miles in
 the Reach.
 
-## Landmarks
+## [Landmarks](landmarks)
 
-### The Pale Ark (pale_ark)
+### [The Pale Ark](pale_ark)
 ---
 At: 1, -2
 Kind: derelict
@@ -154,7 +154,7 @@ Kind: derelict
 A colony ship a century adrift, lanterns long cold. Every spacer in the
 Reach has a story about what still walks her corridors.
 
-### Lighthouse Station (lighthouse)
+### [Lighthouse Station](lighthouse)
 ---
 At: -4, 2
 Kind: station
@@ -164,9 +164,9 @@ Art: starbase_science
 The Combine's great beacon at the heart of the home lanes - half port,
 half promise.
 
-## Captains
+## [Captains](captains)
 
-### Mara Dusk (mara)
+### [Mara Dusk](mara)
 ---
 Clan: veil
 Title: the Lanternless
@@ -178,9 +178,9 @@ Rival when: standing < -20
 The Veil's sharpest knife, said to have cut her own name out of the
 Combine's convoy rolls. She keeps accounts, and she always collects.
 
-## Lifeforms
+## [Lifeforms](lifeforms)
 
-### Harbormaster Quill (quill)
+### [Harbormaster Quill](quill)
 ---
 Face: terran
 Roles: lantern
@@ -190,7 +190,7 @@ Color: #ffcc44
 The Combine's unflappable harbormaster - the voice that has talked a
 thousand freighters through the dark, and does not intend to lose yours.
 
-### Brother Calen (calen)
+### [Brother Calen](calen)
 ---
 Face: male
 Roles: civilian
@@ -203,11 +203,11 @@ Color: #6cf
 A quiet pilgrim paying convoy rates for passage into Veil country, of all
 places. He does not say why, and he pays in advance.
 
-## Dialogue
+## [Dialogue](dialogue)
 
 // The Red Veil's station hail.
 
-### Veil Hail (veil_hail)
+### [Veil Hail](veil_hail)
 ---
 Speaker: veil
 When: comms
@@ -219,7 +219,7 @@ When: comms
 - [Warn them off](veil_standoff) if fearsome > 20
 - [Offer a toll](veil_toll) if credits >= 200
 
-### The Toll (veil_toll)
+### [The Toll](veil_toll)
 ---
 Speaker: veil
 ---
@@ -227,7 +227,7 @@ Speaker: veil
 
 - [Pay it](veil_parting) ; costs 200 credits, earns veil selfish 5
 
-### Standoff (veil_standoff)
+### [Standoff](veil_standoff)
 ---
 Speaker: veil
 ---
@@ -236,7 +236,7 @@ Speaker: veil
 - [Hold your course](veil_parting) ; earns veil fearsome 10
 - [Stand down](veil_parting) ; earns veil cowardly 5
 
-### Parting (veil_parting)
+### [Parting](veil_parting)
 ---
 Speaker: veil
 ---
@@ -244,7 +244,7 @@ Speaker: veil
 
 // Mara Dusk's personal hail - her lines read the player's standing with HER.
 
-### Mara Dusk (mara_hail)
+### [Mara Dusk](mara_hail)
 ---
 Speaker: mara
 When: comms
@@ -257,7 +257,7 @@ When: comms
 - [Offer respect](mara_parting) ; earns mara kind 5
 - [Say nothing](mara_parting)
 
-### Mara Parting (mara_parting)
+### [Mara Parting](mara_parting)
 ---
 Speaker: mara
 ---
@@ -265,7 +265,7 @@ Speaker: mara
 
 // Harbormaster Quill - the Combine's galaxy-wide voice.
 
-### Quill Hail (quill_hail)
+### [Quill Hail](quill_hail)
 ---
 Speaker: quill
 When: comms
@@ -276,7 +276,7 @@ When: comms
 - [Ask about work](quill_work)
 - [Sign off](quill_done)
 
-### Quill on Work (quill_work)
+### [Quill on Work](quill_work)
 ---
 Speaker: quill
 ---
@@ -285,7 +285,7 @@ Speaker: quill
 
 - [Understood](quill_done)
 
-### Quill Out (quill_done)
+### [Quill Out](quill_done)
 ---
 Speaker: quill
 ---
@@ -293,7 +293,7 @@ Speaker: quill
 
 // Brother Calen - hailable while aboard.
 
-### Calen Hail (calen_hail)
+### [Calen Hail](calen_hail)
 ---
 Speaker: calen
 When: comms
@@ -304,7 +304,7 @@ When: comms
 - [Ask what awaits him there](calen_why)
 - [Leave him be](calen_done)
 
-### Calen's Reason (calen_why)
+### [Calen's Reason](calen_why)
 ---
 Speaker: calen
 ---
@@ -312,7 +312,7 @@ Speaker: calen
 
 - [Say nothing more](calen_done)
 
-### Calen Settles (calen_done)
+### [Calen Settles](calen_done)
 ---
 Speaker: calen
 ---

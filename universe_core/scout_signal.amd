@@ -4,14 +4,14 @@
 // the win is a plain quest (scan the derelict). Registered in universes.mast.
 // Copy this file to start a story of your own.
 
-# The Fading Signal
+# [The Fading Signal](the_fading_signal)
 ---
 Display: The Fading Signal
 ---
 A single scout, a beacon that should be dead, and a long quiet run to whatever
 is still transmitting from the edge of the chart.
 
-## Scenario
+## [Scenario](scenario)
 ---
 Mode: story
 ---
@@ -19,9 +19,9 @@ Mode: story
 // economy off; no ## Admiralty or ## Worldlets chapter needed. (skirmish / war turn
 // on PvP + the RTS; campaign = a persistent solo epic; sandbox = the full universe.)
 
-## Narrative
+## [Narrative](narrative)
 
-### A Voice in the Static (signal_1)
+### [A Voice in the Static](signal_1)
 ---
 Scope: shared
 State: active
@@ -33,7 +33,7 @@ background hiss on a channel nobody has used in years. The bearing points corewa
 out past the last charted buoy at (1, -1). Command wants eyes on it. Engage the jump
 drive on Navigation and follow the signal in.
 
-### The Trail Goes Cold (signal_2)
+### [The Trail Goes Cold](signal_2)
 ---
 Scope: shared
 State: secret
@@ -47,7 +47,7 @@ survey ship logged overdue eleven years ago and quietly struck from the rolls. H
 last position was two jumps on, at (3, -2). Someone is still transmitting from a ship
 that is not supposed to exist.
 
-### The Long Quiet (signal_3)
+### [The Long Quiet](signal_3)
 ---
 Scope: shared
 State: secret
@@ -59,9 +59,9 @@ gone dark a decade ago. And a beacon that should have died with its batteries, s
 whispering the same eleven-year-old words into an empty sky. Bring the science array
 to bear and find out what the Meridian has been calling for all this time.
 
-## Goals
+## [Goals](goals)
 
-### Answer the Signal (goal_answer)
+### [Answer the Signal](goal_answer)
 ---
 Scope: shared
 State: active
@@ -72,9 +72,9 @@ Citation: The Meridian's beacon finally has a listener. Whatever she was calling
 Follow the signal to the TSN Meridian at (3, -2) and scan the derelict to read what
 her beacon has been repeating into the static since before you had a commission.
 
-## Landmarks
+## [Landmarks](landmarks)
 
-### TSN Meridian (meridian)
+### [TSN Meridian](meridian)
 ---
 At: 3, -2
 Kind: derelict
