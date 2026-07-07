@@ -347,14 +347,26 @@ buy-market substrate (LM `casino/market.mast`, `items/item_market.mast`).
    (Phase 2/3): rep → prices + lead quality; fence-relics; Eddy's own station + midpoint
    episode (he's virtual-crew-only for now); a "refit" path to shed a bad modifier.*
 
-### Phase 2 — Cast & reputation
+### Phase 2 — Cast & reputation — **slice DONE 2026-07-07**
 
-6. **Cast** (cheap `.amd`): add Lifeforms + Dialogue for Chief Engineer, Eddy-as-virtual-
-   crew, and 1–2 faction voices. Small.
-7. **Reputation** (§2 decision: tactical + narrative) — `reputation_configure` 3 clans to
-   start (Salvage guild, Bounty-Hunter guild, XORN's crew); make ONE tactical gate real
-   (a faction that will/won't fight for you) AND one dialogue branch real, as the pattern
-   the rest of the episodes copy.
+6. **Cast** — ✅ **Chief Engineer Vex** added (`.amd` lifeform + dialogue): a hailable
+   advisor whose banter reinforces the tone (under-gunned Warpster, run-don't-fight, Eddy's
+   gear is a gamble). Eddy already added in Phase 1. *Remaining: 1–2 faction voices when
+   factions exist.*
+7. **Reputation** (§2 decision: tactical + narrative) — ✅ **real slice via Eddy loyalty.**
+   No clan/side machinery needed: a lifeform's dialogue rep keys on the lifeform key
+   (`crazy_eddy`) and the built-in `generous/selfish` axis. Every purchase `earns crazy_eddy
+   generous`; at `generous > 15` a **"Regulars only" branch unlocks** (a new dialogue menu)
+   with **discounted honest gear** (Sensor Array 400→250, genuine shield emitters) — so rep
+   gates a **price** (tactical) *and* a **dialogue branch** (narrative), and it **persists
+   per-captain across episodes**. This is the pattern episodes copy. *Remaining: the "who
+   fights for you" tactical gate needs friendly factions with ships (Phase 3); rep from
+   kills; XORN-crew / bounty-hunter standing.*
+
+> Dialogue rep mechanics learned (reusable): guards are a single `lhs op number` (no
+> compound `and`) where lhs ∈ {`credits`, `standing`/`rep`, any rep pole vs the speaker's
+> clan key}; outcomes are `costs N credits` / `earns <clan> <pole> <n>` / `signal <name>`
+> (universe_dialogue.py). A `costs` it can't afford refuses the pick.
 
 ### Phase 3 — Content build-out (now fast, because the template + mechanics exist)
 
