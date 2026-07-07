@@ -24,6 +24,10 @@ from sbs_utils.vec import Vec3
 # Far from the play slots (within +-1M); markers are static so the distance is safe.
 GALAXY_THEATER = Vec3(50_000_000.0, 0.0, 0.0)
 THEATER_SPACING = 4_000.0
+# A COPY PER ADMIRAL: each overseer's galaxy cam gets its own board REGION, offset in z
+# by (slot * GALAXY_REGION_GAP) so boards never overlap. The gap is well beyond a cam's
+# radar range (40k) + the board span (~24k), so each cam sees only its own board.
+GALAXY_REGION_GAP = 200_000.0
 
 # Icon vocabulary: system KIND -> (art, color, scale). behav_marker renders the ART
 # (shape channel); the COLOR is applied via a per-kind colored SIDE (radar color comes
@@ -41,11 +45,12 @@ _KIND_ICON = {
 }
 
 
-def galaxy_theater_marker_pos(di, dj):
-    """World position of the marker at window offset (di, dj) from the board center."""
+def galaxy_theater_marker_pos(di, dj, rz):
+    """World position of the marker at window offset (di, dj) from a board centred in the
+    cam's region (region-z = rz)."""
     return Vec3(GALAXY_THEATER.x + di * THEATER_SPACING,
                 GALAXY_THEATER.y,
-                GALAXY_THEATER.z + dj * THEATER_SPACING)
+                rz + dj * THEATER_SPACING)
 
 
 def _unit_health_color(s):
@@ -72,76 +77,90 @@ def _unit_label(s, cell):
     return s.name
 
 
-def galaxy_theater_ensure_cam():
-    """Spawn the galaxy cambot (invisible, scan-capable) + one backdrop navarea, once.
-    The cambot is the ship the viewing client is temporarily assigned to; a distinct
-    role (galaxy_theater_cam) gates its //popup routes."""
-    if galaxy_theater_cam_id() != 0:
-        return
+def galaxy_theater_cam_for(client_id):
+    """THIS admiral client's OWN galaxy cam (a copy per admiral). Stored per client as
+    GALAXY_CAM; each cam is spawned into its own board REGION (a distinct z slot + backdrop
+    navarea) so two overseers never share/clear one board, and remembers its region-z
+    (board_rz) + board centre (board_ci/cj). Returns the cam id (0 on spawn failure)."""
+    cam_id = get_inventory_value(client_id, "GALAXY_CAM", 0)
+    if cam_id and to_object(cam_id) is not None:
+        return cam_id
+    slot = len(to_object_list(role("galaxy_theater_cam")))
+    rz = GALAXY_THEATER.z + slot * GALAXY_REGION_GAP
     sim = FrameContext.sim
     r = THEATER_SPACING * 8
     ox = GALAXY_THEATER.x
-    oz = GALAXY_THEATER.z
-    sim.add_navarea(ox - r, oz + r, ox + r, oz + r,
-                    ox - r, oz - r, ox + r, oz - r,
+    sim.add_navarea(ox - r, rz + r, ox + r, rz + r,
+                    ox - r, rz - r, ox + r, rz - r,
                     "Galaxy", "#08f4")
-    cam = player_spawn(GALAXY_THEATER.x, GALAXY_THEATER.y + 1000.0, GALAXY_THEATER.z,
+    cam = player_spawn(GALAXY_THEATER.x, GALAXY_THEATER.y + 1000.0, rz,
                        "", "#,galaxy_theater_cam,has_science_scan", "invisible")
-    if cam is not None:
-        remove_role(cam, "__player__")
+    if cam is None:
+        return 0
+    remove_role(cam, "__player__")
+    set_inventory_value(cam.id, "board_rz", rz)
+    set_inventory_value(cam.id, "board_ci", 999999)
+    set_inventory_value(cam.id, "board_cj", 999999)
+    set_inventory_value(client_id, "GALAXY_CAM", cam.id)
+    return cam.id
 
 
-def galaxy_theater_cam_id():
-    """The galaxy cambot id the viewing client is assigned to (0 if not spawned)."""
-    cams = to_object_list(role("galaxy_theater_cam"))
-    return cams[0].id if cams else 0
+def _board_markers(cam_id, role_name):
+    """Objects of `role_name` (galaxy_marker / galaxy_unit) belonging to ONE cam's board
+    (tagged board_cam) - so each admiral's board clears / scans / reconciles independently."""
+    return [m for m in to_object_list(role(role_name))
+            if get_inventory_value(m.id, "board_cam", 0) == cam_id]
 
 
-def galaxy_theater_clear():
-    """Despawn the WHOLE board (static system markers + unit icons + ship->icon links).
-    A full teardown (reset); normal operation REUSES the board and reconciles in place."""
-    for m in to_object_list(role("galaxy_marker")):
+def galaxy_theater_clear(cam_id):
+    """Despawn ONE cam's whole board (its system markers + unit icons + ship->icon links).
+    A full teardown; normal operation REUSES the board and reconciles in place."""
+    for m in _board_markers(cam_id, "galaxy_marker"):
         m.delete_object()
-    for u in to_object_list(role("galaxy_unit")):
+    for u in _board_markers(cam_id, "galaxy_unit"):
         _forget_unit_icon(u)
         u.delete_object()
 
 
-def galaxy_theater_clear_system():
-    """Despawn only the static SYSTEM markers (leaves the unit icons). Used when the board
-    re-centers: the system grid rebuilds, but the unit icons just move (sync_units)."""
-    for m in to_object_list(role("galaxy_marker")):
+def galaxy_theater_clear_system(cam_id):
+    """Despawn only ONE cam's static SYSTEM markers (leaves its unit icons). Used when the
+    board re-centers: the system grid rebuilds, but the unit icons just move (sync_units)."""
+    for m in _board_markers(cam_id, "galaxy_marker"):
         m.delete_object()
 
 
 def _forget_unit_icon(icon):
-    """Clear the ship->icon back-link for a unit icon about to be deleted."""
+    """Clear the ship->icon back-link (per-cam key) for a unit icon about to be deleted."""
     sid = get_inventory_value(icon.id, "unit_ship", 0)
-    if sid:
-        set_inventory_value(sid, "galaxy_icon", 0)
+    cam = get_inventory_value(icon.id, "board_cam", 0)
+    if sid and cam:
+        set_inventory_value(sid, "galaxy_icon:" + str(cam), 0)
 
 
-def galaxy_theater_sync_units(ci, cj, side, win=3):
-    """Reconcile the friendly-unit icons IN PLACE (by change, not rebuild). Each player
-    ship of `side` keeps ONE persistent icon (role galaxy_unit): it is MOVED to its
-    current cell offset and re-tinted (shield health) / re-labelled (name + destination)
-    each pass; an icon whose ship left the window or is gone is removed. Called on
-    activation and by the theater's ~1s unit watcher, so a SENT ship updates live without
-    a board rebuild. The link is stored both ways (ship.galaxy_icon <-> icon.unit_ship)."""
+def galaxy_theater_sync_units(cam_id, ci, cj, side, win=3):
+    """Reconcile ONE cam's friendly-unit icons IN PLACE (by change, not rebuild). Each
+    player ship of `side` keeps ONE persistent icon per board (role galaxy_unit, tagged
+    board_cam): it is MOVED to its current cell offset in this cam's region and re-tinted
+    (shield health) / re-labelled (name + destination); an icon whose ship left the window
+    or is gone is removed. Called on activation and by the ~1s unit watcher, so a SENT ship
+    updates live without a board rebuild. The ship->icon link is per-cam (galaxy_icon:<cam>)
+    so the same ship can appear on several admirals' boards (co-op)."""
+    rz = get_inventory_value(cam_id, "board_rz", GALAXY_THEATER.z)
+    link_key = "galaxy_icon:" + str(cam_id)
     keep = set()
     if side is not None:
         for s in to_object_list(role("__player__") & role(side)):
             sc = object_cell(s.id)
             sdi = sc[0] - ci
             sdj = sc[1] - cj
-            icon_id = get_inventory_value(s.id, "galaxy_icon", 0)
+            icon_id = get_inventory_value(s.id, link_key, 0)
             icon = to_object(icon_id) if icon_id else None
             if not (-win <= sdi <= win and -win <= sdj <= win):
                 if icon is not None:
                     icon.delete_object()
-                set_inventory_value(s.id, "galaxy_icon", 0)
+                set_inventory_value(s.id, link_key, 0)
                 continue
-            up = galaxy_theater_marker_pos(sdi, sdj)
+            up = galaxy_theater_marker_pos(sdi, sdj, rz)
             px = up.x + THEATER_SPACING * 0.28
             pz = up.z + THEATER_SPACING * 0.28
             if icon is None:
@@ -149,28 +168,30 @@ def galaxy_theater_sync_units(ci, cj, side, win=3):
                                      "tsn_fighter", "behav_marker")
                 if icon is None:
                     continue
-                set_inventory_value(s.id, "galaxy_icon", icon.id)
+                set_inventory_value(s.id, link_key, icon.id)
                 set_inventory_value(icon.id, "unit_ship", s.id)
+                set_inventory_value(icon.id, "board_cam", cam_id)
             else:
                 icon.pos = Vec3(px, up.y, pz)   # MOVE in place, not respawn
             icon.data_set.set("radar_color_override", _unit_health_color(s), 0)
             icon.data_set.set("icon_scale", 0.8, 0)
             icon.data_set.set("name_tag", _unit_label(s, sc), 0)
             keep.add(icon.id)
-    # Remove orphans: unit icons whose ship is gone / no longer on this board.
-    for u in to_object_list(role("galaxy_unit")):
+    # Remove orphans on THIS board only: icons whose ship is gone / left the window.
+    for u in _board_markers(cam_id, "galaxy_unit"):
         if u.id not in keep:
             _forget_unit_icon(u)
             u.delete_object()
 
 
-def galaxy_theater_build(seed, danger, clans, sectors, reveal, ci, cj, side, win=3):
-    """Rebuild the STATIC system-marker grid: a (2*win+1) window of real system markers
-    around cell (ci, cj), meshed by actual kind (fog -> unknown). Only called when the
-    board re-centers (the caller gates on a CHANGED cell), NOT on every activation - the
-    unit icons are reconciled separately (galaxy_theater_sync_units) so a sent ship
-    updates by change. seed/danger/clans/sectors/reveal are the shared config from MAST."""
-    galaxy_theater_clear_system()
+def galaxy_theater_build(cam_id, seed, danger, clans, sectors, reveal, ci, cj, side, win=3):
+    """Rebuild ONE cam's STATIC system-marker grid: a (2*win+1) window of real system
+    markers around cell (ci, cj) in this cam's region, meshed by actual kind (fog ->
+    unknown), each tagged board_cam. Only called when the board re-centers (the caller
+    gates on a CHANGED cell), NOT on every activation - the unit icons are reconciled
+    separately (galaxy_theater_sync_units) so a sent ship updates by change."""
+    rz = get_inventory_value(cam_id, "board_rz", GALAXY_THEATER.z)
+    galaxy_theater_clear_system(cam_id)
     for di in range(-win, win + 1):
         for dj in range(-win, win + 1):
             i = ci + di
@@ -181,7 +202,7 @@ def galaxy_theater_build(seed, danger, clans, sectors, reveal, ci, cj, side, win
                 base_kind = universe_system_kind(seed, i, j, danger)
                 kind = universe_system_clan(clans, seed, i, j, base_kind)[1]
             icon = _KIND_ICON.get(kind, _KIND_ICON["fog"])
-            p = galaxy_theater_marker_pos(di, dj)
+            p = galaxy_theater_marker_pos(di, dj, rz)
             # Passive map marker: behav_marker renders the ART; radar_color_override
             # forces the 2D-radar colour per object; icon_scale sizes it.
             m = terrain_spawn(p.x, p.y, p.z, "System " + str(i) + "," + str(j),
@@ -195,15 +216,16 @@ def galaxy_theater_build(seed, danger, clans, sectors, reveal, ci, cj, side, win
                 set_inventory_value(m.id, "marker_i", i)
                 set_inventory_value(m.id, "marker_j", j)
                 set_inventory_value(m.id, "marker_kind", kind)
+                set_inventory_value(m.id, "board_cam", cam_id)
     # Reconcile the unit icons to the (possibly new) centre - in place, not a respawn.
-    galaxy_theater_sync_units(ci, cj, side, win)
+    galaxy_theater_sync_units(cam_id, ci, cj, side, win)
 
 
-def galaxy_theater_scan_for(origin_id):
-    """Mark the markers scanned for `origin_id` (the galaxy cambot), so its 2D view can
+def galaxy_theater_scan_for(cam_id):
+    """Mark ONE cam's board markers scanned for it (the galaxy cambot), so its 2D view can
     select them (comms/selection is gated by the science-data rule)."""
-    origin = to_object(origin_id)
+    origin = to_object(cam_id)
     if origin is None:
         return
-    for m in to_object_list(role("galaxy_marker")):
+    for m in _board_markers(cam_id, "galaxy_marker"):
         science_set_scan_data(origin, m.id, "Galaxy marker")
