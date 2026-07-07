@@ -32,6 +32,11 @@ default shared UNIVERSE_CULL_RADIUS = 25000
 # Player Navigation grid map: retired by default (the Admiral theater is the single
 # strategic map; quests move players). Flip on for solo / no-admiral / Mode fallback.
 default shared NAV_CONSOLE_ENABLED = False
+# Admiral ECONOMY/BUILD mode toggle. True = full RTS economy (pools, extraction, build
+# queue, worldlet building). False = a "simple" overseer that just MOVES units (player
+# ships + any fleets) from the theater - no economy, no building. The economy code stays
+# intact; this only gates whether that mode runs/shows it. A Mode preset flips it.
+default shared ADMIRALTY_ECONOMY = True
 
 
 # The player-side agents. LM's server start fires signal_emit("create_sides")
@@ -180,7 +185,10 @@ GameCode:
             admiralty_seed_pools(_side)
         skirmish_reset()
         fabricator_reset()
-        task_schedule(admiralty_economy_tick)
+        # Simple (economy-off) mode skips the extraction/persistence tick entirely -
+        # the overseer just moves units. Fleets still operate (admiralty_fleet_loop).
+        if ADMIRALTY_ECONOMY:
+            task_schedule(admiralty_economy_tick)
         task_schedule(admiralty_fleet_loop)
         task_schedule(admiralty_skirmish_loop)
         task_schedule(admiralty_fabricator_loop)

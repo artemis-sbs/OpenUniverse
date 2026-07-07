@@ -276,17 +276,20 @@ default shared ADM_LAST_MSG = ""
     gui_tab_enable("galaxy")
     gui_tab_back(CONSOLE_SELECT)
     gui_section(style="area: 2, 2, 98, 8; background:#1578;")
-    # Live resource ticker: a plain text label is built once and goes stale, so use
-    # a handle + on-change (the pools shift on the economy tick - watch the string
-    # and repaint when it changes).
+    # Economy mode: live resource ticker (a plain label goes stale, so use a handle +
+    # on-change - the pools shift on the economy tick). Simple mode has no pools, so it
+    # just titles the console.
     # TEMP DIAGNOSTIC: the "  [mode/pace ...]" tag reports the economy pace actually
     # live at runtime (verifying the Skirmish Mode->brisk wiring). Remove the
     # admiralty_debug_pace_text() appends once confirmed.
-    adm_ticker_w = gui_text("$text:" + admiralty_ticker_text(adm_side) + "  " + admiralty_debug_pace_text(adm_side) + ";justify:center;font:gui-4")
-    on change admiralty_ticker_text(adm_side):
-        # .update() replaces the whole style, so carry the format props too (else
-        # the text reverts to unstyled/left-aligned).
-        adm_ticker_w.update("text:" + admiralty_ticker_text(adm_side) + "  " + admiralty_debug_pace_text(adm_side) + ";justify:center;font:gui-4")
+    if ADMIRALTY_ECONOMY:
+        adm_ticker_w = gui_text("$text:" + admiralty_ticker_text(adm_side) + "  " + admiralty_debug_pace_text(adm_side) + ";justify:center;font:gui-4")
+        on change admiralty_ticker_text(adm_side):
+            # .update() replaces the whole style, so carry the format props too (else
+            # the text reverts to unstyled/left-aligned).
+            adm_ticker_w.update("text:" + admiralty_ticker_text(adm_side) + "  " + admiralty_debug_pace_text(adm_side) + ";justify:center;font:gui-4")
+    else:
+        """justify:center; font:gui-4; $text:Admiral - Fleet Command"""
     # Left: zoom + the system 2D view (click an object to command it).
     gui_section(style="area: 0, 9, 72, 100;")
     gui_row("row-height: 34px;")
@@ -309,26 +312,36 @@ default shared ADM_LAST_MSG = ""
     # frees the worldlet). Builds run in PARALLEL (each its own task), so there's no
     # order to reprioritize. A status hint sits above; the list repaints on queue
     # add/remove and ~every 2s while building (admiralty_build_count_key -> repaint).
-    gui_section(style="area: 72, 67, 100, 73; background:#0234;")
-    adm_hint_w = gui_text("$text:" + admiralty_status_hint(ADM_BUILDS, ADM_LAST_MSG) + ";justify:center;font:gui-1;color:#8cf")
-    on change ADM_LAST_MSG:
-        adm_hint_w.update("text:" + admiralty_status_hint(ADM_BUILDS, ADM_LAST_MSG) + ";justify:center;font:gui-1;color:#8cf")
-    gui_section(style="area: 72, 73, 100, 93;")
-    adm_qbox = gui_list_box(ADM_BUILDS, "row-height: 1.8em;", item_template=admiralty_build_row, title_template=admiralty_build_title, select=True)
-    on change admiralty_build_count_key(ADM_BUILDS, ADM_LAST_MSG):
-        gui_task_jump("repaint")
-    gui_section(style="area: 72, 93, 100, 100;")
-    adm_cancel_btn = gui_button("$text:Cancel selected build;font:gui-1;justify:center;")
-    on gui_message(adm_cancel_btn):
-        adm_qsel = adm_qbox.get_value()
-        if adm_qsel is not None and not isinstance(adm_qsel, str):
-            adm_qsel.cancel = True
-            ADM_LAST_MSG = "Cancelling " + adm_qsel.get("name", "build") + "..."
+    if ADMIRALTY_ECONOMY:
+        gui_section(style="area: 72, 67, 100, 73; background:#0234;")
+        adm_hint_w = gui_text("$text:" + admiralty_status_hint(ADM_BUILDS, ADM_LAST_MSG) + ";justify:center;font:gui-1;color:#8cf")
+        on change ADM_LAST_MSG:
+            adm_hint_w.update("text:" + admiralty_status_hint(ADM_BUILDS, ADM_LAST_MSG) + ";justify:center;font:gui-1;color:#8cf")
+        gui_section(style="area: 72, 73, 100, 93;")
+        adm_qbox = gui_list_box(ADM_BUILDS, "row-height: 1.8em;", item_template=admiralty_build_row, title_template=admiralty_build_title, select=True)
+        on change admiralty_build_count_key(ADM_BUILDS, ADM_LAST_MSG):
+            gui_task_jump("repaint")
+        gui_section(style="area: 72, 93, 100, 100;")
+        adm_cancel_btn = gui_button("$text:Cancel selected build;font:gui-1;justify:center;")
+        on gui_message(adm_cancel_btn):
+            adm_qsel = adm_qbox.get_value()
+            if adm_qsel is not None and not isinstance(adm_qsel, str):
+                adm_qsel.cancel = True
+                ADM_LAST_MSG = "Cancelling " + adm_qsel.get("name", "build") + "..."
+    else:
+        # Simple (economy-off) mode: no build queue - just the command status line.
+        gui_section(style="area: 72, 67, 100, 100; background:#0234;")
+        adm_hint_w = gui_text("$text:" + admiralty_status_hint(ADM_BUILDS, ADM_LAST_MSG) + ";justify:center;font:gui-1;color:#8cf")
+        on change ADM_LAST_MSG:
+            adm_hint_w.update("text:" + admiralty_status_hint(ADM_BUILDS, ADM_LAST_MSG) + ";justify:center;font:gui-1;color:#8cf")
     # Comms won't open on an object the side holds no science data for. Scan the
     # Admiral's theatre once now so THIS console's first click works; the economy
     # tick keeps it fresh side-wide thereafter (admiralty_scan_theatre is one pass
-    # for the whole side - science data is stored per-side, not per-console).
-    admiralty_scan_theatre(adm_side)
+    # for the whole side - science data is stored per-side, not per-console). Only the
+    # economy mode has a theatre to scan (platforms/worldlets); the theater board
+    # scans its own markers.
+    if ADMIRALTY_ECONOMY:
+        admiralty_scan_theatre(adm_side)
     await gui()
 
 //gui/tab/admiral
@@ -530,6 +543,8 @@ default shared ADM_LAST_MSG = ""
 
 
 //comms if has_roles(COMMS_ORIGIN_ID, "admiral") and has_roles(COMMS_SELECTED_ID, "worldlet")
+    # Simple (economy-off) mode has no building, so a worldlet offers no build menu.
+    yield success if not ADMIRALTY_ECONOMY
     # The building side is the selecting Admiral's own side (COMMS_ORIGIN.side), not
     # a hard-coded literal - so a rival-side Admiral builds/refreshes for its side.
     adm_side = COMMS_ORIGIN.side
