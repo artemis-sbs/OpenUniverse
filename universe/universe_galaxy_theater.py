@@ -98,19 +98,79 @@ def galaxy_theater_cam_id():
 
 
 def galaxy_theater_clear():
-    """Despawn the current board (system markers + friendly-unit icons)."""
+    """Despawn the WHOLE board (static system markers + unit icons + ship->icon links).
+    A full teardown (reset); normal operation REUSES the board and reconciles in place."""
     for m in to_object_list(role("galaxy_marker")):
         m.delete_object()
     for u in to_object_list(role("galaxy_unit")):
+        _forget_unit_icon(u)
         u.delete_object()
 
 
+def galaxy_theater_clear_system():
+    """Despawn only the static SYSTEM markers (leaves the unit icons). Used when the board
+    re-centers: the system grid rebuilds, but the unit icons just move (sync_units)."""
+    for m in to_object_list(role("galaxy_marker")):
+        m.delete_object()
+
+
+def _forget_unit_icon(icon):
+    """Clear the ship->icon back-link for a unit icon about to be deleted."""
+    sid = get_inventory_value(icon.id, "unit_ship", 0)
+    if sid:
+        set_inventory_value(sid, "galaxy_icon", 0)
+
+
+def galaxy_theater_sync_units(ci, cj, side, win=3):
+    """Reconcile the friendly-unit icons IN PLACE (by change, not rebuild). Each player
+    ship of `side` keeps ONE persistent icon (role galaxy_unit): it is MOVED to its
+    current cell offset and re-tinted (shield health) / re-labelled (name + destination)
+    each pass; an icon whose ship left the window or is gone is removed. Called on
+    activation and by the theater's ~1s unit watcher, so a SENT ship updates live without
+    a board rebuild. The link is stored both ways (ship.galaxy_icon <-> icon.unit_ship)."""
+    keep = set()
+    if side is not None:
+        for s in to_object_list(role("__player__") & role(side)):
+            sc = object_cell(s.id)
+            sdi = sc[0] - ci
+            sdj = sc[1] - cj
+            icon_id = get_inventory_value(s.id, "galaxy_icon", 0)
+            icon = to_object(icon_id) if icon_id else None
+            if not (-win <= sdi <= win and -win <= sdj <= win):
+                if icon is not None:
+                    icon.delete_object()
+                set_inventory_value(s.id, "galaxy_icon", 0)
+                continue
+            up = galaxy_theater_marker_pos(sdi, sdj)
+            px = up.x + THEATER_SPACING * 0.28
+            pz = up.z + THEATER_SPACING * 0.28
+            if icon is None:
+                icon = terrain_spawn(px, up.y, pz, s.name, "galaxy_unit",
+                                     "tsn_fighter", "behav_marker")
+                if icon is None:
+                    continue
+                set_inventory_value(s.id, "galaxy_icon", icon.id)
+                set_inventory_value(icon.id, "unit_ship", s.id)
+            else:
+                icon.pos = Vec3(px, up.y, pz)   # MOVE in place, not respawn
+            icon.data_set.set("radar_color_override", _unit_health_color(s), 0)
+            icon.data_set.set("icon_scale", 0.8, 0)
+            icon.data_set.set("name_tag", _unit_label(s, sc), 0)
+            keep.add(icon.id)
+    # Remove orphans: unit icons whose ship is gone / no longer on this board.
+    for u in to_object_list(role("galaxy_unit")):
+        if u.id not in keep:
+            _forget_unit_icon(u)
+            u.delete_object()
+
+
 def galaxy_theater_build(seed, danger, clans, sectors, reveal, ci, cj, side, win=3):
-    """Refresh the board: a (2*win+1) square window of REAL system markers around cell
-    (ci, cj), meshed by actual system kind (fog -> unknown). Clears the old markers
-    first. seed/danger/clans/sectors/reveal are the universe's shared config, passed in
-    from MAST (they aren't module globals)."""
-    galaxy_theater_clear()
+    """Rebuild the STATIC system-marker grid: a (2*win+1) window of real system markers
+    around cell (ci, cj), meshed by actual kind (fog -> unknown). Only called when the
+    board re-centers (the caller gates on a CHANGED cell), NOT on every activation - the
+    unit icons are reconciled separately (galaxy_theater_sync_units) so a sent ship
+    updates by change. seed/danger/clans/sectors/reveal are the shared config from MAST."""
+    galaxy_theater_clear_system()
     for di in range(-win, win + 1):
         for dj in range(-win, win + 1):
             i = ci + di
@@ -135,23 +195,8 @@ def galaxy_theater_build(seed, danger, clans, sectors, reveal, ci, cj, side, win
                 set_inventory_value(m.id, "marker_i", i)
                 set_inventory_value(m.id, "marker_j", j)
                 set_inventory_value(m.id, "marker_kind", kind)
-    # Friendly UNITS: a small bright icon at each cell holding a player ship of `side`,
-    # so the overseer sees where its crews are (the theater is the single strategic map
-    # now). Display-only (not scanned -> not selectable); role galaxy_unit so the next
-    # build clears them. object_cell resolves via the merged universe_* namespace.
-    if side is not None:
-        for s in to_object_list(role("__player__") & role(side)):
-            sc = object_cell(s.id)
-            sdi = sc[0] - ci
-            sdj = sc[1] - cj
-            if -win <= sdi <= win and -win <= sdj <= win:
-                up = galaxy_theater_marker_pos(sdi, sdj)
-                u = terrain_spawn(up.x + THEATER_SPACING * 0.28, up.y, up.z + THEATER_SPACING * 0.28,
-                                  s.name, "galaxy_unit", "tsn_fighter", "behav_marker")
-                if u is not None:
-                    u.data_set.set("radar_color_override", "#ffee44", 0)
-                    u.data_set.set("icon_scale", 0.8, 0)
-                    u.data_set.set("name_tag", s.name, 0)
+    # Reconcile the unit icons to the (possibly new) centre - in place, not a respawn.
+    galaxy_theater_sync_units(ci, cj, side, win)
 
 
 def galaxy_theater_scan_for(origin_id):

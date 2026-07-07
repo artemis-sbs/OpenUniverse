@@ -371,8 +371,17 @@ default shared ADM_LAST_MSG = ""
         agv_gc.side = agv_side
         agv_gc.data_set.set("ship_base_scan_range", 40000, 0)
         agv_cell = ship_cell(agv_cam)
-        galaxy_theater_build(universe_seed, DANGER, UNIVERSE_CLANS, universe_sectors, MAP_REVEAL, agv_cell[0], agv_cell[1], agv_side)
-        galaxy_theater_scan_for(agv_gcam)
+        # Only REBUILD the static system grid when the overseer's cell changed (or the
+        # board was never built) - otherwise REUSE it (no clear/flicker) and reconcile the
+        # unit icons in place. The board centre is remembered on the galaxy cam, so the map
+        # is the same objects next activation.
+        if get_inventory_value(agv_gcam, "board_ci", 999999) != agv_cell[0] or get_inventory_value(agv_gcam, "board_cj", 999999) != agv_cell[1]:
+            galaxy_theater_build(universe_seed, DANGER, UNIVERSE_CLANS, universe_sectors, MAP_REVEAL, agv_cell[0], agv_cell[1], agv_side)
+            set_inventory_value(agv_gcam, "board_ci", agv_cell[0])
+            set_inventory_value(agv_gcam, "board_cj", agv_cell[1])
+            galaxy_theater_scan_for(agv_gcam)
+        else:
+            galaxy_theater_sync_units(agv_cell[0], agv_cell[1], agv_side)
         sbs.assign_client_to_ship(client_id, agv_gcam)
         # Stash this console's REAL client on the galaxy cam: a marker's //comms handler
         # can run server-side (client_id 0), and Jump/Close need to reassign THIS client
@@ -403,7 +412,20 @@ default shared ADM_LAST_MSG = ""
     agv_hint_w = gui_text("$text:" + admiralty_status_hint(ADM_BUILDS, ADM_LAST_MSG) + ";justify:center;font:gui-1;color:#8cf")
     on change ADM_LAST_MSG:
         agv_hint_w.update("text:" + admiralty_status_hint(ADM_BUILDS, ADM_LAST_MSG) + ";justify:center;font:gui-1;color:#8cf")
+    # Live unit layer: reconcile the ship icons in place (~1s) so a SENT ship moves /
+    # re-labels / re-tints by CHANGE, never a board rebuild. Auto-cancels when the admiral
+    # leaves the theater (a new GUI is presented).
+    gui_sub_task_schedule("agv_unit_watch")
     await gui()
+
+--- agv_unit_watch
+    await delay_sim(1)
+    agv_w_cam = galaxy_theater_cam_id()
+    ->END if agv_w_cam == 0
+    agv_w_obj = to_object(agv_w_cam)
+    ->END if agv_w_obj is None
+    galaxy_theater_sync_units(get_inventory_value(agv_w_cam, "board_ci", 0), get_inventory_value(agv_w_cam, "board_cj", 0), agv_w_obj.side)
+    jump agv_unit_watch
 
 
 # Overseer self-jump (Model A): relocate the command camera to another system.
