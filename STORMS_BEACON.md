@@ -368,10 +368,24 @@ buy-market substrate (LM `casino/market.mast`, `items/item_market.mast`).
 > clan key}; outcomes are `costs N credits` / `earns <clan> <pole> <n>` / `signal <name>`
 > (universe_dialogue.py). A `costs` it can't afford refuses the pick.
 
-### Phase 3 — Content build-out (now fast, because the template + mechanics exist)
+### Phase 3 — Content build-out — **campaign spine DONE 2026-07-07**
 
-8. Author the **3 tentpoles** (Opening / Eddy midpoint / Beacon finale) + **4–6 procedural
-   episodes** from the template = **7–9 episodes**.
-9. **Polish:** XORN tuning, crafting depth (the 3–4 expedition items, §8 — scope here), more
-   relic/clue variety, save/continue verification across the full quest tree.
+8. ✅ **The "assemble the Beacon" campaign** (the grand ending). The Beacon is **five pieces**
+   the giants scattered, not one relic. Four are **scanned** ruin-episodes — the **Voice**
+   (Torgoth megastation 2,-1), **Lens** (Kralien ruin 4,1), **Cipher** (nebula relay 6,-2),
+   **Heart** (XORN's kill-yard -5,-4, the combat/escape set-piece); the fifth, the
+   **Cradle**, is **bought from Eddy** (the non-linear economy piece). The finale **Origin**
+   (0,-7) is a **gated assembly**: scanning it only brings the array online — the win
+   (`goal_light`, `When: signal beacon_lit`) fires **only when every piece is present**,
+   which the Storm dispatcher checks; **arrive without the Cradle and Storm sends you back to
+   Eddy.** That gate is the puzzle: exploration alone never finishes the Beacon. XORN gets a
+   short-fuse confrontation at both the Heart and the Origin. Payoff (the `Citation`): the lit
+   Beacon **calls** — its thousand-year message is the giants' **last warning** about the
+   thing that unmade them, the thing **XORN answers to**; you fly home with the story and a
+   sequel hook. Dispatcher is still one `_eps` list (+ an `also` field for side-objective
+   reveals); adding a piece is still append-one-row. *≈7 beats (5 jumps + Cradle buy + gated
+   finale).*
+9. **Polish (remaining):** XORN cadence tuning; crafting depth (§8); rep→Eddy prices deeper;
+   the "who fights for you" tactical gate (needs friendly factions); more ruin variety;
+   save/continue verification across the full tree; optional extra procedural pieces.
 ```
