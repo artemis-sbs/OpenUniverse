@@ -5,3 +5,4 @@ __pycache__/
 media/
 # Shared universe save lives in missions/common_data, not here
 WRITERS_GUIDE.pdf
+mkdocs/site/
