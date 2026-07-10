@@ -352,35 +352,58 @@ def _item_label(key):
 
 
 # Quests persist alongside items: per-ship quests by ship name, plus the
-# shared/game quest tree. Flat quests only (matches current usage); serialized
-# fields are YAML-safe (state/progress are ints, data is the AMD yaml dict).
-def _serialize_quests(agent_id):
-    tree = quest_agent_quests(agent_id)
+# shared/game quest tree. NESTED arcs are serialized in full (a `children` dict
+# per record) - a narrative arc like `beacon_arc/ep1_go` (Storm's Beacon) is a
+# quest TREE, not a flat list, so a flat serialize dropped every arc step and a
+# flat restore re-added the childless PARENT over the freshly-granted tree,
+# wiping the steps (the arc reverted to nothing on Continue). Serialized fields
+# are YAML-safe (state/progress are ints, data is the AMD yaml dict). Old flat
+# saves (no `children` key) restore unchanged.
+def _serialize_quest_children(children):
     out = {}
-    if tree is None:
-        return out
-    children = tree.get("children") or {}
-    for qid, q in children.items():
+    for qid, q in (children or {}).items():
         out[qid] = {
             "display_text": q.get("display_text", ""),
             "description": q.get("description", ""),
             "state": int(q.get("state", 0) or 0),
             "data": q.get("data"),
             "progress": q.get("progress", 0),
+            "children": _serialize_quest_children(q.get("children")),
         }
     return out
 
 
-def _restore_quests(agent_id, quests):
+def _serialize_quests(agent_id):
+    tree = quest_agent_quests(agent_id)
+    if tree is None:
+        return {}
+    return _serialize_quest_children(tree.get("children"))
+
+
+def _restore_quests(agent_id, quests, _prefix=""):
+    # Restore runs AFTER quest_grant_amd has (re)built the authored tree, so it
+    # MERGES saved progress onto that tree rather than replacing nodes: a saved
+    # node updates the granted node's state/progress in place; only a saved node
+    # the grant didn't produce is created fresh. This is what recovers an OLD
+    # flat save (parent only, no `children`) - quest_add would re-add a childless
+    # parent over the granted arc and wipe its steps; a merge leaves the granted
+    # steps intact. Recurses top-down so parents exist before their children.
     if not isinstance(quests, dict):
         return
     for qid, rec in quests.items():
-        quest_add(agent_id, qid, rec.get("display_text", ""),
-                  rec.get("description", ""), state=rec.get("state", 0),
-                  data=rec.get("data"))
+        full = _prefix + qid
+        if quest_get(agent_id, full) is None:
+            quest_add(agent_id, full, rec.get("display_text", ""),
+                      rec.get("description", ""), state=rec.get("state", 0),
+                      data=rec.get("data"))
+        else:
+            quest_set_key(agent_id, full, "state", rec.get("state", 0))
         prog = rec.get("progress", 0)
         if prog:
-            quest_set_key(agent_id, qid, "progress", prog)
+            quest_set_key(agent_id, full, "progress", prog)
+        kids = rec.get("children")
+        if kids:
+            _restore_quests(agent_id, kids, _prefix=full + "/")
 
 
 def universe_save_players():
