@@ -1,5 +1,5 @@
 #
-# Open Universe - a procedurally generated, jump-between-sectors map.
+# Open Universe - a procedurally generated, jump-between-systems map.
 #
 # A sector's contents are a pure function of (universe_seed, i, j), so the whole
 # universe is "stored" in its seed. Only the current sector is instantiated,
@@ -24,9 +24,12 @@ default shared START_MODE = "Continue"
 # with a minimal start screen) still resolves. A mission's own @map panel overrides.
 default shared TERRAIN_SELECT = "some"
 default shared seed_value = 0
-default shared universe_sectors = {}
+default shared universe_systems = {}
 default shared MAP_REVEAL = "Fog of War"
 default shared UNIVERSE_SELECT = "Default"
+# Which save slot (per universe). Continue loads it; New Game overwrites it. So each
+# universe can hold several independent campaigns.
+default shared SAVE_SLOT = 1
 default shared universe_diplomacy = {}
 # Active dialogue scene + speaker clan (set when a player hails; see the dialogue
 # routes near the station comms).
@@ -105,6 +108,9 @@ default shared WAYPOINTS_ENABLED = False
 # story.mast; StormsBeacon's `@map/stormsbeacon` lives in its story.mast. Both jump here.
 === universe_map_begin
     UNIVERSE_ACTIVE = True
+    # Point the save store at THIS universe's slot before any load/save, so each universe
+    # (and each mission that loads the engine) has its own saves and can hold several.
+    universe_set_active_save(UNIVERSE_SELECT, SAVE_SLOT)
     # Load the selected universe from one merged AMD file (identity + clans + jobs
     # + narrative; see UNIVERSE_CHANGES.md capstone). Parsed once into UNIVERSE_DOC;
     # clans/jobs/narrative are sections of it. Legacy split-file universes have no
@@ -212,17 +218,17 @@ default shared WAYPOINTS_ENABLED = False
     seed_value = safe_int(seed_value)
     if START_MODE == "Continue" and saved is not None:
         shared universe_seed = saved.get("universe_seed", 1)
-        shared universe_i = saved.get("current_sector", [0, 0])[0]
-        shared universe_j = saved.get("current_sector", [0, 0])[1]
-        shared universe_sectors = saved.get("sectors", {})
+        shared universe_i = saved.get("current_system", [0, 0])[0]
+        shared universe_j = saved.get("current_system", [0, 0])[1]
+        shared universe_systems = saved.get("systems", {})
         shared universe_diplomacy = saved.get("diplomacy", {})
     else:
         shared universe_seed = seed_value if seed_value != 0 else random.randrange(1, 2_000_000_000)
         shared universe_i = 0
         shared universe_j = 0
-        shared universe_sectors = {}
+        shared universe_systems = {}
         shared universe_diplomacy = {}
-    universe_save(universe_seed, universe_i, universe_j, universe_sectors)
+    universe_save(universe_seed, universe_i, universe_j, universe_systems)
     # Re-apply any negotiated relation changes (clans/sides now exist).
     universe_apply_dip(universe_diplomacy)
     # Grant the shared narrative arcs (the universe's `narrative` section) game-wide:
@@ -352,8 +358,8 @@ default shared WAYPOINTS_ENABLED = False
         _capturer = closest(cap_station, role("__player__"), 12000)
         cap_side = _capturer.side if _capturer is not None else universe_primary_side()
         cap_obj.set_side(cap_side)
-        universe_sectors = universe_set_system_flag(universe_sectors, cap_i, cap_j, "captured")
-        universe_save(universe_seed, cap_i, cap_j, universe_sectors)
+        universe_systems = universe_set_system_flag(universe_systems, cap_i, cap_j, "captured")
+        universe_save(universe_seed, cap_i, cap_j, universe_systems)
         comms_broadcast(role("__player__"), "Starbase captured!", "#0f0")
         # Taking the station also empties its brig: captured Admiralty
         # officers held by this clan walk free (the bloodless rescue raid).
@@ -394,8 +400,8 @@ default shared WAYPOINTS_ENABLED = False
     if cap_hold >= 20:
         cap_obj = to_object(cap_station)
         cap_obj.set_side(cap_clan)
-        universe_sectors = universe_set_system_flag(universe_sectors, cap_i, cap_j, "captured", False)
-        universe_save(universe_seed, cap_i, cap_j, universe_sectors)
+        universe_systems = universe_set_system_flag(universe_systems, cap_i, cap_j, "captured", False)
+        universe_save(universe_seed, cap_i, cap_j, universe_systems)
         comms_broadcast(role("__player__"), "Starbase retaken by the enemy!", "#f00")
         ->END
     jump rwatch
@@ -432,14 +438,14 @@ default shared WAYPOINTS_ENABLED = False
 # a trade in a split-off player's system must land in that system's delta.
 //signal/item_bought if UNIVERSE_ACTIVE
     mkt_cell = object_cell(station_id)
-    universe_sectors = universe_set_system_value(universe_sectors, mkt_cell[0], mkt_cell[1], "market", market_snapshot(station_id))
-    universe_save(universe_seed, mkt_cell[0], mkt_cell[1], universe_sectors)
+    universe_systems = universe_set_system_value(universe_systems, mkt_cell[0], mkt_cell[1], "market", market_snapshot(station_id))
+    universe_save(universe_seed, mkt_cell[0], mkt_cell[1], universe_systems)
     ->END
 
 //signal/item_sold if UNIVERSE_ACTIVE
     mkt_cell = object_cell(station_id)
-    universe_sectors = universe_set_system_value(universe_sectors, mkt_cell[0], mkt_cell[1], "market", market_snapshot(station_id))
-    universe_save(universe_seed, mkt_cell[0], mkt_cell[1], universe_sectors)
+    universe_systems = universe_set_system_value(universe_systems, mkt_cell[0], mkt_cell[1], "market", market_snapshot(station_id))
+    universe_save(universe_seed, mkt_cell[0], mkt_cell[1], universe_systems)
     ->END
 
 
@@ -857,11 +863,11 @@ default shared WAYPOINTS_ENABLED = False
         for di in [-3, -2, -1, 0, 1, 2, 3]:
             ci = VIEW_I + di
             cj = VIEW_J + dj
-            txt = universe_map_cell_text(universe_seed, ci, cj, DANGER, universe_sectors, MAP_REVEAL)
+            txt = universe_map_cell_text(universe_seed, ci, cj, DANGER, universe_systems, MAP_REVEAL)
             cell_bg = "#0006"
             home_owner = clan_home_owner(UNIVERSE_CLANS, ci, cj)
             cell_owner = universe_system_clan(UNIVERSE_CLANS, universe_seed, ci, cj, universe_system_kind(universe_seed, ci, cj, DANGER))[0]
-            cell_revealed = universe_cell_known(universe_sectors, ci, cj, MAP_REVEAL)
+            cell_revealed = universe_cell_known(universe_systems, ci, cj, MAP_REVEAL)
             if home_owner is not None:
                 txt = clan_name(UNIVERSE_CLANS, home_owner)
                 cell_bg = clan_color(UNIVERSE_CLANS, home_owner)
@@ -911,7 +917,7 @@ default shared WAYPOINTS_ENABLED = False
     sel_res = universe_system_clan(UNIVERSE_CLANS, universe_seed, SEL_I, SEL_J, universe_system_kind(universe_seed, SEL_I, SEL_J, DANGER))
     sel_owner = sel_res[0]
     sel_kind = sel_res[1]
-    sel_known = universe_cell_known(universe_sectors, SEL_I, SEL_J, MAP_REVEAL)
+    sel_known = universe_cell_known(universe_systems, SEL_I, SEL_J, MAP_REVEAL)
     info_owner = (clan_name(UNIVERSE_CLANS, sel_owner) if sel_owner is not None else "Unclaimed") if sel_known else "Unknown"
     info_kind = sel_kind if sel_known else "Unknown"
     sel_dist = abs(SEL_I - cur_i) + abs(SEL_J - cur_j)
@@ -1002,7 +1008,7 @@ default shared WAYPOINTS_ENABLED = False
 
 #
 # Generate the current sector: pick a deterministic kind (keyed by the sector),
-# build the keyed terrain (denser for nebula sectors), then spawn the kind's
+# build the keyed terrain (denser for nebula systems), then spawn the kind's
 # features (all re-seeded from the sector key so a sector is the same each
 # visit). (0,0) is always a safe home with a station. No persistence yet, so a
 # revisited sector regenerates its station/enemies (deltas come in 3c).
@@ -1037,7 +1043,7 @@ default shared WAYPOINTS_ENABLED = False
         if arrival_chatter:
             universe_chatter_card(arrival_clan, arrival_chatter)
     # Remember we've been here (drives the galaxy-map fog of war).
-    universe_sectors = universe_set_system_flag(universe_sectors, ei, ej, "visited")
+    universe_systems = universe_set_system_flag(universe_systems, ei, ej, "visited")
 
     # Region identity: a named area (regions section) sets the sky + music; cells no
     # region claims keep whatever's current (basic_random_skybox's default).
@@ -1060,7 +1066,7 @@ default shared WAYPOINTS_ENABLED = False
         task_schedule(universe_veil_loop, {"vi": ei, "vj": ej})
         universe_info_card("ANTIMATTER VEIL - continuous hull heating in every section. Do not linger.", "Science Advisory", "#f80")
 
-    # Terrain (denser in nebula sectors)
+    # Terrain (denser in nebula systems)
     tv = universe_terrain_value
     if kind == "nebula":
         tv = max(tv, 4)
@@ -1074,12 +1080,12 @@ default shared WAYPOINTS_ENABLED = False
     # Features, each re-seeded from the sector key for determinism
     if kind == "home" or kind == "station":
         # Skip a station the players have destroyed (persisted).
-        if not universe_system_flag(universe_sectors, ei, ej, "station_destroyed"):
+        if not universe_system_flag(universe_systems, ei, ej, "station_destroyed"):
             random.seed(key + 1)
             st_type = random.choice(["starbase_command", "starbase_civil", "starbase_science", "starbase_industry"])
             # Clan-owned systems get the clan's station; a captured one flies the
             # player's flag; otherwise a friendly base on the primary player side.
-            captured = universe_system_flag(universe_sectors, ei, ej, "captured")
+            captured = universe_system_flag(universe_systems, ei, ej, "captured")
             st_side = universe_primary_side()
             st_name = "Starbase"
             if owner is not None and not captured:
@@ -1088,7 +1094,7 @@ default shared WAYPOINTS_ENABLED = False
             station = npc_spawn(co.x, co.y, co.z, st_name, f"{st_side}, station", st_type, "behav_station")
             station_id = to_id(station)
             # Market: restore this sector's saved stock, else seed deterministically.
-            saved_market = universe_system_value(universe_sectors, ei, ej, "market", None)
+            saved_market = universe_system_value(universe_systems, ei, ej, "market", None)
             if saved_market is not None:
                 market_restore(station_id, saved_market)
             else:
@@ -1111,7 +1117,7 @@ default shared WAYPOINTS_ENABLED = False
                     task_schedule(universe_recapture_watch, {"cap_station": station_id, "cap_clan": owner})
     elif kind == "enemy":
         # Skip enemies in a sector the players have already cleared (persisted).
-        if not universe_system_flag(universe_sectors, ei, ej, "enemy_cleared"):
+        if not universe_system_flag(universe_systems, ei, ej, "enemy_cleared"):
             random.seed(key + 3)
             enemy_clan = clan_get(UNIVERSE_CLANS, owner)
             count = 1 + int(DIFFICULTY / 3)
@@ -1203,7 +1209,7 @@ default shared WAYPOINTS_ENABLED = False
         # shot: a persisted `guards_cleared` flag means a revisit doesn't re-ambush.
         # Tagged landmark_guards (on top of raider) so the watch scopes to just these.
         lm_guards = universe_landmark_guards(lm, DIFFICULTY)
-        if lm_guards is not None and not universe_system_flag(universe_sectors, ei, ej, "guards_cleared"):
+        if lm_guards is not None and not universe_system_flag(universe_systems, ei, ej, "guards_cleared"):
             random.seed(key + 17)
             gpos = Vec3.rand_in_sphere(4000, 9000, False, True)
             prefab_spawn(prefab_fleet_raider, {"race": lm_guards["race"], "fleet_difficulty": lm_guards["difficulty"], "ship_roles": "raider, landmark_guards", "START_X": lmpos[0] + gpos.x, "START_Y": lmpos[1] + gpos.y, "START_Z": lmpos[2] + gpos.z})
@@ -1211,15 +1217,15 @@ default shared WAYPOINTS_ENABLED = False
             task_schedule(universe_watch_guards_cleared, {"ei": ei, "ej": ej})
 
     # Admiralty persistence: re-apply THIS cell's worldlet depletion and respawn its
-    # platforms from the sectors delta (both scoped to (ei, ej) - restore spawns each
+    # platforms from the systems delta (both scoped to (ei, ej) - restore spawns each
     # platform beside its own worldlet, which already sits at the cell offset), then
     # bring the navy through the jump (fleets travel with the flag - respawned at
     # THIS cell's world origin, ei/ej).
     if admiralty_active():
-        worldlets_apply_reserves(universe_system_value(universe_sectors, ei, ej, "worldlet_reserves", None), ei, ej)
+        worldlets_apply_reserves(universe_system_value(universe_systems, ei, ej, "worldlet_reserves", None), ei, ej)
         # Restore every side's platforms from the per-side delta (legacy flat-list
         # saves fall back to the primary side); fleets come back for every side.
-        admiralty_restore_platforms_all(universe_system_value(universe_sectors, ei, ej, "admiral_platforms", None), ei, ej)
+        admiralty_restore_platforms_all(universe_system_value(universe_systems, ei, ej, "admiral_platforms", None), ei, ej)
         for _side in universe_player_sides():
             fleets_respawn(_side, ei, ej)
 
@@ -1253,8 +1259,8 @@ default shared WAYPOINTS_ENABLED = False
     # Key the "station destroyed" delta to the STATION'S cell (from its position),
     # not the shared global - the station could be in a split-off player's system.
     dstr_cell = object_cell(DAMAGE_SELECTED_ID)
-    universe_sectors = universe_set_system_flag(universe_sectors, dstr_cell[0], dstr_cell[1], "station_destroyed")
-    universe_save(universe_seed, dstr_cell[0], dstr_cell[1], universe_sectors)
+    universe_systems = universe_set_system_flag(universe_systems, dstr_cell[0], dstr_cell[1], "station_destroyed")
+    universe_save(universe_seed, dstr_cell[0], dstr_cell[1], universe_systems)
     # The rescue raid: bringing down a captor clan's station frees every
     # Admiralty officer it holds (the other way out of a ransom).
     for _freed_key in officers_captured_by(get_side(DAMAGE_SELECTED_ID)):
@@ -1275,8 +1281,8 @@ default shared WAYPOINTS_ENABLED = False
     # Raiders confined to THIS cell (objects_in_cell) - a bare role("raider") spans
     # every live combat system, so two of them would keep each other from clearing.
     if len(objects_in_cell(to_object_list(role("raider") - role("raider_fleet")), ei, ej)) == 0:
-        universe_sectors = universe_set_system_flag(universe_sectors, ei, ej, "enemy_cleared")
-        universe_save(universe_seed, ei, ej, universe_sectors)
+        universe_systems = universe_set_system_flag(universe_systems, ei, ej, "enemy_cleared")
+        universe_save(universe_seed, ei, ej, universe_systems)
         ->END
     jump wait
 
@@ -1292,8 +1298,8 @@ default shared WAYPOINTS_ENABLED = False
     await delay_sim(5)
     ->END if not universe_cell_live(ei, ej)
     if len(objects_in_cell(to_object_list(role("landmark_guards")), ei, ej)) == 0:
-        universe_sectors = universe_set_system_flag(universe_sectors, ei, ej, "guards_cleared")
-        universe_save(universe_seed, ei, ej, universe_sectors)
+        universe_systems = universe_set_system_flag(universe_systems, ei, ej, "guards_cleared")
+        universe_save(universe_seed, ei, ej, universe_systems)
         ->END
     jump guards_wait
 
@@ -1351,7 +1357,7 @@ default shared WAYPOINTS_ENABLED = False
     # skybox - the "where is the story looking" pointer, not a correctness input.
     universe_i = ti
     universe_j = tj
-    universe_save(universe_seed, ti, tj, universe_sectors)
+    universe_save(universe_seed, ti, tj, universe_systems)
     universe_save_players()
 
     await delay_sim(1)

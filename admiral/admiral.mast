@@ -36,7 +36,7 @@ default shared ADM_LAST_MSG = ""
             universe_save_players()
         admiralty_scan_theatre(_side)
         admiralty_extraction_tick(_side, 6)
-        admiralty_relay_tick(_side, universe_sectors, universe_i, universe_j, 6)
+        admiralty_relay_tick(_side, universe_systems, universe_i, universe_j, 6)
         subsidy_lapse = admiralty_subsidy_upkeep(_side, 6)
         if subsidy_lapse is not None:
             universe_info_card(subsidy_lapse, "Admiralty Quartermaster", "#fa4")
@@ -57,9 +57,9 @@ default shared ADM_LAST_MSG = ""
         # nothing to persist, so don't clobber the stored delta with empty lists.
         if len(_lc_res) == 0:
             continue
-        universe_sectors = universe_set_system_value(universe_sectors, _lci, _lcj, "worldlet_reserves", _lc_res)
-        universe_sectors = universe_set_system_value(universe_sectors, _lci, _lcj, "admiral_platforms", admiralty_snapshot_platforms_all(_lci, _lcj))
-        universe_sectors = universe_set_system_value(universe_sectors, _lci, _lcj, "adm_relay", admiralty_relay_snapshot_all(_lci, _lcj))
+        universe_systems = universe_set_system_value(universe_systems, _lci, _lcj, "worldlet_reserves", _lc_res)
+        universe_systems = universe_set_system_value(universe_systems, _lci, _lcj, "admiral_platforms", admiralty_snapshot_platforms_all(_lci, _lcj))
+        universe_systems = universe_set_system_value(universe_systems, _lci, _lcj, "adm_relay", admiralty_relay_snapshot_all(_lci, _lcj))
     jump econ_loop
 
 
@@ -188,8 +188,8 @@ default shared ADM_LAST_MSG = ""
     # reveals those cells' contents without a visit (fog of war, the relay's
     # second CQ role). Persist the intel.
     if build_kind == "sensor" and built_plat is not None:
-        universe_sectors = universe_reveal_neighbors(universe_sectors, universe_i, universe_j)
-        universe_save(universe_seed, universe_i, universe_j, universe_sectors)
+        universe_systems = universe_reveal_neighbors(universe_systems, universe_i, universe_j)
+        universe_save(universe_seed, universe_i, universe_j, universe_systems)
         universe_info_card("Sensor Relay online - the neighbouring systems are on the chart.", "Admiralty", "#0cf")
     ->END
 
@@ -407,7 +407,7 @@ default shared ADM_LAST_MSG = ""
         # unit icons in place. The board centre is remembered on the galaxy cam, so the map
         # is the same objects next activation.
         if get_inventory_value(agv_gcam, "board_ci", 999999) != agv_cell[0] or get_inventory_value(agv_gcam, "board_cj", 999999) != agv_cell[1]:
-            galaxy_theater_build(agv_gcam, universe_seed, DANGER, UNIVERSE_CLANS, universe_sectors, MAP_REVEAL, agv_cell[0], agv_cell[1], agv_side)
+            galaxy_theater_build(agv_gcam, universe_seed, DANGER, UNIVERSE_CLANS, universe_systems, MAP_REVEAL, agv_cell[0], agv_cell[1], agv_side)
             set_inventory_value(agv_gcam, "board_ci", agv_cell[0])
             set_inventory_value(agv_gcam, "board_cj", agv_cell[1])
             galaxy_theater_scan_for(agv_gcam)
@@ -522,9 +522,9 @@ default shared ADM_LAST_MSG = ""
         cam.pos = Vec3(aco.x, 1000.0, aco.z)
     universe_i = ti
     universe_j = tj
-    # Persist like the player jump: the destination cell's sectors delta + overseer/
+    # Persist like the player jump: the destination cell's systems delta + overseer/
     # player state, so a reloaded or revisited game keeps the overseer where it jumped.
-    universe_save(universe_seed, ti, tj, universe_sectors)
+    universe_save(universe_seed, ti, tj, universe_systems)
     universe_save_players()
 
     await delay_sim(1)
@@ -635,7 +635,7 @@ default shared ADM_LAST_MSG = ""
         ADM_LAST_MSG = "Uncontrolled system - clear the hostile forces to claim it."
     if adm_uncontrolled and not adm_hostile and not adm_has_fleet:
         ADM_LAST_MSG = "Uncontrolled system - bring a fleet here to hold it while you build."
-    adm_items = admiralty_buildable_items(adm_side, COMMS_SELECTED_ID, universe_sectors, adm_here)
+    adm_items = admiralty_buildable_items(adm_side, COMMS_SELECTED_ID, universe_systems, adm_here)
     yield success if len(adm_items) == 0
     for adm_it in adm_items:
         + "Build {adm_it.name} ({adm_it.cost})" admiral_overseer_build {"BUILD_PICK": adm_it.get("key"), "SEL_WORLDLET": COMMS_SELECTED_ID, "BUILD_SIDE": adm_side}
@@ -653,7 +653,7 @@ default shared ADM_LAST_MSG = ""
     adm_pdef = admiralty_platform_def(BUILD_PICK)
     adm_pname = adm_pdef.get("name") if adm_pdef is not None else "platform"
     if admiralty_tuning("build_model", "menu") == "fabricator":
-        build_fail = admiralty_can_build(BUILD_PICK, BUILD_SIDE, SEL_WORLDLET, universe_sectors, adm_here)
+        build_fail = admiralty_can_build(BUILD_PICK, BUILD_SIDE, SEL_WORLDLET, universe_systems, adm_here)
         if build_fail is None:
             admiralty_spend(BUILD_SIDE, adm_pdef.get("cost"))
             fabricator_enqueue(BUILD_SIDE, BUILD_PICK, SEL_WORLDLET)
@@ -661,7 +661,7 @@ default shared ADM_LAST_MSG = ""
         else:
             ADM_LAST_MSG = build_fail
     else:
-        build_fail = admiralty_try_build(BUILD_PICK, BUILD_SIDE, SEL_WORLDLET, universe_sectors, adm_here)
+        build_fail = admiralty_try_build(BUILD_PICK, BUILD_SIDE, SEL_WORLDLET, universe_systems, adm_here)
         if build_fail is None:
             task_schedule(admiralty_build_task, {"build_kind": BUILD_PICK, "build_worldlet_id": SEL_WORLDLET, "build_side": BUILD_SIDE})
             ADM_LAST_MSG = "Construction started: " + adm_pname + "."

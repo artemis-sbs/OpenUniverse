@@ -6,12 +6,13 @@
 
 @map/universe "Open Universe"
 " Explore an endless, procedurally generated universe. Engage the jump drive on
-" the Navigation console to travel between sectors - the same seed always
+" the Navigation console to travel between systems - the same seed always
 " regenerates the same stars and fields.
 metadata:``` yaml
 Properties:
   Main:
     Start: 'gui_drop_down("$text: {START_MODE};list: Continue, New Game", var="START_MODE")'
+    Save Slot: 'gui_int_slider("$text:int;low: 1.0;high:6.0;", var="SAVE_SLOT")'
     Player Ships: 'gui_int_slider("$text:int;low: 1.0;high:8.0;", var= "PLAYER_COUNT")'
     Difficulty: 'gui_int_slider("$text:int;low: 1.0;high:11.0;", var= "DIFFICULTY")'
   Map:

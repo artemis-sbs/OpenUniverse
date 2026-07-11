@@ -290,13 +290,44 @@ def universe_reposition_players():
 
 
 # --- Persistence (procedural + delta) ---------------------------------------
-# The base universe regenerates from the seed; only player-made changes are
-# stored. One shared save file under data/missions/common_data.
+# The base universe regenerates from the seed; only player-made changes are stored,
+# under data/missions/common_data. The active save is keyed by the loaded UNIVERSE + a
+# SLOT (universe_set_active_save), so different universes - and different missions that
+# load this engine - never share a save, and one universe can hold several campaigns.
+_ACTIVE_SAVE = "default_1"
+
+
+def _save_slug(text):
+    """A filename-safe slug: lowercased, each run of non-alphanumerics collapsed to one _."""
+    out = []
+    prev_us = False
+    for ch in str(text).lower():
+        if ch.isalnum():
+            out.append(ch)
+            prev_us = False
+        elif not prev_us:
+            out.append("_")
+            prev_us = True
+    return "".join(out).strip("_") or "x"
+
+
+def universe_set_active_save(universe, slot=1):
+    """Select which save file the universe store reads/writes, keyed by the loaded UNIVERSE
+    and a SLOT. Call once at load, BEFORE universe_load()."""
+    global _ACTIVE_SAVE
+    try:
+        slot = int(float(slot))
+    except (TypeError, ValueError):
+        pass
+    _ACTIVE_SAVE = _save_slug(universe) + "_" + _save_slug(slot)
+
+
 def universe_save_path():
-    """Path to the single universe save file, creating common_data if needed."""
+    """Path to the ACTIVE universe save file (per-universe + per-slot), creating
+    common_data if needed. See universe_set_active_save."""
     common = os.path.join(os.path.dirname(get_mission_dir()), "common_data")
     os.makedirs(common, exist_ok=True)
-    return os.path.join(common, "universe_save.yaml")
+    return os.path.join(common, "universe_save_" + _ACTIVE_SAVE + ".yaml")
 
 
 def _universe_store():
@@ -324,13 +355,13 @@ def universe_migrate(data):
     return _universe_store().migrate(data)
 
 
-def universe_save(seed, i, j, sectors):
+def universe_save(seed, i, j, systems):
     """Persist the universe seed, current sector, and delta map.
 
     Merges into the existing save so the players/side_credits sections (written
     by universe_save_players) are preserved.
     """
-    _universe_store().update(universe_seed=seed, current_sector=[i, j], sectors=sectors)
+    _universe_store().update(universe_seed=seed, current_system=[i, j], systems=systems)
 
 
 # --- Player / economy persistence -------------------------------------------
@@ -501,42 +532,42 @@ def universe_load():
     return _universe_store().load()
 
 
-def universe_system_flag(sectors, i, j, flag):
+def universe_system_flag(systems, i, j, flag):
     """True if a per-sector delta flag (e.g. station_destroyed) is set."""
-    if not isinstance(sectors, dict):
+    if not isinstance(systems, dict):
         return False
-    s = sectors.get(f"{i},{j}")
+    s = systems.get(f"{i},{j}")
     return bool(s.get(flag)) if isinstance(s, dict) else False
 
 
-def universe_set_system_flag(sectors, i, j, flag, value=True):
-    """Set a per-sector delta flag; returns the (possibly new) sectors dict."""
-    return universe_set_system_value(sectors, i, j, flag, value)
+def universe_set_system_flag(systems, i, j, flag, value=True):
+    """Set a per-sector delta flag; returns the (possibly new) systems dict."""
+    return universe_set_system_value(systems, i, j, flag, value)
 
 
-def universe_system_value(sectors, i, j, field, default=None):
+def universe_system_value(systems, i, j, field, default=None):
     """Read an arbitrary per-sector delta field (e.g. market stock)."""
-    if not isinstance(sectors, dict):
+    if not isinstance(systems, dict):
         return default
-    s = sectors.get(f"{i},{j}")
+    s = systems.get(f"{i},{j}")
     return s.get(field, default) if isinstance(s, dict) else default
 
 
-def universe_set_system_value(sectors, i, j, field, value):
-    """Set an arbitrary per-sector delta field; returns the sectors dict."""
-    if not isinstance(sectors, dict):
-        sectors = {}
+def universe_set_system_value(systems, i, j, field, value):
+    """Set an arbitrary per-sector delta field; returns the systems dict."""
+    if not isinstance(systems, dict):
+        systems = {}
     k = f"{i},{j}"
-    s = sectors.get(k)
+    s = systems.get(k)
     if not isinstance(s, dict):
         s = {}
     s[field] = value
-    sectors[k] = s
-    return sectors
+    systems[k] = s
+    return systems
 
 
 # --- Sector quests (deterministic givers) ------------------------------------
-# Station sectors offer a deterministic cargo run whose destination is keyed to
+# Station systems offer a deterministic cargo run whose destination is keyed to
 # the giving sector, so the same station always offers the same run. The quest
 # is granted to the player ship and persists (see _serialize_quests); reaching
 # the destination completes it via the on_reach trigger in the quest driver.
@@ -607,7 +638,7 @@ def universe_grant_mystery(ship_id, seed, i, j):
 
 
 def universe_quest_target_sectors():
-    """(i,j) target sectors of all players' ACTIVE on_reach quests (map markers)."""
+    """(i,j) target systems of all players' ACTIVE on_reach quests (map markers)."""
     out = set()
     for ship in to_object_list(role("__player__")):
         tree = quest_agent_quests(ship.id)
@@ -792,25 +823,25 @@ def universe_system_kind(seed, i, j, danger="Quiet"):
     return "empty"
 
 
-def universe_cell_known(sectors, i, j, reveal):
+def universe_cell_known(systems, i, j, reveal):
     """A galaxy-map cell's contents are known if the chart is full, the crew has
     visited it, or a Sensor Relay has sensed it (universe_reveal_neighbors)."""
     return (reveal == "Full Chart"
-            or universe_system_flag(sectors, i, j, "visited")
-            or universe_system_flag(sectors, i, j, "sensed"))
+            or universe_system_flag(systems, i, j, "visited")
+            or universe_system_flag(systems, i, j, "sensed"))
 
 
-def universe_reveal_neighbors(sectors, i, j):
-    """Mark a system and its 8 neighbours 'sensed' in the sectors delta - the
+def universe_reveal_neighbors(systems, i, j):
+    """Mark a system and its 8 neighbours 'sensed' in the systems delta - the
     intel a Sensor Relay built here provides (galaxy-map contents shown without a
-    visit). Returns the (possibly new) sectors dict."""
+    visit). Returns the (possibly new) systems dict."""
     for di in (-1, 0, 1):
         for dj in (-1, 0, 1):
-            sectors = universe_set_system_flag(sectors, i + di, j + dj, "sensed")
-    return sectors
+            systems = universe_set_system_flag(systems, i + di, j + dj, "sensed")
+    return systems
 
 
-def universe_map_cell_text(seed, i, j, danger, sectors, reveal):
+def universe_map_cell_text(seed, i, j, danger, systems, reveal):
     """Short label for a galaxy-map cell.
 
     Named POIs always show; otherwise cells that aren't known (visited, sensed,
@@ -819,6 +850,6 @@ def universe_map_cell_text(seed, i, j, danger, sectors, reveal):
     name = universe_system_name(i, j)
     if name:
         return name
-    if not universe_cell_known(sectors, i, j, reveal):
+    if not universe_cell_known(systems, i, j, reveal):
         return "?"
     return _KIND_ABBR.get(universe_system_kind(seed, i, j, danger), ".")

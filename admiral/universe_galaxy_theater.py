@@ -343,7 +343,7 @@ def galaxy_theater_sync_fleets(cam_id, ci, cj, side, win=GALAXY_UNIT_WIN):
             u.delete_object()
 
 
-def galaxy_theater_build(cam_id, seed, danger, clans, sectors, reveal, ci, cj, side, win=GALAXY_GRID_WIN):
+def galaxy_theater_build(cam_id, seed, danger, clans, systems, reveal, ci, cj, side, win=GALAXY_GRID_WIN):
     """Rebuild ONE cam's STATIC system-marker grid: a (2*win+1) window of real system
     markers around cell (ci, cj) in this cam's region, meshed by actual kind (fog ->
     unknown), each tagged board_cam. Only called when the board re-centers (the caller
@@ -356,7 +356,7 @@ def galaxy_theater_build(cam_id, seed, danger, clans, sectors, reveal, ci, cj, s
             i = ci + di
             j = cj + dj
             owner = None
-            if not universe_cell_known(sectors, i, j, reveal):
+            if not universe_cell_known(systems, i, j, reveal):
                 kind = "fog"
             else:
                 base_kind = universe_system_kind(seed, i, j, danger)

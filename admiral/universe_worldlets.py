@@ -286,10 +286,10 @@ def worldlets_in_cell(i, j):
     return sorted(objects_in_cell(to_object_list(role("worldlet")), i, j), key=lambda o: o.id)
 
 
-# --- Per-system persistence (the universe_sectors delta) --------------------------
+# --- Per-system persistence (the universe_systems delta) --------------------------
 # A system regenerates from the seed, so only player-made changes are stored:
 # worldlet depletion and the platforms built there. Snapshotted on the economy
-# tick (admiral.mast) into universe_sectors; re-applied on arrival
+# tick (admiral.mast) into universe_systems; re-applied on arrival
 # (universe.mast enter_system). Order-based: spawn order is deterministic.
 def worldlets_snapshot_reserves(i, j):
     """[reserve or None per worldlet, creation order] for cell (i, j)'s delta."""
@@ -320,7 +320,7 @@ def admiralty_snapshot_platforms(side, i, j):
 
 
 def admiralty_restore_platforms(side, saved, i, j):
-    """Respawn cell (i, j)'s platforms from the sectors delta (arrival)."""
+    """Respawn cell (i, j)'s platforms from the systems delta (arrival)."""
     if not isinstance(saved, list):
         return
     worldlets = worldlets_in_cell(i, j)
@@ -431,7 +431,7 @@ def admiralty_extraction_tick(side, dt_seconds):
 def admiralty_relay_snapshot(side, i, j):
     """Per extractor-fed worldlet in cell (i, j): {w: creation-order index, rate:
     {res: per_min}} - the income a Relay Gate keeps pulling after the flag leaves.
-    Stored in the sectors delta each econ tick, keyed by worldlet index (same order
+    Stored in the systems delta each econ tick, keyed by worldlet index (same order
     as worldlets_snapshot_reserves) so the relay draws it against that system's
     stored worldlet_reserves list - the one arrival re-applies - and a gated FINITE
     worldlet really runs dry while unlimited ones pay on."""
@@ -508,20 +508,20 @@ def admiralty_restore_platforms_all(saved, i, j):
         admiralty_restore_platforms(universe_primary_side(), saved, i, j)
 
 
-def admiralty_relay_tick(side, sectors, cur_i, cur_j, dt_seconds):
-    """Remote income (slice 4): every OTHER system whose sectors delta shows a
+def admiralty_relay_tick(side, systems, cur_i, cur_j, dt_seconds):
+    """Remote income (slice 4): every OTHER system whose systems delta shows a
     Relay Gate feeds the pools at the Relay rate, drawn against that system's
     stored worldlet reserves - so a gated FINITE worldlet depletes and stops,
     while unlimited worldlets pay on. Mutates the stored reserves in place, so
     the depletion is exactly what arrival re-applies on the next visit. A legacy
     delta (adm_income, no adm_relay) falls back to the frozen aggregate."""
-    if not admiralty_active() or not isinstance(sectors, dict):
+    if not admiralty_active() or not isinstance(systems, dict):
         return
     rate = float(admiralty_tuning("relay_rate", 0.5))
     if rate <= 0:
         return
     scale = float(dt_seconds) / 60.0 * rate
-    for skey, sval in sectors.items():
+    for skey, sval in systems.items():
         if not isinstance(sval, dict):
             continue
         # Skip any LIVE cell, not just the flag's current one: a live system pays via
@@ -709,17 +709,17 @@ def admiralty_in_supply(side, x, z):
     return False
 
 
-def admiralty_platform_elsewhere(sectors, kind, here_key, side):
+def admiralty_platform_elsewhere(systems, kind, here_key, side):
     """The sector key ("i,j") of another system whose persistence delta already holds a
     platform of `kind` FOR `side`, or None. The HQ's campaign-uniqueness check - live
     objects only exist in LIVE systems, so uniqueness across the campaign must consult the
-    sectors delta (a despawned home still counts). Reads the PER-SIDE platform delta via
+    systems delta (a despawned home still counts). Reads the PER-SIDE platform delta via
     _adm_platforms_for_side (the delta is {side: [...]}, with a legacy flat list = primary
     side); the old flat-list-only read silently missed every per-side save, so a second HQ
     could be founded anywhere."""
-    if not isinstance(sectors, dict):
+    if not isinstance(systems, dict):
         return None
-    for skey, sval in sectors.items():
+    for skey, sval in systems.items():
         if skey == here_key or not isinstance(sval, dict):
             continue
         plats = _adm_platforms_for_side(sval.get("admiral_platforms"), side)
@@ -728,19 +728,30 @@ def admiralty_platform_elsewhere(sectors, kind, here_key, side):
     return None
 
 
-def admiralty_side_has_hq(side, sectors=None):
-    """True if `side` has its Headquarters ANYWHERE in the campaign - live in a system now,
-    or persisted in another system's delta. Multi-cell: home DESPAWNS when the overseer
-    leaves it, so a live-only check wrongly reports 'no HQ' and blocks every build away from
-    home. Both the HQ-required prereq and the away-from-home flow depend on this."""
-    if len(to_object_list(role("admiral_hq") & role(side))) > 0:
-        return True
-    return admiralty_platform_elsewhere(sectors, "hq", None, side) is not None
+def admiralty_platform_location(side, kind, systems, here_key=None):
+    """The system ("i,j") where `side` already has a `kind` platform - live in a system now,
+    OR persisted in another system's delta - else None. This is the campaign-wide uniqueness
+    reader for EVERY single-instance platform (HQ / Shipyard / Academy / Relay Gate): a
+    live-only check breaks in the multi-cell model, where the system holding the platform
+    despawns when the overseer leaves it. The live match ignores here_key (any live one
+    blocks); the delta match excludes here_key (the current system's live platforms aren't
+    in its delta)."""
+    for p in to_object_list(role("admiral_" + kind) & role(side)):
+        c = object_cell(p.id)
+        return str(c[0]) + "," + str(c[1])
+    return admiralty_platform_elsewhere(systems, kind, here_key, side)
+
+
+def admiralty_side_has_hq(side, systems=None):
+    """True if `side` has its Headquarters ANYWHERE in the campaign - live now or persisted
+    in a delta. Multi-cell: home DESPAWNS when the overseer leaves it, so a live-only check
+    wrongly reports 'no HQ' and blocks every build away from home."""
+    return admiralty_platform_location(side, "hq", systems) is not None
 
 
 # --- System control (Phase B: fleet-establishes-control) -------------------------
 # Control is DERIVED, not stored: a side controls a system once it owns any admiral
-# structure there. Structures already persist in the sectors delta, so control
+# structure there. Structures already persist in the systems delta, so control
 # survives save/load for free, and home is controlled the moment its HQ stands.
 def admiralty_side_controls_cell(side, i, j):
     """True if `side` owns any admiral structure in cell (i, j) - i.e. controls it."""
@@ -761,9 +772,9 @@ def admiralty_side_fleet_in_cell(side, i, j):
     return len(objects_in_cell(to_object_list(role("adm_fleet") & role(side)), i, j)) > 0
 
 
-def admiralty_can_build(kind, side, worldlet_id, sectors=None, here_key=None, need_cost=True):
+def admiralty_can_build(kind, side, worldlet_id, systems=None, here_key=None, need_cost=True):
     """Why a build is (None) or isn't (a reason string) allowed at a worldlet,
-    WITHOUT spending. sectors/here_key drive the HQ's campaign-wide uniqueness
+    WITHOUT spending. systems/here_key drive the HQ's campaign-wide uniqueness
     check. need_cost=False skips the affordability test - the build menu uses
     that so it lists everything currently UNLOCKED (prereqs met), and the button
     label carries the cost."""
@@ -775,13 +786,14 @@ def admiralty_can_build(kind, side, worldlet_id, sectors=None, here_key=None, ne
         return pdef["name"] + " already under construction here."
     if pdef["per_worldlet"] and admiralty_platform_at(wobj, kind) is not None:
         return "This worldlet already has an " + pdef["name"] + "."
-    if not pdef["per_worldlet"] and len(to_object_list(role("admiral_" + kind) & role(side))) > 0:
-        return "The " + pdef["name"] + " is already built."
-    if kind == "hq":
-        hq_at = admiralty_platform_elsewhere(sectors, "hq", here_key, side)
-        if hq_at is not None:
-            return "The Headquarters is already established in system (" + hq_at.replace(",", ", ") + ")."
-    if kind != "hq" and not admiralty_side_has_hq(side, sectors):
+    # Single-instance platforms (HQ / Shipyard / Academy / Relay Gate) are campaign-unique:
+    # blocked if the side already has one ANYWHERE - live now OR persisted in a despawned
+    # system's delta (a live-only check wrongly allowed a second once its system despawned).
+    if not pdef["per_worldlet"]:
+        at = admiralty_platform_location(side, kind, systems, here_key)
+        if at is not None:
+            return "The " + pdef["name"] + " is already established in system (" + at.replace(",", ", ") + ")."
+    if kind != "hq" and not admiralty_side_has_hq(side, systems):
         return "Requires a Headquarters."
     # Control gate (Phase B): in a system your side does not yet control, the first
     # structure IS the claim - it requires the system CLEARED of hostiles and one of
@@ -802,21 +814,21 @@ def admiralty_can_build(kind, side, worldlet_id, sectors=None, here_key=None, ne
     return None
 
 
-def admiralty_buildable_kinds(side, worldlet_id, sectors=None, here_key=None):
+def admiralty_buildable_kinds(side, worldlet_id, systems=None, here_key=None):
     """Platform kinds whose prereqs are met at a worldlet right now (ignoring
     cost), in ADM_PLATFORMS order - the console build menu. The list shrinks as
     you build (HQ drops out once placed; a per-worldlet platform drops once this
     worldlet has it), so the menu guides rather than dumping every button."""
     return [kind for kind in ADM_PLATFORMS
-            if admiralty_can_build(kind, side, worldlet_id, sectors, here_key,
+            if admiralty_can_build(kind, side, worldlet_id, systems, here_key,
                                    need_cost=False) is None]
 
 
-def admiralty_buildable_items(side, worldlet_id, sectors=None, here_key=None):
+def admiralty_buildable_items(side, worldlet_id, systems=None, here_key=None):
     """Buildable platforms as listbox items (key/name/cost) for the Map-tab build
     list - a scrollable list beats a stack of buttons when many are unlocked."""
     out = []
-    for kind in admiralty_buildable_kinds(side, worldlet_id, sectors, here_key):
+    for kind in admiralty_buildable_kinds(side, worldlet_id, systems, here_key):
         pdef = ADM_PLATFORMS.get(kind) or {}
         out.append(MastDataObject({"key": kind, "name": pdef.get("name"),
                                    "cost": admiralty_cost_text(kind)}))
@@ -833,11 +845,11 @@ def build_list_template(item):
     gui_text("$text:" + str(item.get("name")) + "   (" + str(item.get("cost")) + ");font:gui-1")
 
 
-def admiralty_try_build(kind, side, worldlet_id, sectors=None, here_key=None):
+def admiralty_try_build(kind, side, worldlet_id, systems=None, here_key=None):
     """Validate + pay for a build at a worldlet. Returns None on success (cost
     deducted, in-progress flag set - the caller schedules the build task), or a
     short reason string. Shares its checks with admiralty_can_build."""
-    reason = admiralty_can_build(kind, side, worldlet_id, sectors, here_key, need_cost=True)
+    reason = admiralty_can_build(kind, side, worldlet_id, systems, here_key, need_cost=True)
     if reason is not None:
         return reason
     admiralty_spend(side, ADM_PLATFORMS[kind]["cost"])
