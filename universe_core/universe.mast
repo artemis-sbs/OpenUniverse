@@ -192,6 +192,7 @@ default shared WAYPOINTS_ENABLED = False
         # the overseer just moves units. Fleets still operate (admiralty_fleet_loop).
         if ADMIRALTY_ECONOMY:
             task_schedule(admiralty_economy_tick)
+            task_schedule(admiralty_bastion_garrison_loop)
         task_schedule(admiralty_fleet_loop)
         task_schedule(admiralty_skirmish_loop)
         task_schedule(admiralty_fabricator_loop)

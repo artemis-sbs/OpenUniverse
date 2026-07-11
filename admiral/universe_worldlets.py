@@ -679,6 +679,11 @@ REFINERY_EXTRACT_MULT = 1.5   # a Refinery speeds its own worldlet's extraction
 DEPOT_SUPPLY_RADIUS = 15000.0  # fleets within this of a friendly Depot burn no gas
 SENSOR_COMMAND_POINTS = 1     # command points each Sensor Relay adds to the cap
 REFINERY_STORAGE_BONUS = 400  # ...and adds silo capacity to the side
+# Each Bastion mans a small squad of player-orderable defenders (LM prefab_npc_defender +
+# friendly_give_orders) - the fort's living garrison, replenished by admiralty_bastion_-
+# garrison_loop. NOT counted against fleet command points (static system defence, not the
+# mobile navy).
+BASTION_GARRISON_SIZE = 2
 
 
 def admiralty_platform_def(kind):
@@ -704,21 +709,33 @@ def admiralty_in_supply(side, x, z):
     return False
 
 
-def admiralty_platform_elsewhere(sectors, kind, here_key):
-    """The sector key ("i,j") of another system whose persistence delta
-    already holds a platform of `kind`, or None. The HQ's campaign-uniqueness
-    check - live objects only exist in the current system, so uniqueness
-    across the campaign must consult the sectors delta."""
+def admiralty_platform_elsewhere(sectors, kind, here_key, side):
+    """The sector key ("i,j") of another system whose persistence delta already holds a
+    platform of `kind` FOR `side`, or None. The HQ's campaign-uniqueness check - live
+    objects only exist in LIVE systems, so uniqueness across the campaign must consult the
+    sectors delta (a despawned home still counts). Reads the PER-SIDE platform delta via
+    _adm_platforms_for_side (the delta is {side: [...]}, with a legacy flat list = primary
+    side); the old flat-list-only read silently missed every per-side save, so a second HQ
+    could be founded anywhere."""
     if not isinstance(sectors, dict):
         return None
     for skey, sval in sectors.items():
         if skey == here_key or not isinstance(sval, dict):
             continue
-        plats = sval.get("admiral_platforms")
-        if isinstance(plats, list) and any(
-                isinstance(p, dict) and p.get("k") == kind for p in plats):
+        plats = _adm_platforms_for_side(sval.get("admiral_platforms"), side)
+        if any(isinstance(p, dict) and p.get("k") == kind for p in plats):
             return skey
     return None
+
+
+def admiralty_side_has_hq(side, sectors=None):
+    """True if `side` has its Headquarters ANYWHERE in the campaign - live in a system now,
+    or persisted in another system's delta. Multi-cell: home DESPAWNS when the overseer
+    leaves it, so a live-only check wrongly reports 'no HQ' and blocks every build away from
+    home. Both the HQ-required prereq and the away-from-home flow depend on this."""
+    if len(to_object_list(role("admiral_hq") & role(side))) > 0:
+        return True
+    return admiralty_platform_elsewhere(sectors, "hq", None, side) is not None
 
 
 # --- System control (Phase B: fleet-establishes-control) -------------------------
@@ -761,10 +778,10 @@ def admiralty_can_build(kind, side, worldlet_id, sectors=None, here_key=None, ne
     if not pdef["per_worldlet"] and len(to_object_list(role("admiral_" + kind) & role(side))) > 0:
         return "The " + pdef["name"] + " is already built."
     if kind == "hq":
-        hq_at = admiralty_platform_elsewhere(sectors, "hq", here_key)
+        hq_at = admiralty_platform_elsewhere(sectors, "hq", here_key, side)
         if hq_at is not None:
             return "The Headquarters is already established in system (" + hq_at.replace(",", ", ") + ")."
-    if kind != "hq" and len(to_object_list(role("admiral_hq") & role(side))) == 0:
+    if kind != "hq" and not admiralty_side_has_hq(side, sectors):
         return "Requires a Headquarters."
     # Control gate (Phase B): in a system your side does not yet control, the first
     # structure IS the claim - it requires the system CLEARED of hostiles and one of

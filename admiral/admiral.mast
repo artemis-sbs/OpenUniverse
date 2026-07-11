@@ -126,6 +126,28 @@ default shared ADM_LAST_MSG = ""
     jump fab_loop
 
 
+# Bastion garrisons: each standing Bastion mans a small squad of PLAYER-orderable
+# defenders (LM prefab_npc_defender + the friendly_give_orders comms - a bridge crew
+# hails a defender and orders it Protect / Attack / Go to / Full stop). Musters ONE per
+# tick until the squad is full, so a fresh or restored Bastion fills gradually and a lost
+# defender is replaced. Defenders despawn with their cell; a restored Bastion is a NEW
+# object with no squad, so it re-mans here (role("admiral_bastion") is live bastions only).
+# The squad is tracked by a "garrison" link on the Bastion (dead defenders drop out of the
+# live count automatically). NOT command-point capped - this is static defence, not the navy.
+=== admiralty_bastion_garrison_loop
+--- garrison_loop
+    await delay_sim(5)
+    ->END if not UNIVERSE_ACTIVE
+    for _bg in to_object_list(role("admiral_bastion")):
+        _bg_have = len(to_object_list(linked_to(_bg.id, "garrison")))
+        if _bg_have < BASTION_GARRISON_SIZE:
+            _bg_p = _bg.pos
+            _bg_did = await prefab_spawn(prefab_npc_defender, {"side_value": _bg.side, "START_X": _bg_p.x + random.uniform(-1200, 1200), "START_Y": _bg_p.y, "START_Z": _bg_p.z + random.uniform(-1200, 1200)})
+            if _bg_did is not None:
+                link(_bg.id, "garrison", _bg_did)
+    jump garrison_loop
+
+
 # One platform build: cost was already paid (admiralty_try_build); wait out
 # the build time, then the platform appears beside its worldlet.
 === admiralty_build_task
@@ -599,12 +621,13 @@ default shared ADM_LAST_MSG = ""
     # The building side is the selecting Admiral's own side (COMMS_ORIGIN.side), not
     # a hard-coded literal - so a rival-side Admiral builds/refreshes for its side.
     adm_side = COMMS_ORIGIN.side
-    adm_here = f"{universe_i},{universe_j}"
+    # here_key = the WORLDLET's OWN cell (multi-cell: it may differ from the global focus
+    # universe_i/j), so the HQ-uniqueness scan excludes the right system.
+    adm_wc = object_cell(COMMS_SELECTED_ID)
+    adm_here = str(adm_wc[0]) + "," + str(adm_wc[1])
     # Phase B claim gate: in a system this side doesn't control, the build menu is
     # empty until it's cleared AND a fleet is here (see admiralty_can_build). Say why,
-    # on the status line, so an empty menu doesn't read as broken. Use the worldlet's
-    # OWN cell (multi-cell: it may differ from the global focus).
-    adm_wc = object_cell(COMMS_SELECTED_ID)
+    # on the status line, so an empty menu doesn't read as broken.
     adm_uncontrolled = not admiralty_side_controls_cell(adm_side, adm_wc[0], adm_wc[1])
     adm_hostile = admiralty_cell_has_hostiles(adm_wc[0], adm_wc[1])
     adm_has_fleet = admiralty_side_fleet_in_cell(adm_side, adm_wc[0], adm_wc[1])
@@ -624,7 +647,9 @@ default shared ADM_LAST_MSG = ""
     # Side threaded from the initiating Admiral (falls back to the primary player
     # side for any caller that doesn't pass it).
     default BUILD_SIDE = universe_primary_side()
-    adm_here = f"{universe_i},{universe_j}"
+    # here_key = the worldlet's own cell (multi-cell), matching the build menu's scan.
+    adm_bwc = object_cell(SEL_WORLDLET)
+    adm_here = str(adm_bwc[0]) + "," + str(adm_bwc[1])
     adm_pdef = admiralty_platform_def(BUILD_PICK)
     adm_pname = adm_pdef.get("name") if adm_pdef is not None else "platform"
     if admiralty_tuning("build_model", "menu") == "fabricator":

@@ -864,6 +864,30 @@ From the realignment discussion (user-confirmed where noted):
 - **Phase E - The opponent.** A PvE economic AI admiral (#7) that runs the same loop back
   at you. *Deliverable: single-player CQ, not just PvP.*
 
+### Build-gate + Bastion garrison - SHIPPED (2026-07-11)
+
+Multi-cell build-gate correctness (`universe_worldlets.py`): the HQ-uniqueness check
+(`admiralty_platform_elsewhere`) now reads the **per-side** platform delta (it silently
+read the old flat-list format and missed a despawned home's HQ, so a **second HQ** could be
+founded anywhere - which then auto-controlled the cell and let everything be built, even in
+a contested system). The HQ-required prereq now consults the delta too
+(`admiralty_side_has_hq`), so builds work away from a despawned home; and the build UI keys
+uniqueness on the **worldlet's own cell**, not the global focus. Net: exactly **one HQ**
+(the Capital), and the intended claim flow - clear hostiles -> bring a fleet -> build the
+first anchor - is the only way to take a new system. (Shipyard/Academy/Relay Gate remain
+single-instance via a LIVE-only check - a carried multi-cell wrinkle; the #4 relax decision
+is still open.)
+
+**The Bastion is now a MANNED fort.** Each standing Bastion musters a small squad
+(`BASTION_GARRISON_SIZE`, default 2) of **player-orderable defenders** - the LM
+`prefab_npc_defender` + `friendly_give_orders` machinery, wholesale. A bridge crew (or the
+Admiral) selects a defender and orders it Protect / Attack / Go to / Full stop via the
+hold-popup. `admiralty_bastion_garrison_loop` musters one per tick up to the squad size, so
+a fresh or restored Bastion fills gradually and a lost defender is replaced; the squad is a
+`garrison` link on the Bastion (dead defenders drop the live count) and is **not**
+command-point capped (static defence, not the navy). Defenders despawn with their cell; a
+restored Bastion re-mans (it's a new object with an empty squad).
+
 ### Deploy UX - the galaxy theater + popup command model (proposed, spike first)
 
 The fleet-deploy verb (Phase B/C) needs a way to point a fleet at a system the admiral
