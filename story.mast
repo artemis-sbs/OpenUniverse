@@ -11,12 +11,12 @@
 metadata:``` yaml
 Properties:
   Main:
+    Universe: 'gui_drop_down("$text: {UNIVERSE_SELECT};list: " + universe_options_csv(), var="UNIVERSE_SELECT")'
     Start: 'gui_drop_down("$text: {START_MODE};list: Continue, New Game", var="START_MODE")'
     Save Slot: 'gui_int_slider("$text:int;low: 1.0;high:6.0;", var="SAVE_SLOT")'
     Player Ships: 'gui_int_slider("$text:int;low: 1.0;high:8.0;", var= "PLAYER_COUNT")'
     Difficulty: 'gui_int_slider("$text:int;low: 1.0;high:11.0;", var= "DIFFICULTY")'
   Map:
-    Universe: 'gui_drop_down("$text: {UNIVERSE_SELECT};list: " + universe_options_csv(), var="UNIVERSE_SELECT")'
     Terrain: 'gui_drop_down("$text: {TERRAIN_SELECT};list: none, few, some, lots, max", var="TERRAIN_SELECT")'
     Danger: 'gui_drop_down("$text: {DANGER};list: Quiet, Balanced, Dangerous", var="DANGER")'
     Encounters: 'gui_drop_down("$text: {ENCOUNTERS};list: On Arrival, Dormant", var="ENCOUNTERS")'

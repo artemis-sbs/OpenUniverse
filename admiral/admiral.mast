@@ -340,9 +340,14 @@ default shared ADM_LAST_MSG = ""
     # add/remove and ~every 2s while building (admiralty_build_count_key -> repaint).
     if ADMIRALTY_ECONOMY:
         gui_section(style="area: 72, 67, 100, 73; background:#0234;")
-        adm_hint_w = gui_text("$text:" + admiralty_status_hint(ADM_BUILDS, ADM_LAST_MSG) + ";justify:center;font:gui-1;color:#8cf")
-        on change ADM_LAST_MSG:
-            adm_hint_w.update("text:" + admiralty_status_hint(ADM_BUILDS, ADM_LAST_MSG) + ";justify:center;font:gui-1;color:#8cf")
+        # Live queue countdown ABOVE the list: admiralty_status_line shows each active
+        # build's time remaining, and admiralty_status_change_key ticks every SECOND while
+        # building. Updating this handle uses the dirty system (a single-widget re-render),
+        # NOT gui_task_jump - so the countdown ticks live while the queue LISTBOX below stays
+        # intact and clickable (a per-tick full repaint made Cancel unusable).
+        adm_hint_w = gui_text("$text:" + admiralty_status_line(ADM_BUILDS, ADM_LAST_MSG) + ";justify:center;font:gui-1;color:#8cf")
+        on change admiralty_status_change_key(ADM_BUILDS, ADM_LAST_MSG):
+            adm_hint_w.update("text:" + admiralty_status_line(ADM_BUILDS, ADM_LAST_MSG) + ";justify:center;font:gui-1;color:#8cf")
         gui_section(style="area: 72, 73, 100, 93;")
         adm_qbox = gui_list_box(ADM_BUILDS, "row-height: 1.8em;", item_template=admiralty_build_row, title_template=admiralty_build_title, select=True)
         on change admiralty_build_count_key(ADM_BUILDS, ADM_LAST_MSG):

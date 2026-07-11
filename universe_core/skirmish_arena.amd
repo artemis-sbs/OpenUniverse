@@ -59,6 +59,41 @@ A resource-rich arena (worldlets in most systems) so the fight is over ground wo
 holding, not over finding any at all. Economy pace comes from `Mode: skirmish`
 (brisk); override it here with `Economy pace:` if you want a slower or faster match.
 
+## [Regions](regions)
+
+The battlefield's terrain: each region claims a square of systems with its own Skybox
+and Nav-map Color, and can bias the local spawn mix (enemy / mines) or mark a lethal
+antimatter veil. In a skirmish they give the open arena shape - a contested middle both
+sides bleed for, and a hazard that channels the fleets. Author smaller regions first so
+they win over larger ones. Driven by universe_regions.py.
+
+### [The No-Man's Reach](no_mans_reach)
+---
+Center: 0, 0
+Radius: 3
+Skybox: sky-neb2-rvb
+Color: #cc6633
+Enemy mix: 25%
+Mine chance: 60%
+---
+The dead space between two capitals, where the Accord broke. Neither admiral holds it
+and both bleed for it - drifting mines, scavenger raiders, and the wrecks of the last
+fleet that massed here in the open. Take the middle and you take the war; linger in it
+and you feed it.
+
+### [The Slagged Veil](slagged_veil)
+---
+Center: 0, 6
+Radius: 1
+Kind: antimatter
+Skybox: sky-neb2-rvb
+Color: #aa33ff
+---
+A wound left by a scuttled antimatter core - a curtain of raw shear that cooks a hull
+from the inside within minutes. It splits the northern approach in two: the admiral who
+routes around it flanks; the one who forgets it is there loses a fleet to the dark, not
+to the enemy.
+
 ## [Officers](officers)
 
 Example Academy roster for testing the Admiral navy: named fleet captains any admiral
