@@ -34,11 +34,72 @@
             ps_name = adm_ps.name
             ps_id = adm_ps.id
             + "Send {ps_name} here" player_send_pick {"PS_SHIP": ps_id, "PS_I": fd_i, "PS_J": fd_j}
-    + "Jump here [{spike_kind}]" theater_jump_here {"JMP_I": fd_i, "JMP_J": fd_j, "JH_CLIENT": gt_client}
+    + "Focus here [{spike_kind}]" theater_jump_here {"JMP_I": fd_i, "JMP_J": fd_j, "JH_CLIENT": gt_client}
     # Restores the retired Nav map's quick-nav: a submenu of notable systems.
     + "Known locations" //comms/admiral/known
     # No "Close map" button: the framework back tab (the console tab) returns to the
     # system view - //gui/tab/admiral -> console_selected reassigns to the command cambot.
+
+
+# --- Board comms: click a FLEET token -> its orders (the same six as the system-view fleet
+# comms, but the fleet is read from the token's fleet_key, not a hull). Each click block
+# recomputes the fleet from COMMS_SELECTED_ID (a context var that survives to the click),
+# never a route-body var; conditions are plain `if` in the body (comms button conditions
+# re-evaluate out of task in the engine).
+//enable/comms if has_roles(COMMS_ORIGIN_ID, "galaxy_theater_cam") and has_roles(COMMS_SELECTED_ID, "galaxy_fleet")
+
+
+//comms if has_roles(COMMS_ORIGIN_ID, "galaxy_theater_cam") and has_roles(COMMS_SELECTED_ID, "galaxy_fleet")
+    gtf_key = get_inventory_value(COMMS_SELECTED_ID, "fleet_key", None)
+    yield success if gtf_key is None
+    gtf_cell = fleet_cell(gtf_key)
+    gtf_i = gtf_cell[0]
+    gtf_j = gtf_cell[1]
+    gtf_client = get_inventory_value(COMMS_ORIGIN_ID, "cam_client", 0)
+    gtf_ord = fleet_current_order(gtf_key)
+    if gtf_ord != "escort":
+        + "Escort the flagship":
+            comms_receive(fleet_set_order(get_inventory_value(COMMS_SELECTED_ID, "fleet_key", None), "escort"), "Order acknowledged", color="white", title_color="cyan")
+    if gtf_ord != "patrol":
+        + "Patrol the system":
+            comms_receive(fleet_set_order(get_inventory_value(COMMS_SELECTED_ID, "fleet_key", None), "patrol"), "Order acknowledged", color="white", title_color="cyan")
+    if gtf_ord != "strike":
+        + "Strike hostiles":
+            comms_receive(fleet_set_order(get_inventory_value(COMMS_SELECTED_ID, "fleet_key", None), "strike"), "Order acknowledged", color="white", title_color="cyan")
+    if gtf_ord != "hold":
+        + "Hold position":
+            comms_receive(fleet_set_order(get_inventory_value(COMMS_SELECTED_ID, "fleet_key", None), "hold"), "Order acknowledged", color="white", title_color="cyan")
+    if gtf_ord != "salvage":
+        + "Salvage wrecks":
+            comms_receive(fleet_set_order(get_inventory_value(COMMS_SELECTED_ID, "fleet_key", None), "salvage"), "Order acknowledged", color="white", title_color="cyan")
+    if gtf_ord != "withdraw":
+        + "Withdraw to base":
+            comms_receive(fleet_set_order(get_inventory_value(COMMS_SELECTED_ID, "fleet_key", None), "withdraw"), "Order acknowledged", color="white", title_color="cyan")
+    + "Focus on this system" theater_jump_here {"JMP_I": gtf_i, "JMP_J": gtf_j, "JH_CLIENT": gtf_client}
+
+
+# --- Board comms: click a PLAYER-SHIP token -> oversee or recall it. The token is a
+# galaxy_unit marker carrying unit_ship (the real ship id).
+//enable/comms if has_roles(COMMS_ORIGIN_ID, "galaxy_theater_cam") and has_roles(COMMS_SELECTED_ID, "galaxy_unit")
+
+
+//comms if has_roles(COMMS_ORIGIN_ID, "galaxy_theater_cam") and has_roles(COMMS_SELECTED_ID, "galaxy_unit")
+    gtu_ship = get_inventory_value(COMMS_SELECTED_ID, "unit_ship", 0)
+    yield success if gtu_ship == 0
+    gtu_obj = to_object(gtu_ship)
+    yield success if gtu_obj is None
+    gtu_cell = object_cell(gtu_ship)
+    gtu_i = gtu_cell[0]
+    gtu_j = gtu_cell[1]
+    gtu_client = get_inventory_value(COMMS_ORIGIN_ID, "cam_client", 0)
+    + "Focus on this system" theater_jump_here {"JMP_I": gtu_i, "JMP_J": gtu_j, "JH_CLIENT": gtu_client}
+    # Recall = send the ship back to the side's HQ cell (reuses player_send_pick). Only when
+    # an HQ exists and the ship isn't already there.
+    gtu_hqs = to_object_list(role("admiral_hq") & role(gtu_obj.side))
+    if len(gtu_hqs) > 0:
+        gtu_home = object_cell(gtu_hqs[0].id)
+        if gtu_home[0] != gtu_i or gtu_home[1] != gtu_j:
+            + "Recall to home base" player_send_pick {"PS_SHIP": gtu_ship, "PS_I": gtu_home[0], "PS_J": gtu_home[1]}
 
 
 # Order a player ship to jump to the picked system - the overseer moving a crew, now that

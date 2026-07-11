@@ -391,6 +391,7 @@ default shared ADM_LAST_MSG = ""
             galaxy_theater_scan_for(agv_gcam)
         else:
             galaxy_theater_sync_units(agv_gcam, agv_cell[0], agv_cell[1], agv_side)
+            galaxy_theater_sync_fleets(agv_gcam, agv_cell[0], agv_cell[1], agv_side)
         sbs.assign_client_to_ship(client_id, agv_gcam)
         # Stash this console's REAL client on the galaxy cam: a marker's //comms handler
         # can run server-side (client_id 0), and Jump/Close need to reassign THIS client
@@ -411,13 +412,25 @@ default shared ADM_LAST_MSG = ""
     gui_row()
     gui_layout_widget("comms_2d_view")
     # Right, top: selected marker's comms face + command menu (deploy / jump / close).
-    gui_section(style="area: 72, 9, 100, 66;")
-    gui_row("row-height: 100px;")
+    gui_section(style="area: 72, 9, 100, 50;")
+    gui_row("row-height: 90px;")
     gui_layout_widget("comms_face")
     gui_row()
     gui_layout_widget("comms_control")
+    # Right, middle: "who is where" - a selectable list of every friendly player ship +
+    # fleet and the SYSTEM it is in (window-INDEPENDENT, so forces off the board are still
+    # listed). Click a row to FOCUS the overseer on that unit's system (same jump the marker
+    # menu's "Focus here" uses). Rebuilt by change (a ship jumps / a fleet forms or reorders).
+    gui_section(style="area: 72, 51, 100, 90; background:#0122;")
+    agv_roster_lb = gui_list_box(galaxy_theater_roster_items(agv_side), "row-height: 1.7em;", item_template=galaxy_theater_roster_item_template, title_template=galaxy_theater_roster_title, select=True)
+    on change agv_roster_lb.value:
+        agv_sel = agv_roster_lb.get_value()
+        if agv_sel is not None:
+            task_schedule(theater_jump_here, {"JMP_I": agv_sel.i, "JMP_J": agv_sel.j, "JH_CLIENT": client_id})
+    on change galaxy_theater_roster_sig(agv_side):
+        jump agv_repaint
     # Right, bottom: the shared Admiralty status line (deploy confirmations land here).
-    gui_section(style="area: 72, 67, 100, 100; background:#0234;")
+    gui_section(style="area: 72, 91, 100, 100; background:#0234;")
     agv_hint_w = gui_text("$text:" + admiralty_status_hint(ADM_BUILDS, ADM_LAST_MSG) + ";justify:center;font:gui-1;color:#8cf")
     on change ADM_LAST_MSG:
         agv_hint_w.update("text:" + admiralty_status_hint(ADM_BUILDS, ADM_LAST_MSG) + ";justify:center;font:gui-1;color:#8cf")
@@ -434,6 +447,7 @@ default shared ADM_LAST_MSG = ""
     agv_w_obj = to_object(agv_w_cam)
     ->END if agv_w_obj is None
     galaxy_theater_sync_units(agv_w_cam, get_inventory_value(agv_w_cam, "board_ci", 0), get_inventory_value(agv_w_cam, "board_cj", 0), agv_w_obj.side)
+    galaxy_theater_sync_fleets(agv_w_cam, get_inventory_value(agv_w_cam, "board_ci", 0), get_inventory_value(agv_w_cam, "board_cj", 0), agv_w_obj.side)
     jump agv_unit_watch
 
 
@@ -492,8 +506,14 @@ default shared ADM_LAST_MSG = ""
     universe_save_players()
 
     await delay_sim(1)
-    # Hyperspace screen off (same console).
     if jump_client != 0:
+        # The jump is done: land the overseer back on the ADMIRAL (command) tab, not the
+        # galaxy map it launched from. Build the admiral view UNDERNEATH the warp screen
+        # (and mark the Admiral tab active) so lifting the screen reveals it with no
+        # galaxy-map flash. CONSOLE_SELECT is passed defensively for gui_tab_back.
+        set_inventory_value(jump_client, "__active_tab__", "admiral")
+        gui_reroute_client(jump_client, admiral_overseer_gui, {"CONSOLE_SELECT": "admiral"})
+        # Hyperspace screen off (same console) - reveals the admiral view.
         sbs.super_hyper_warp_mode(jump_client, "", 0)
     ->END
 

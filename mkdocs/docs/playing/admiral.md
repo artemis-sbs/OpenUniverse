@@ -116,14 +116,20 @@ unexplored fog). It's your whole theatre at a glance, and where you move forces
 - **Send \<ship\> here** - vector a **player ship** to the system. You're the strategic
   navigator: crews fly locally, you move them between systems. (A ship already in the
   selected system isn't offered - no point sending it where it is.)
-- **Jump here** - take **yourself** (the command camera) to that system to oversee it
+- **Focus here** - take **yourself** (the command camera) to that system to oversee it
   up close.
 - **Known locations** - a shortcut list of notable systems (home, clan capitals, active
-  objectives) to jump to without hunting the map.
+  objectives) to focus on without hunting the map.
 
-Your own ships show as **live icons** on the map: their **colour is health** (green ->
-amber -> red as shields fall) and their **label shows where they're headed** (`Artemis
-->(2,3)` while travelling). The map updates as they move - no need to reopen it.
+Your own forces show as **live icons** on the map: **player ships** are health-tinted
+fighters (green -> amber -> red as shields fall), **fleets** are gold battle-cruisers
+labelled with their officer and order. Each icon is labelled with **its system** (e.g.
+`Artemis (2,3)`) and, while travelling, where it's headed (`->(2,3)`). Icons show out to
+the edge of the map view; the map updates as forces move - no need to reopen it.
+
+Beside the map, the **Forces** list ("who is where") names **every** friendly ship and
+fleet and the system it's in - including forces too far away to fit on the map view.
+**Click a row to focus** on that unit's system.
 
 !!! note "Your own galaxy map"
     With more than one Admiral, **each commands its own galaxy map**, centred on its own

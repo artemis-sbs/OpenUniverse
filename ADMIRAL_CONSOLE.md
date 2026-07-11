@@ -917,6 +917,43 @@ viewed through the engine 2D view - so the engine's right-click / long-hold popu
   on them? Prove with a theater camera + a few mesh markers + one //popup route in the
   browser before committing to the full theater.
 
+#### Friendly-force layer - SHIPPED (2026-07-11)
+
+The theater board now answers "which system are my forces in?" on two surfaces
+(`universe_galaxy_theater.py`; wired from `admiral_galaxy_view` + the ~1s `agv_unit_watch`
+sub-task in `admiral.mast`). Both derive the side from `universe_console_side`, so a
+multi-side game shows each overseer only their OWN forces.
+
+- **Unit-icon layer (on the board, windowed).** Two reconcile-in-place passes run beside
+  the static system grid, each keyed for cheap by-change updates (a SENT ship / a moved
+  fleet updates without a board rebuild):
+  - `galaxy_theater_sync_units` - one `galaxy_unit` icon per player ship of the side
+    (`tsn_fighter`, tinted green/amber/red by shield health, labelled name + `->(i,j)`
+    destination), keyed per-cam (`galaxy_icon:<cam>`) so co-op boards don't collide.
+  - `galaxy_theater_sync_fleets` - one `galaxy_fleet` icon per live fleet of the side
+    (`tsn_battle_cruiser`, navy gold `#ffd24a`, labelled `Officer (order)`), placed on the
+    fleet's RECORDED post cell, offset opposite the ship icon so a fleet + ship sharing a
+    cell don't stack. Keyed by the STABLE fleet key on the icon (not an object id), so
+    hulls respawning under the fleet never orphan its marker.
+  - Both are display-only (the command //comms still gates on `galaxy_marker`), both are
+    TERRAIN (passive, ~free), and both are confined to the visible +-win window - an icon
+    whose unit leaves the window or is gone is removed.
+- **"Who is where" roster listbox (right panel, window-INDEPENDENT).**
+  `galaxy_theater_roster_items(side)` builds one selectable row per player ship + fleet, each
+  a `MastDataObject` carrying its system `(i, j)` - including forces OFF the board window the
+  icon layer can't reach. Rendered by `gui_list_box` (`item_template` tints ships near-white
+  / fleets gold, `title_template` labels it, `select=True`). **Clicking a row FOCUSES the
+  overseer on that unit's system** - the `on change <lb>.value` handler `task_schedule`s
+  `theater_jump_here` (the same jump the marker menu's "Focus here" uses). A cheap
+  `galaxy_theater_roster_sig(side)` drives an `on change` that `jump agv_repaint`s the view
+  only when a unit moves system / a fleet forms / an order or hull count changes (no
+  per-tick rebuild). Fleet rows use the recorded `alive` count, so a fleet holding a
+  not-currently-live cell still lists. This is the authoritative "account for all my units"
+  surface; the board icons are the at-a-glance in-window view.
+- Covered by a standalone verify (marker create/reuse/remove/window-cull + roster grouping
+  incl. off-window fleets); the mission compiles clean headless (`--test`), browser render
+  is the remaining check.
+
 Guiding constraint throughout: **every step must still touch the bridge game**
 (section 1) - securing, holding, and losing systems should be things the crews feel,
 not a solitaire RTS in the corner.
