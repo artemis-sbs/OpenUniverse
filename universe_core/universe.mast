@@ -205,6 +205,10 @@ default shared WAYPOINTS_ENABLED = False
     # Continue loads the saved universe (seed + position + deltas); New Game
     # starts fresh from the Seed property (0 = random) and overwrites the save.
     saved = universe_load()
+    # Seed comes from a gui_input typein / loaded game code, so it can be a string
+    # (or empty); normalize so "0 = random" works and int(universe_seed) downstream
+    # (universe_system_key) never hits int("") / str+int.
+    seed_value = safe_int(seed_value)
     if START_MODE == "Continue" and saved is not None:
         shared universe_seed = saved.get("universe_seed", 1)
         shared universe_i = saved.get("current_sector", [0, 0])[0]
