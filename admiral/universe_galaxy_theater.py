@@ -98,6 +98,29 @@ def galaxy_theater_marker_label(kind, i, j):
     return _KIND_LABEL.get(kind, "System") + " (" + str(i) + "," + str(j) + ")"
 
 
+# Relation colours for a system marker (diplomacy overrides kind): your controlled territory
+# vs a hostile owner vs a neutral clan's own colour.
+_REL_FRIENDLY = "#33ff66"
+_REL_HOSTILE = "#ff4444"
+
+
+def galaxy_theater_marker_color(clans, i, j, side, owner, kind_color):
+    """A system marker's radar colour by DIPLOMACY, not just kind. A system YOUR side
+    controls (has built a structure in) reads friendly green; one owned by a clan HOSTILE to
+    your side (ceasefire-aware, _clan_is_foe) reads red; one owned by a NEUTRAL clan takes
+    that clan's own house colour (clan_color); an unowned + uncontrolled system keeps its
+    kind colour. So enemy territory - including a foe clan's HOME, whose kind is 'station' -
+    stops reading as a neutral cyan base. admiralty_side_controls_cell / _clan_is_foe /
+    clan_color are sibling free globals."""
+    if admiralty_side_controls_cell(side, i, j):
+        return _REL_FRIENDLY
+    if owner is None:
+        return kind_color
+    if _clan_is_foe(clans, owner, side):
+        return _REL_HOSTILE
+    return clan_color(clans, owner)
+
+
 def galaxy_theater_marker_pos(di, dj, rz):
     """World position of the marker at window offset (di, dj) from a board centred in the
     cam's region (region-z = rz)."""
@@ -332,12 +355,16 @@ def galaxy_theater_build(cam_id, seed, danger, clans, sectors, reveal, ci, cj, s
         for dj in range(-win, win + 1):
             i = ci + di
             j = cj + dj
+            owner = None
             if not universe_cell_known(sectors, i, j, reveal):
                 kind = "fog"
             else:
                 base_kind = universe_system_kind(seed, i, j, danger)
-                kind = universe_system_clan(clans, seed, i, j, base_kind)[1]
+                owner, kind = universe_system_clan(clans, seed, i, j, base_kind)
             icon = _KIND_ICON.get(kind, _KIND_ICON["fog"])
+            # Colour by DIPLOMACY (owner relation / your control), falling back to the kind
+            # colour for unowned space; a fogged cell keeps its (unknown) kind colour.
+            color = icon[1] if kind == "fog" else galaxy_theater_marker_color(clans, i, j, side, owner, icon[1])
             p = galaxy_theater_marker_pos(di, dj, rz)
             label = galaxy_theater_marker_label(kind, i, j)
             # Passive map marker: behav_selection draws a flat radar ICON (icon_index) sized
@@ -345,7 +372,7 @@ def galaxy_theater_build(cam_id, seed, danger, clans, sectors, reveal, ci, cj, s
             m = terrain_spawn(p.x, p.y, p.z, label,
                               "galaxy_marker", icon[0], "behav_selection")
             if m is not None:
-                m.data_set.set("radar_color_override", icon[1], 0)
+                m.data_set.set("radar_color_override", color, 0)
                 m.data_set.set("icon_scale", icon[2], 0)
                 m.data_set.set("icon_index", icon[3], 0)
                 # name_tag is what the 2D radar draws as text: the kind word + coords.
