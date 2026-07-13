@@ -6,7 +6,7 @@
 # [Patrol Sweep](patrol)
 ---
 Tier: 1
-Goal: destroy 4 raiders
+Goal: destroy 4 enemies
 Pays: 300 credits
 ---
 Raiders have been probing our space. Sweep the system and drive them off.
@@ -14,7 +14,7 @@ Raiders have been probing our space. Sweep the system and drive them off.
 # [Standing Bounty](bounty)
 ---
 Tier: 1
-Goal: destroy 3 raiders
+Goal: destroy 3 enemies
 Pays: 280 credits
 ---
 There is a price on raider hulls. Collect three and the bounty is yours.
@@ -64,7 +64,7 @@ Quiet cargo, quiet questions. Recover the caches and keep this between us.
 # [Raid the Lanes](raid)
 ---
 Tier: 2
-Goal: destroy 5 raiders
+Goal: destroy 5 enemies
 Pays: 500 credits
 ---
 Hit them before they hit us. Five hulls, and do not be gentle about it.
@@ -88,7 +88,7 @@ A ship went dark out here. Find the wreck, recover what survives, and bring it h
 # [Strike Package](strike)
 ---
 Tier: 3
-Goal: destroy 8 raiders
+Goal: destroy 8 enemies
 Pays: 760 credits
 ---
 We are done waiting. Take the fight to them - eight hulls, and break their nerve.

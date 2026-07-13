@@ -107,11 +107,12 @@ def universe_grant_clan_job(agent_id, clans, clan_key, job_type, doc):
     base = data["reward"].get("credits", 0)
     data["reward"]["credits"] = int(base * mult)
     data["clan"] = clan_key
-    # Scale a grind kill target (e.g. "destroy N raiders") to difficulty - the
+    # Scale a grind kill target (e.g. "destroy N enemies") to difficulty - the
     # authored count is the DIFFICULTY 5 baseline; single/boss kills (<3) are left
-    # as authored. Copy the on_kill dict first so the shared AMD doc isn't mutated.
+    # as authored. Any grind kill goal (role / roles / hostile) scales; copy the
+    # on_kill dict first so the shared AMD doc isn't mutated.
     kill = data.get("on_kill")
-    if isinstance(kill, dict) and kill.get("role") and kill.get("count"):
+    if isinstance(kill, dict) and kill.get("count") and (kill.get("role") or kill.get("roles") or kill.get("hostile")):
         kill = dict(kill)
         kill["count"] = quest_kill_count_for_difficulty(kill.get("count", 1), get_shared_variable("DIFFICULTY", 5))
         data["on_kill"] = kill
