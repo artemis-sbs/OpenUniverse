@@ -634,7 +634,7 @@ default shared ADM_LAST_MSG = ""
     # empty until it's cleared AND a fleet is here (see admiralty_can_build). Say why,
     # on the status line, so an empty menu doesn't read as broken.
     adm_uncontrolled = not admiralty_side_controls_cell(adm_side, adm_wc[0], adm_wc[1])
-    adm_hostile = admiralty_cell_has_hostiles(adm_wc[0], adm_wc[1])
+    adm_hostile = admiralty_cell_has_hostiles(adm_side, adm_wc[0], adm_wc[1])
     adm_has_fleet = admiralty_side_fleet_in_cell(adm_side, adm_wc[0], adm_wc[1])
     if adm_uncontrolled and adm_hostile:
         ADM_LAST_MSG = "Uncontrolled system - clear the hostile forces to claim it."

@@ -19,7 +19,7 @@ import math
 from sbs_utils.mast.mast_node import MastDataObject
 from sbs_utils.procedural.spawn import terrain_spawn, npc_spawn
 from sbs_utils.procedural.inventory import get_inventory_value, set_inventory_value
-from sbs_utils.procedural.sides import to_side_id
+from sbs_utils.procedural.sides import to_side_id, side_enemy_members_set
 from sbs_utils.procedural.roles import role, has_role, remove_role, add_role
 from sbs_utils.procedural.query import to_object_list, to_object
 from sbs_utils.procedural.science import science_set_scan_data
@@ -758,12 +758,14 @@ def admiralty_side_controls_cell(side, i, j):
     return len(objects_in_cell(to_object_list(role("admiral_platform") & role(side)), i, j)) > 0
 
 
-def admiralty_cell_has_hostiles(i, j):
-    """True if an armed foe is contesting cell (i, j) - a raider fleet is present.
-    `raider` is the established foe-fleet tag (border raids, foe-clan garrisons); the
-    claim gate uses it so a system must be cleared before you found a base there.
-    (PvP: a RIVAL admiral's adm_fleet doesn't count yet - a later refinement.)"""
-    return len(objects_in_cell(to_object_list(role("raider")), i, j)) > 0
+def admiralty_cell_has_hostiles(side, i, j):
+    """True if an armed foe HOSTILE TO `side` is contesting cell (i, j). Uses the
+    raider foe-fleet tag intersected with the side's LIVE enemy set, so a clan you
+    have ceasefired (now NEUTRAL, but still raider-tagged) no longer blocks a claim.
+    `raider` scopes to actual combat fleets; side_enemy_members_set is the allegiance
+    test. (PvP: a RIVAL admiral's adm_fleet doesn't count yet - a later refinement.)"""
+    foes = role("raider") & side_enemy_members_set(side)
+    return len(objects_in_cell(to_object_list(foes), i, j)) > 0
 
 
 def admiralty_side_fleet_in_cell(side, i, j):
@@ -803,7 +805,7 @@ def admiralty_can_build(kind, side, worldlet_id, systems=None, here_key=None, ne
     if kind != "hq":
         wc = object_cell(worldlet_id)
         if not admiralty_side_controls_cell(side, wc[0], wc[1]):
-            if admiralty_cell_has_hostiles(wc[0], wc[1]):
+            if admiralty_cell_has_hostiles(side, wc[0], wc[1]):
                 return "Clear the hostile forces before you can claim this system."
             if not admiralty_side_fleet_in_cell(side, wc[0], wc[1]):
                 return "Bring a fleet here to hold the system while you build."

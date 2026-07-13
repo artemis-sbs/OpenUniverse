@@ -10,7 +10,8 @@ ally or enemy (the "configurable" model).
 """
 from sbs_utils.helpers import FrameContext
 from sbs_utils.procedural.query import to_object
-from sbs_utils.procedural.sides import side_are_enemies
+from sbs_utils.procedural.roles import role
+from sbs_utils.procedural.sides import side_are_enemies, side_enemy_members_set
 
 # Ordered player-side keys (Admiral economy + consoles), in spawn order.
 _PLAYER_SIDES = []
@@ -61,6 +62,24 @@ def universe_hostile_to_players(side):
     this a foe of the player faction(s)'). Diplomacy-driven, so it respects
     whatever relations the universe configured (co-op or rival)."""
     return any(side_are_enemies(side, ps) for ps in _PLAYER_SIDES)
+
+
+def universe_player_enemy_members():
+    """Agent ids of every ship on a side HOSTILE to any player side (diplomacy
+    driven). A ceasefired clan (now NEUTRAL, though its ships keep the raider tag)
+    drops out. Empty before player sides are registered."""
+    out = set()
+    for ps in _PLAYER_SIDES:
+        out |= side_enemy_members_set(ps)
+    return out
+
+
+def universe_player_hostiles_scoped():
+    """Raider-tagged combat ships that are still HOSTILE to a player side (the fleet
+    -group marker excluded). The ceasefire-aware replacement for a bare
+    role("raider") in presence / cleared / count checks: role scopes to combat
+    ships, the enemy set is the allegiance test."""
+    return (role("raider") - role("raider_fleet")) & universe_player_enemy_members()
 
 
 def universe_mode_is_pvp():

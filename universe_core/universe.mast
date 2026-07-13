@@ -1280,7 +1280,9 @@ default shared WAYPOINTS_ENABLED = False
     ->END if not universe_cell_live(ei, ej)
     # Raiders confined to THIS cell (objects_in_cell) - a bare role("raider") spans
     # every live combat system, so two of them would keep each other from clearing.
-    if len(objects_in_cell(to_object_list(role("raider") - role("raider_fleet")), ei, ej)) == 0:
+    # Diplomacy-scoped: a clan you ceasefired (NEUTRAL, still raider-tagged) no longer
+    # counts, so the sector can register cleared after a negotiated peace.
+    if len(objects_in_cell(to_object_list(universe_player_hostiles_scoped()), ei, ej)) == 0:
         universe_systems = universe_set_system_flag(universe_systems, ei, ej, "enemy_cleared")
         universe_save(universe_seed, ei, ej, universe_systems)
         ->END
