@@ -19,7 +19,7 @@ import math
 from sbs_utils.mast.mast_node import MastDataObject
 from sbs_utils.procedural.spawn import terrain_spawn, npc_spawn
 from sbs_utils.procedural.inventory import get_inventory_value, set_inventory_value
-from sbs_utils.procedural.sides import to_side_id, side_enemy_members_set
+from sbs_utils.procedural.sides import to_side_id, side_hostile_members
 from sbs_utils.procedural.roles import role, has_role, remove_role, add_role
 from sbs_utils.procedural.query import to_object_list, to_object
 from sbs_utils.procedural.science import science_set_scan_data
@@ -764,7 +764,7 @@ def admiralty_cell_has_hostiles(side, i, j):
     have ceasefired (now NEUTRAL, but still raider-tagged) no longer blocks a claim.
     `raider` scopes to actual combat fleets; side_enemy_members_set is the allegiance
     test. (PvP: a RIVAL admiral's adm_fleet doesn't count yet - a later refinement.)"""
-    foes = role("raider") & side_enemy_members_set(side)
+    foes = side_hostile_members(side, "raider")
     return len(objects_in_cell(to_object_list(foes), i, j)) > 0
 
 
