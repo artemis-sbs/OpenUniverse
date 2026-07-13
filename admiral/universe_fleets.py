@@ -31,7 +31,7 @@ import random
 from sbs_utils.mast.mast_node import MastDataObject
 from sbs_utils.procedural.spawn import npc_spawn, terrain_spawn
 from sbs_utils.procedural.inventory import get_inventory_value, set_inventory_value
-from sbs_utils.procedural.sides import to_side_id
+from sbs_utils.procedural.sides import to_side_id, side_enemy_members_set
 from sbs_utils.procedural.roles import role, all_roles
 from sbs_utils.procedural.query import to_object_list, to_object, to_id
 from sbs_utils.procedural.space_objects import (closest_object, target, target_pos,
@@ -762,7 +762,12 @@ def fleet_tick(fleet_key, dt_seconds, veiled=False):
     if order != "hold":
         _officer_add_service(side, okey, dt_seconds)
     engage = 6000.0 * officer_bonus(okey, "engage")
-    hostiles = role("raider")
+    # The "raider" role is ceasefire-BLIND: a clan you negotiated to NEUTRAL keeps
+    # its raider tag. Intersect with the live enemy set so player fleets stop firing
+    # on a ceasefired clan (mirrors the diplomacy-aware fleet brains in LM). role()
+    # scopes to actual combat SHIPS (keeps non-positional clients/stations out of the
+    # distance check); side_enemy_members_set is the allegiance test.
+    hostiles = role("raider") & side_enemy_members_set(side)
 
     if order == "escort":
         players = objects_in_cell(to_object_list(role("__player__")), fcell[0], fcell[1])
