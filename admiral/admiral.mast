@@ -716,13 +716,14 @@ default shared ADM_LAST_MSG = ""
     adm_side = COMMS_ORIGIN.side
     for adm_off in officer_list():
         if officer_fleet(adm_off.key) is None and officer_status(adm_off.key) == "active":
-            + "Commission {adm_off.name} - {adm_off.title}" admiral_overseer_commission {"OFFICER_PICK": adm_off.key, "ADM_ACT_SIDE": adm_side}
+            + "Commission {adm_off.name} - {adm_off.title}" admiral_overseer_commission {"OFFICER_PICK": adm_off.key, "ADM_ACT_SIDE": adm_side, "ADM_YARD_ID": COMMS_SELECTED_ID}
 
 
 === admiral_overseer_commission
     default OFFICER_PICK = None
     default ADM_ACT_SIDE = universe_primary_side()
-    fail = fleet_try_form(ADM_ACT_SIDE, OFFICER_PICK)
+    default ADM_YARD_ID = None
+    fail = fleet_try_form(ADM_ACT_SIDE, OFFICER_PICK, ADM_YARD_ID)
     if fail is None:
         officer_card(OFFICER_PICK, fleet_line("formed"))
         adm_ocmr = officer_def(OFFICER_PICK)

@@ -571,9 +571,14 @@ def _fleet_spawn_ships(side, fkey, x, z, count):
                   name, side + ", adm_fleet, adm_" + fkey, hull, "behav_npcship")
 
 
-def fleet_try_form(side, officer_key):
+def fleet_try_form(side, officer_key, yard_id=None):
     """Validate + pay for a fleet. Returns None on success (hulls spawned at
-    the Shipyard, officer assigned) or a short reason string."""
+    the Shipyard, officer assigned) or a short reason string.
+
+    yard_id: the CLICKED shipyard (the one on the overseer's current 2D view).
+    role("admiral_shipyard") spans every live cell, so falling back to yards[0]
+    can spawn the fleet in a different system than the one the admiral is looking
+    at - pass the selected shipyard so the fleet forms where it was commissioned."""
     o = _OFFICERS.get(officer_key)
     if o is None:
         return "No such officer."
@@ -597,7 +602,16 @@ def fleet_try_form(side, officer_key):
         return "Not enough resources (" + fleet_cost_text() + ")."
     fkey = "f" + str(_NEXT_FLEET[0])
     _NEXT_FLEET[0] += 1
-    ypos = yards[0].pos
+    # Spawn at the CLICKED shipyard when we have it, so the fleet's recorded cell
+    # matches the system the admiral commissioned it in; fall back to yards[0].
+    yard = None
+    if yard_id is not None:
+        yo = to_object(yard_id)
+        if yo is not None and to_id(yard_id) in (role("admiral_shipyard") & role(side)):
+            yard = yo
+    if yard is None:
+        yard = yards[0]
+    ypos = yard.pos
     # A fleet's post starts at the Shipyard's cell (deploy-only: it stays here until
     # the overseer deploys it via fleet_deploy).
     ycell = universe_cell_at_pos(ypos.x, ypos.z)
@@ -606,6 +620,12 @@ def fleet_try_form(side, officer_key):
         "key": fkey, "side": side, "officer": officer_key,
         "order": "hold", "alive": len(FLEET_ROSTER), "gas_starved": False,
         "cell": (int(ycell[0]), int(ycell[1]))})
+    # Register the fleet as an occupant of its cell (same as a DEPLOYED fleet), so a
+    # focus-change - when the overseer cam leaves and would otherwise be the cell's
+    # last occupant - no longer clears the cell out from under the new hulls. Without
+    # this the hulls get despawned on the first jump and fleet_tick reads zero hulls as
+    # "destroyed", deleting the fleet and sending the officer MIA.
+    universe_cell_enter(int(ycell[0]), int(ycell[1]), fleet_occ_id(fkey))
     _fleets_sync(side)
     # The officer takes the flag: hailable there when they have a voice.
     flag_ships = fleet_ships(fkey)
