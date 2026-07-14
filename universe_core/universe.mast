@@ -356,7 +356,9 @@ default shared WAYPOINTS_ENABLED = False
         # The captured station joins the capturing player's side (the nearest
         # player), falling back to the primary player side.
         _capturer = closest(cap_station, role("__player__"), 12000)
-        cap_side = _capturer.side if _capturer is not None else universe_primary_side()
+        # closest() returns a CloseData (id/py_object/distance), not the object -
+        # read the capturer's side by id, not a nonexistent CloseData.side.
+        cap_side = get_side(_capturer.id) if _capturer is not None else universe_primary_side()
         cap_obj.set_side(cap_side)
         universe_systems = universe_set_system_flag(universe_systems, cap_i, cap_j, "captured")
         universe_save(universe_seed, cap_i, cap_j, universe_systems)
