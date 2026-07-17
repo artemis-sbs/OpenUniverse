@@ -71,6 +71,10 @@ that's how the two connect.
   more sensitive - you are writing the clan's inner circle.
 - **Pays** - the reward. Standing quietly scales it up for captains a clan
   likes.
+- **Accept On** / **Engage On** (optional) - which bridge station may take on or
+  travel to *this* job, e.g. `Accept On: comms`. Leave them off and the job uses
+  the ship's usual stations (in Open Universe, command accepts work at comms while
+  the helm flies to it); add one only for a task that belongs to a single console.
 
 !!! note "Where the cargo names come from"
     `recover` goals name trade goods. Five exist out of the box:

@@ -49,6 +49,13 @@ default shared ADMIRALTY_ECONOMY = True
 # Opt into the LM Quests tab's "Engage" button: movement is quest-driven, so a player
 # engages a job's on_reach target from the Quests tab (//signal/quest_engage jumps).
 default shared QUEST_ENGAGE_ENABLED = True
+# WHICH consoles may act on a job from the Quests tab. Command ACCEPTS (comms/admiral take
+# the job on), the HELM ENGAGES (flies to it) - a deliberate split so taking work and moving
+# the ship are separate stations. On the helm Quests tab a job shows Engage but not Accept
+# (text points to comms/admiral). A single job can still narrow either list for itself via
+# AMD `Accept On:` / `Engage On:`.
+default shared QUEST_ACCEPT_CONSOLES = "comms,admiral"
+default shared QUEST_ENGAGE_CONSOLES = "helm"
 # Auto-waypoints: with no galaxy map, quest-driven-nav missions have no way back to a
 # place once its lead completes. When on, arriving at a NAMED location (a landmark, or
 # home) charts it as a "Charted Locations" waypoint the player can re-Engage from the
