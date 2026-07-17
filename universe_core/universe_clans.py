@@ -13,7 +13,8 @@ from sbs_utils.procedural.amd_doc import (
     amd_read_content, amd_document, amd_root_node, amd_root_data,
     amd_section, amd_includes, amd_splice)
 from sbs_utils.procedural.execution import labels_get_type
-from sbs_utils.procedural.sides import side_set_relations
+from sbs_utils.procedural.sides import (
+    side_set_relations, side_diplomacy_key, side_diplomacy_set, side_diplomacy_apply)
 from sbs_utils.procedural.roles import all_roles
 from sbs_utils.procedural.gui import gui_row, gui_text
 from sbs_utils.procedural.comms import comms_info_card
@@ -53,26 +54,20 @@ def universe_location_title():
 # --- Diplomacy deltas (persisted per side/clan pair) -------------------------
 # Authored defaults come from clans.amd (foe/neutral); these deltas override them
 # (e.g. a negotiated ceasefire) and persist in the save. Keyed by a sorted pair.
+# Per-pair diplomacy overrides now delegate to the shared sbs_utils.procedural.sides
+# helpers (promoted from here); the universe_*_dip names stay for OU's mast + save layer.
 def universe_dip_key(a, b):
-    return "|".join(sorted([str(a), str(b)]))
+    return side_diplomacy_key(a, b)
 
 
 def universe_set_dip(dip, a, b, relation):
     """Record a per-pair relation override; returns the (possibly new) dict."""
-    if not isinstance(dip, dict):
-        dip = {}
-    dip[universe_dip_key(a, b)] = int(relation)
-    return dip
+    return side_diplomacy_set(dip, a, b, relation)
 
 
 def universe_apply_dip(dip):
     """Re-apply saved per-pair relation overrides (call after sides exist)."""
-    if not isinstance(dip, dict):
-        return
-    for k, relation in dip.items():
-        parts = k.split("|")
-        if len(parts) == 2:
-            side_set_relations(parts[0], parts[1], relation)
+    side_diplomacy_apply(dip)
 
 
 # --- Universe registry (start-screen dropdown) -------------------------------
