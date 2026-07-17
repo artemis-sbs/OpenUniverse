@@ -13,18 +13,13 @@ This slice: hosted comms characters. A lifeform with no host is a galaxy-wide co
 NPC (hailable with no target, like TSNN); a host is resolved to a station/ship by
 the mast. universe_section / dialogue_* come from sibling files (shared namespace).
 """
-from sbs_utils.faces import random_terran, random_terran_male, random_terran_female
+from sbs_utils.faces import random_terran, face_resolve
 from sbs_utils.procedural.lifeform import lifeform_spawn, lifeform_transfer
 from sbs_utils.procedural.inventory import set_inventory_value, get_inventory_value
 from sbs_utils.procedural.roles import role
 from sbs_utils.procedural.query import to_object, to_object_list
 from sbs_utils.procedural.quest import quest_add, QuestState
 from sbs_utils.mast.mast_node import MastDataObject
-
-_FACE_GEN = {"terran": random_terran, "male": random_terran_male,
-             "terran_male": random_terran_male, "female": random_terran_female,
-             "terran_female": random_terran_female}
-
 
 def universe_parse_lifeforms(doc):
     """Cast records from the `## Lifeforms` section (empty if none)."""
@@ -62,13 +57,9 @@ def lifeform_get(lifeforms, key):
 
 
 def lifeform_face(record):
-    """Resolve a record's face: a keyword (terran/male/female) -> a random face of
-    that kind; a literal face string -> itself; nothing -> a random terran."""
-    f = record.get("face") if record is not None else None
-    if f is None:
-        return random_terran()
-    gen = _FACE_GEN.get(str(f).strip().lower())
-    return gen() if gen is not None else f
+    """Resolve a record's face spec via the shared face_resolve (keyword -> random face of
+    that kind; literal -> itself; nothing -> a random terran)."""
+    return face_resolve(record.get("face") if record is not None else None)
 
 
 def universe_spawn_lifeform(record, host_id):
