@@ -9,6 +9,9 @@ import os
 import random
 from sbs_utils import scatter
 from sbs_utils.procedural.quest import document_get_amd_file
+from sbs_utils.procedural.amd_doc import (
+    amd_read_content, amd_document, amd_root_node, amd_root_data,
+    amd_section, amd_includes, amd_splice)
 from sbs_utils.procedural.execution import labels_get_type
 from sbs_utils.procedural.sides import side_set_relations
 from sbs_utils.procedural.roles import all_roles
@@ -116,98 +119,48 @@ def universe_file(display):
     return _universe_field(display, "universe", None) or universe_clans_file(display)
 
 
-def universe_read_content(fname):
-    """Read a universe .amd file (or an include) as text. Tries the CONSUMER MISSION
-    folder first (get_mission_dir_filename) so a standalone mission built on the
-    universe_core mastlib can supply its OWN universe content, then falls back to
-    code/lib-relative (media_read_relative_file) for OU's bundled universes - which
-    also reads from inside a packaged mastlib zip (Phase 2b foundation work). Backward
-    compatible: OU's own .amd files live next to universe.mast, so when a consumer
-    provides no such file in its mission dir, the fallback loads them exactly as before."""
-    if fname:
-        mission_path = get_mission_dir_filename(fname)
-        if mission_path is not None and os.path.isfile(mission_path):
-            with open(mission_path, "r") as f:
-                return f.read()
-    return media_read_relative_file(fname)
-
-
 # --- Merged universe document (one file, nested sections) --------------------
-# A universe.amd parses to a tree: one level-1 heading (the universe root) whose
-# children are `## [Clans]`/`## [Jobs]`/`## [Narrative]` section nodes, each
-# holding `###` entries. The parser already builds this nesting (heading level ->
-# depth) and attaches each heading's `---` data fence, so no new AMD syntax is
-# needed. Legacy split files have their entries as level-1 headings (no sections);
-# the section helpers return None there so callers fall back to flat iteration.
-def universe_doc(content):
-    """Parse universe.amd (or a legacy flat clans.amd) into a document tree, using
-    the friendly fact-sheet reader for fenced data (YAML still works via delegate).
+# The generic doc/section/include/splice machinery lives in the shared library now
+# (sbs_utils.procedural.amd_doc); these thin wrappers bind it to the universe's title +
+# data_parser and keep the universe_* names OU's mast and helpers already call.
+def universe_read_content(fname):
+    """Read a universe .amd file (or an include) as text: consumer mission dir first, then
+    code/lib-relative (packaged-mastlib-zip aware). See amd_doc.amd_read_content."""
+    return amd_read_content(fname)
 
-    Headings are the LINK form `# [Display](key)` (same as the document/help viewers),
-    NOT the old bare `# Display (key)`. This keeps `#` STRUCTURAL only, so a leading
-    `#` inside a description body is free to be gui_text_area markdown (a heading in
-    rich prose) instead of being swallowed as a new node. The whole OU corpus was
-    migrated to link-form; bare headings are retired here (OU had no production release,
-    so no back-compat concern)."""
-    return document_get_amd_file(None, "Universe", content=content, data_parser=universe_amd_data)
+
+def universe_doc(content):
+    """Parse universe.amd (or a legacy flat clans.amd) into a document tree with the
+    universe fact-sheet parser. Headings are the link form `# [Display](key)`."""
+    return amd_document(content, universe_amd_data, "Universe")
 
 
 def universe_root_node(doc):
     """The single level-1 universe heading node (the file's root content), or None."""
-    kids = doc.get("children", []) if doc else []
-    return kids[0] if kids else None
+    return amd_root_node(doc)
 
 
 def universe_section(doc, key):
     """The named section node (`clans`/`jobs`/`narrative`) under the universe root,
     or None when absent (a legacy flat file -> caller iterates the root instead)."""
-    root = universe_root_node(doc)
-    if root is None:
-        return None
-    for n in root.get("children", []):
-        if n.get("key") == key:
-            return n
-    return None
+    return amd_section(doc, key)
 
 
-# --- Section includes (split a large universe across files) ------------------
-# A section heading may carry `File: path.amd` in its fence; the loader reads that
-# file, parses it, and splices its top-level entries into the section - so the main
-# universe.amd stays a slim table of contents and big sections (dialogue, jobs) live
-# in their own files. One level: an included file holds entries, not further File:s.
 def universe_includes(doc):
-    """One (section key, file) per file to splice in - a section may name several
-    (repeat `File:` or a comma `Files:` list), spliced in order. The mast reads each
-    file and calls universe_splice."""
-    root = universe_root_node(doc)
-    out = []
-    if root is not None:
-        for sec in root.get("children", []):
-            files = (sec.get("data") or {}).get("file") or []
-            if isinstance(files, str):
-                files = [files]
-            for f in files:
-                out.append(MastDataObject({"key": sec.get("key"), "file": f}))
-    return out
+    """One (section key, file) per `File:` to splice in - the mast reads each and calls
+    universe_splice. See amd_doc.amd_includes."""
+    return amd_includes(doc)
 
 
 def universe_splice(doc, section_key, included_doc):
     """Append an included file's top-level entries as children of the named section."""
-    root = universe_root_node(doc)
-    if root is None or included_doc is None:
-        return
-    for sec in root.get("children", []):
-        if sec.get("key") == section_key:
-            sec.get("children").extend(included_doc.get("children", []))
-            return
+    return amd_splice(doc, section_key, included_doc)
 
 
 def universe_reputation_cfg(doc):
     """The universe root's `reputation:` config block (axes + standing tuning), or
     None when absent (-> the built-in defaults). Fed to reputation_configure."""
-    root = universe_root_node(doc)
-    data = (root.get("data") if root is not None else None) or {}
-    return data.get("reputation")
+    return amd_root_data(doc).get("reputation")
 
 
 def universe_shared_id():
