@@ -41,7 +41,7 @@ def _clan_is_foe(clans, key, side):
     c = clan_get(clans, key)
     if c is None or c.get("diplomacy") != "foe":
         return False
-    if to_side_id(key) is not None and to_side_id(side) is not None:
+    if to_side_id(key, warn=False) is not None and to_side_id(side, warn=False) is not None:
         return bool(side_are_enemies(key, side))
     return True
 
