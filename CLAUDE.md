@@ -52,8 +52,9 @@ missions/
 > shared drivers — quest completion, docking, fleets, comms, consoles — live in LM
 > mastlibs, NOT here or in sbs_utils). **Grep all of `story.json`'s deps
 > (`../sbs_utils`, `../LegendaryMissions`, here) before concluding a mechanic is
-> missing/opaque/broken.** e.g. the quest driver is
-> `../LegendaryMissions/quests/quest_driver.{py,mast}`.
+> missing/opaque/broken.** e.g. the quest driver is now SPLIT: the generic engine is
+> **`../sbs_utils/procedural/quest_driver.py`**, and its signal-route wiring (which event
+> feeds which trigger, plus `game_over`) is **`../LegendaryMissions/quests/quest_driver.mast`**.
   Keep edits to those repos minimal and coordinated; one owner per sbs_utils push
   at a time (a branch+tag name collision once broke pushes). Stay inside this repo
   when you can.

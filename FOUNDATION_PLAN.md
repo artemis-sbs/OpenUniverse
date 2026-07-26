@@ -137,7 +137,9 @@ The biggest gap across A/C is that OU is **co-op today**. Two parts:
     `UNIVERSE_GAME_OVER` and re-use the (previously dangling) victory/defeat signals.
   - **Conquest-as-quest via `on_signal` - UNBLOCKED (Doug: "did you check LM?").**
     The quest driver is **`LegendaryMissions/quests/quest_driver.{py,mast}`** (I'd
-    missed it - it's an LM mastlib, not sbs_utils/OU). It hooks existing signals:
+    missed it - it's an LM mastlib, not sbs_utils/OU). [UPDATE 2026-07: the generic
+    engine has since been promoted to `sbs_utils/procedural/quest_driver.py`; only the
+    signal-route wiring remains in the LM `.mast`.] It hooks existing signals:
     `//signal/universe_arrived`->`on_reach`, `//damage/destroy`->`on_kill`,
     `//science`->`on_scan`, `//signal/ship_docked`->`on_dock`, and crucially a generic
     **`//signal/quest_signal`->`quest_on_signal`** escape hatch that already advances
