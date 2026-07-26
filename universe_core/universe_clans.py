@@ -268,7 +268,8 @@ def universe_chatter_card(clan, line, time=10):
     comms_info_card(
         _chatter_consoles(), line, title=name, color=color,
         face=(clan.get("face") if clan is not None else None),
-        icon_index=(clan.get("icon") if clan is not None else None), time=time)
+        icon_index=(clan.get("icon") if clan is not None else None), time=time,
+        notify=True)
 
 
 def universe_info_card(line, title=None, color="#0cf", time=10):
@@ -276,7 +277,7 @@ def universe_info_card(line, title=None, color="#0cf", time=10):
     an info-panel card - same surface as clan chatter, no portrait."""
     if not line:
         return
-    comms_info_card(_chatter_consoles(), line, title=title, color=color, time=time)
+    comms_info_card(_chatter_consoles(), line, title=title, color=color, time=time, notify=True)
 
 
 def clan_pick_race(clan):

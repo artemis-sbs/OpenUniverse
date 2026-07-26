@@ -197,7 +197,7 @@ def officer_card(key, line, time=12):
     o = _OFFICERS.get(key)
     title = (str(o.get("name")) + ", " + str(o.get("title"))) if o is not None else "Fleet Command"
     comms_info_card(all_roles("console, comms"), line, title=title,
-                    color="#8cf", face=officer_face(key), time=time)
+                    color="#8cf", face=officer_face(key), time=time, notify=True)
 
 
 # --- Officer voices (dialogue cast) ------------------------------------------------
