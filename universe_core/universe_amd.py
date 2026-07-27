@@ -153,3 +153,82 @@ def universe_amd_data(text):
     the shared quest vocabulary in sbs_utils.procedural.amd_quest; this supplies the
     Open Universe's own labels."""
     return amd_parse_facts(text, _ou_facts)
+
+
+# --- declare the universe's own vocabulary to the shared registry -------------
+# `_ou_facts` above is the RUNTIME handler - it turns these labels into the internal
+# dict. Declaring them here is the other half: it tells the linter what a value should
+# look like and gives the VS Code Inspector a real widget per field. Without it the
+# universe's ~30 labels are invisible to every tool, which is why a typo in
+# `Disposition:` or `Flies:` used to fail silently.
+#
+# Registration RAISES on a collision with a core field, so a future sbs_utils field
+# named `Offers` or `Home` fails at startup instead of quietly shadowing ours.
+def _declare_universe_vocabulary():
+    from sbs_utils.procedural.amd_schema import (
+        amd_register_fields, amd_register_section_names,
+        text, integer, pct, csv, enum, ref, color, coord2, weighted, makeup)
+
+    amd_register_fields("clan", {
+        "archetype": enum("military", "trader", "scientist", "pirate", open=True),
+        "disposition": enum("friendly", "neutral", "hostile", open=True),
+        "home": coord2(),
+        "values": weighted(hint="by-the-book 40, fearsome 30"),
+        "offers": csv(hint="patrol, escort, strike"),
+        "flies": makeup(hint="60% Kralien, 40% Arvonian"),
+    }, domain="universe")
+
+    amd_register_fields("captain", {
+        "clan": ref("node"), "title": text(), "values": weighted(),
+        "flies": makeup(), "roams": csv(), "rival when": text(),
+        "file": text(hint="a sibling .amd holding this captain's dialogue"),
+    }, domain="universe")
+
+    # The universe gives its officers a rank and a personality on top of the
+    # shared LIFEFORM fields.
+    amd_register_fields("lifeform", {
+        "title": text(hint="rank or role, e.g. Chief Engineer"),
+        "values": weighted(hint="what this character cares about"),
+    }, domain="universe")
+
+    amd_register_fields("worldlet", {
+        "yields": csv(hint="what can be mined here"),
+        "reserve": integer(hint="how much is left"),
+        "palette": text(hint="the look of the surface"),
+    }, domain="universe")
+
+    amd_register_fields("admiralty", {
+        "economy pace": pct(), "research pace": pct(), "relay rate": pct(),
+        "worldlet chance": pct(), "skirmish pressure": pct(),
+        "skirmish interval": integer(hint="seconds"),
+        "mia timer": integer(hint="seconds"),
+        "start ore": integer(), "start gas": integer(), "start crew": integer(),
+        "storage": integer(), "command points": integer(),
+        "fleet gas burn": integer(), "requisition budget": integer(),
+        "sabotage": text(),
+    }, domain="universe")
+
+    # Region generation knobs the universe adds on top of the shared REGION fields.
+    amd_register_fields("region", {
+        "skybox": text(), "music": text(),
+        "enemy mix": makeup(), "station mix": makeup(), "nebula mix": makeup(),
+        "anomaly mix": makeup(), "mine chance": pct(),
+        "derelict chance": pct(), "outpost chance": pct(),
+    }, domain="universe")
+
+    amd_register_fields("landmark", {
+        "terrain": csv(), "guards": csv(hint="what defends it"),
+    }, domain="universe")
+
+    # Sections the universe names its own way.
+    amd_register_section_names(("clans",), "clan", domain="universe")
+    amd_register_section_names(("captains",), "captain", domain="universe")
+    amd_register_section_names(("worldlets",), "worldlet", domain="universe")
+    amd_register_section_names(("admiralty",), "admiralty", domain="universe")
+    amd_register_section_names(("officers", "cast", "crew"), "lifeform", domain="universe")
+
+
+try:
+    _declare_universe_vocabulary()
+except Exception as _e:      # never let a vocabulary clash stop the mission loading
+    print(f"universe_amd: vocabulary not declared - {_e}")
