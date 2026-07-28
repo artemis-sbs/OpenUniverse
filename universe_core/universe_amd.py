@@ -194,7 +194,7 @@ def _declare_universe_vocabulary():
                            key="archetype", aka=("archetype",)),
         "disposition": enum("friendly", "neutral", "hostile", open=True),
         "home": coord2(),
-        "values": weighted(hint="by-the-book 40, fearsome 30"),
+        # `Values:` comes from the shared `reputation` trait, which every side has.
         "offers": csv(hint="patrol, escort, strike"),
         "flies": makeup(hint="60% Kralien, 40% Arvonian"),
     }, domain="universe")
@@ -205,11 +205,12 @@ def _declare_universe_vocabulary():
     # archetype looks like from the inside.
     amd_register_fields("lifeform", {
         "title": text(hint="rank or role, e.g. Chief Engineer"),
-        "values": weighted(hint="what this character cares about"),
+        # `Values:` and `Rival when:` come from the shared `reputation` trait, which
+        # every person has - they were declared here AND on the side, the same words
+        # twice for one concern.
         "side": ref("node", hint="the side this person flies for"),
         "flies": makeup(hint="60% Kralien, 40% Arvonian"),
         "roams": csv(hint="the systems they are found in"),
-        "rival when": text(hint="what turns them against you"),
         "file": text(hint="a sibling .amd holding this character's dialogue"),
     }, domain="universe")
 
