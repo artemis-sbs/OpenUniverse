@@ -6,7 +6,7 @@
 # [Ashfang Hail](ashfang_hail)
 ---
 Speaker: ashfang
-When: comms
+Done when: comms
 ---
 % You're a long way from friends, captain.
 % Brave or stupid, flying in here. Hard to tell which.
@@ -51,7 +51,7 @@ Speaker: ashfang
 # [Vex Karr](vex_hail)
 ---
 Speaker: vex
-When: comms
+Done when: comms
 ---
 %{standing < -20} You. The captain who crossed me. Bold, showing that face out here.
 %{standing >= 30} Karr's heard of your work. The Ashfang could use a hand like yours.

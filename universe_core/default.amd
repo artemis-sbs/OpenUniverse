@@ -33,7 +33,7 @@ random mix. Races: Kralien, Torgoth, Arvonian, Ximni.
 ### [Iron Concord](iron)
 ---
 Color: #3399ff
-Archetype: military
+Character: military
 Disposition: neutral
 Home: 6, 4
 Values: by-the-book 40, fearsome 30, honest 20
@@ -46,7 +46,7 @@ and the Concord remembers - break one and they remember longer.
 ### [Verdant Pact](verdant)
 ---
 Color: #44cc88
-Archetype: trader
+Character: trader
 Disposition: neutral
 Home: -5, 3
 Values: peaceful 40, generous 30, kind 20
@@ -59,7 +59,7 @@ kindness and they pay you back in goods.
 ### [Free Holders](free)
 ---
 Color: #bb8855
-Archetype: settler
+Character: settler
 Disposition: neutral
 Home: -7, -7
 Values: resourceful 40, honest 30, kind 10
@@ -72,7 +72,7 @@ spoken; they value a captain who gets things done.
 ### [Mercury Guild](mercury)
 ---
 Color: #ffbb00
-Archetype: mercenary
+Character: mercenary
 Disposition: neutral
 Home: 5, -3
 Values: resourceful 30, selfish 30, fearsome 20
@@ -85,7 +85,7 @@ fearsome reputation open their doors.
 ### [Ashfang Raiders](ashfang)
 ---
 Color: #ee3333
-Archetype: pirate
+Character: pirate
 Disposition: foe
 Home: 8, -5
 Values: violent 40, cruel 30, cowardly 20
@@ -98,7 +98,7 @@ weak; only the dangerous bargain with them.
 ### [Hollow Choir](choir)
 ---
 Color: #9933ff
-Archetype: cult
+Character: cult
 Disposition: foe
 Home: -4, 6
 Values: intellectual 40, liar 30, selfish 20
@@ -120,15 +120,15 @@ captain's standing (universe_clan_quests.py).
 ## [Narrative](narrative)
 
 Shared story arcs - game-wide reveal chains spanning systems. Each heading is one
-step; the fact sheet sets scope (shared), starting state (active now / secret =
-revealed later), the trigger (When), the next step (Then: reveal ...), and any
-reward (Pays / Earns). Granted at universe start via quest_grant_amd.
+step; the fact sheet sets scope (shared), when it arms (Starts when: at once /
+revealed), what finishes it (Done when:), the next step (Then: reveal ...), and any
+reward (Reward:) and standing (Standing:). Granted at universe start via quest_grant_amd.
 
 ### [The Long Truce: Summons](truce_1)
 ---
 Scope: shared
 State: active
-When: reach 6, 4
+Done when: reach 6, 4
 Then: reveal truce_2
 ---
 A coded hail from Iron Concord HQ at system (6, 4). Travel there to hear them out.
@@ -137,9 +137,9 @@ A coded hail from Iron Concord HQ at system (6, 4). Travel there to hear them ou
 ---
 Scope: shared
 State: secret
-When: destroy 3 ashfang
+Done when: destroy 3 ashfang
 Then: reveal truce_3
-Pays: 100 credits
+Reward: 100 credits
 ---
 The Concord wants a broker for a ceasefire with the Ashfang Raiders. Thin the
 raiders - destroy three - to show the Concord you can hold the line.
@@ -148,9 +148,9 @@ raiders - destroy three - to show the Concord you can hold the line.
 ---
 Scope: shared
 State: secret
-When: dock station
-Pays: 800 credits
-Earns: iron honest 20, iron fearsome 10
+Done when: dock station
+Reward: 800 credits
+Standing: iron honest 20, iron fearsome 10
 ---
 Return to a Concord starbase to seal the accord.
 
@@ -167,7 +167,7 @@ for an open-ended sandbox with no end. Granted at start via quest_grant_amd.
 ---
 Scope: shared
 State: active
-When: destroy 20 ashfang
+Done when: destroy 20 ashfang
 Win: true
 Citation: The Ashfang raiders are broken and the lanes run clear. The frontier remembers the captain who freed it.
 ---

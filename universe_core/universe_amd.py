@@ -51,7 +51,10 @@ def _ou_facts(data, label, value):
         return True
     if label == "color":
         data["color"] = value
-    elif label == "archetype":
+    elif label in ("character", "archetype"):
+        # `Character:` is what a clan IS - military, trader, pirate. It used to be
+        # called `Archetype:`, which is our word for a record's TYPE; a reader met the
+        # implementation's noun on the page. Old files still parse.
         data["archetype"] = value
     elif label == "disposition":
         data["diplomacy"] = value
@@ -120,7 +123,11 @@ def _ou_facts(data, label, value):
         data["makeup"] = amd_makeup(value)
     elif label in ("file", "files"):
         data.setdefault("file", []).extend(amd_list(value))
-    elif label == "earns":
+    elif label in ("standing", "earns"):
+        # `Standing:` - what finishing this does to how a clan sees you. It was `Earns:`,
+        # which sat next to `Reward:` looking like a second payment; this is reputation,
+        # a different currency entirely. And a record speaks in the JOB's voice, so it
+        # says what it GIVES, not what the crew "earns".
         data["rep"] = _f_rep(value)
     elif label == "axis":
         parts = [p.strip() for p in value.split("/")]
@@ -167,10 +174,20 @@ def universe_amd_data(text):
 def _declare_universe_vocabulary():
     from sbs_utils.procedural.amd_schema import (
         amd_register_fields, amd_register_section_names,
-        text, integer, pct, csv, enum, ref, color, coord2, weighted, makeup)
+        text, integer, pct, csv, enum, ref, color, coord2, weighted, makeup, field)
+
+    # `Earns:` is a REPUTATION nudge, not a reward - it belongs to the Open Universe,
+    # which is the only place it is authored and the only thing that reads it. It used
+    # to be declared in the shared quest table typed as a `reward`, where every tool
+    # offered it to authors who had nothing to read it.
+    amd_register_fields("quest", {
+        "standing": field(text(hint="iron honest 20, iron fearsome 10"),
+                          key="rep", aka=("earns",)),
+    }, domain="OpenUniverse")
 
     amd_register_fields("clan", {
-        "archetype": enum("military", "trader", "scientist", "pirate", open=True),
+        "character": field(enum("military", "trader", "scientist", "pirate", open=True),
+                           key="archetype", aka=("archetype",)),
         "disposition": enum("friendly", "neutral", "hostile", open=True),
         "home": coord2(),
         "values": weighted(hint="by-the-book 40, fearsome 30"),

@@ -21,7 +21,7 @@ Face: female
 Roles: civilian
 Pickup: 0, 0
 Deliver to: -5, 3
-Pays: 500 credits
+Reward: 500 credits
 Scene: sela_hail
 Color: #6cf
 ---
@@ -36,7 +36,7 @@ Face: male
 Roles: civilian
 Pickup: 6, 4
 Deliver to: 0, 0
-Pays: 600 credits
+Reward: 600 credits
 Sabotage: sensors, weapons, engines
 Scene: courier_hail
 Color: #f84

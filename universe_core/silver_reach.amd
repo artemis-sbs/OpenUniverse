@@ -16,7 +16,7 @@ claims it.
 ### [The Lantern Combine](lantern)
 ---
 Color: #ffcc44
-Archetype: trader
+Character: trader
 Disposition: neutral
 Home: -4, 2
 Values: honest 40, generous 30, peaceful 20
@@ -29,7 +29,7 @@ memories for a kept promise - and longer ones for a broken cargo contract.
 ### [The Red Veil](veil)
 ---
 Color: #cc2244
-Archetype: pirate
+Character: pirate
 Disposition: foe
 Home: 5, -4
 Values: violent 40, fearsome 30, selfish 20
@@ -45,7 +45,7 @@ respect exactly one thing: a captain more dangerous than they are.
 ---
 Tier: 1
 Goal: dock station
-Pays: 260 credits
+Reward: 260 credits
 ---
 A lantern convoy needs a shepherd through the dark miles. See it safe to
 port and the Combine settles up.
@@ -54,7 +54,7 @@ port and the Combine settles up.
 ---
 Tier: 1
 Goal: destroy 3 enemies
-Pays: 300 credits
+Reward: 300 credits
 ---
 The Veil has been working the lanes again. There is a standing price on
 their hulls - three will do for a start.
@@ -63,7 +63,7 @@ their hulls - three will do for a start.
 ---
 Tier: 2
 Goal: recover 2 contraband
-Pays: 480 credits
+Reward: 480 credits
 ---
 Sealed crates, no manifest, no questions. Bring them in quietly and be
 paid the same way.
@@ -74,7 +74,7 @@ paid the same way.
 ---
 Scope: shared
 State: active
-When: reach -4, 2
+Done when: reach -4, 2
 Then: reveal dimming_2
 ---
 Three Combine convoys have gone dark in a month, and the Combine is
@@ -85,9 +85,9 @@ lanterns at (-4, 2).
 ---
 Scope: shared
 State: secret
-When: scan 2 derelicts
+Done when: scan 2 derelicts
 Then: reveal dimming_3
-Pays: 200 credits
+Reward: 200 credits
 ---
 The lost convoys did not vanish - something left the wrecks adrift off
 the lanes. Find them and read what is left in the hulls.
@@ -96,9 +96,9 @@ the lanes. Find them and read what is left in the hulls.
 ---
 Scope: shared
 State: secret
-When: destroy 5 veil
-Pays: 600 credits
-Earns: lantern honest 15, lantern generous 10
+Done when: destroy 5 veil
+Reward: 600 credits
+Standing: lantern honest 15, lantern generous 10
 ---
 The manifests all point one way: the Red Veil is bleeding the lanes dry.
 The Combine will not say the word "war" - but they will pay well for
@@ -110,7 +110,7 @@ captains who end this quietly.
 ---
 Scope: shared
 State: active
-When: destroy 15 veil
+Done when: destroy 15 veil
 Win: true
 Citation: The Red Veil is broken and the lanterns burn the length of the Reach. The convoy families will tell this captain's story for a generation.
 ---
@@ -196,7 +196,7 @@ Face: male
 Roles: civilian
 Pickup: -4, 2
 Deliver to: 5, -4
-Pays: 500 credits
+Reward: 500 credits
 Scene: calen_hail
 Color: #6cf
 ---
@@ -210,7 +210,7 @@ places. He does not say why, and he pays in advance.
 ### [Veil Hail](veil_hail)
 ---
 Speaker: veil
-When: comms
+Done when: comms
 ---
 % Well now. Fresh freight, flying no colors we fear.
 % You are a long way from the lanterns, captain.
@@ -247,7 +247,7 @@ Speaker: veil
 ### [Mara Dusk](mara_hail)
 ---
 Speaker: mara
-When: comms
+Done when: comms
 ---
 %{standing < -20} You. The Reach is not wide enough for what you owe me.
 %{standing >= 30} The Lanternless remembers her friends, captain. Speak.
@@ -268,7 +268,7 @@ Speaker: mara
 ### [Quill Hail](quill_hail)
 ---
 Speaker: quill
-When: comms
+Done when: comms
 ---
 % Lighthouse control to wandering freight - state your heading, captain.
 % Quill here. The lanes are listening, so make it brief and make it honest.
@@ -296,7 +296,7 @@ Speaker: quill
 ### [Calen Hail](calen_hail)
 ---
 Speaker: calen
-When: comms
+Done when: comms
 ---
 % Thank you for the berth, captain. I am no trouble; I keep to my prayers.
 % The Veilfall, yes. Everyone asks. Some debts are paid where they were made.
