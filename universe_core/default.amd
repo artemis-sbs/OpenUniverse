@@ -1,9 +1,9 @@
 // The Default universe for the Open Universe - one authored file holding the
-// whole world: its clans, the jobs they offer, the story, the map, the people,
+// whole world: its sides, the jobs they offer, the story, the map, the people,
 // and their dialogue. Heading level sets structure:
 //   #   the universe (identity)
-//   ##  a chapter: Clans / Jobs / Narrative / Goals / Regions / ...
-//   ### an entry within a chapter (a clan, a job type, a story beat)
+//   ##  a chapter: Sides / Jobs / Narrative / Goals / Regions / ...
+//   ### an entry within a chapter (a side, a job type, a story beat)
 // Each heading's data lives between `---` fences as friendly `Label: value` fact
 // lines; the prose below the fence is the description players read.
 //
@@ -17,16 +17,16 @@
 Display: Default
 Nebula mix: 4%
 ---
-A living frontier of clans, trade, reputation, and contestable space docks. The
+A living frontier of sides, trade, reputation, and contestable space docks. The
 galaxy reacts to who you are, not to a scripted hero.
 
-## [Sides](clans)
+## [Sides](sides)
 
-The factions that hold this galaxy. Each heading key is the clan's side key; the
+The factions that hold this galaxy. Each heading key is the side's side key; the
 fact sheet sets identity + home systems; the prose is the description. Spawned as
-sides by universe_clans.py.
+sides by universe_sides.py.
 
-Flies = the race composition of a clan's ships: a single race (Torgoth), an even
+Flies = the race composition of a side's ships: a single race (Torgoth), an even
 list (Torgoth, Kralien), or weighted (60% Kralien, 40% Arvonian). Omit for a
 random mix. Races: Kralien, Torgoth, Arvonian, Ximni.
 
@@ -113,9 +113,9 @@ sharp intent; trust them at your peril.
 File: jobs.amd
 ---
 
-Generic clan jobs live in jobs.amd. Each heading key is a pool type (see a
-clan's Offers); a clan offers the jobs in its pool, gated + reward-scaled by the
-captain's standing (universe_clan_quests.py).
+Generic side jobs live in jobs.amd. Each heading key is a pool type (see a
+side's Offers); a side offers the jobs in its pool, gated + reward-scaled by the
+captain's standing (universe_side_quests.py).
 
 ## [Narrative](narrative)
 
@@ -179,7 +179,7 @@ galaxy - to win the frontier its peace.
 Named areas of the galaxy with their own identity. A region is a Center + Radius
 (a square in system coordinates) with a Skybox and Music; on arrival the system's
 region sets the sky + music (cells no region claims keep the default). An optional
-Color washes the region's cells on the Navigation map (faint, so clan and quest
+Color washes the region's cells on the Navigation map (faint, so side and quest
 colors still show through) - the region's geography at a glance. Author smaller
 regions first so they win over larger ones. Driven by universe_regions.py.
 
@@ -222,7 +222,7 @@ Reach beyond it hides, it stays hidden for a reason.
 
 ## [Landmarks](landmarks)
 
-Named, hand-placed stations and wrecks pinned to a system (like clan homes) - the
+Named, hand-placed stations and wrecks pinned to a system (like side homes) - the
 legendary places of this galaxy, layered on top of the procedural content. Each
 has an At (system coords) and a Kind (station / derelict); a station may name a
 Side and Art. Driven by universe_landmarks.py.
@@ -384,7 +384,7 @@ order lands or an event happens. Each entry's key is the event; its body lines
 are the pool (one is picked at random). Omit the chapter, or any key, to keep
 the built-in defaults. Fields in braces are filled in: salvage_haul gets {ore}
 and {gas}; rescue gets the {rescuer} ship's name; captured / lost get the
-{officer} name and the captor {clan}. Driven by universe_fleets.py. Keys:
+{officer} name and the captor {side}. Driven by universe_fleets.py. Keys:
 ack_escort / ack_patrol / ack_strike / ack_hold / ack_salvage / ack_withdraw,
 formed, pod_away, gas_dry, strike_clear, salvage_none, salvage_haul,
 withdraw_home, veil_warn, rescue, captured, lost.
@@ -447,8 +447,8 @@ serious hardware for the bridge crews.
 File: captains/ashfang.amd
 ---
 
-Named NPC captains (people, not just clans), one file per clan. A captain belongs
-to a clan, roams a system (hailable at its station), embodies reputation poles
+Named NPC captains (people, not just sides), one file per side. A captain belongs
+to a side, roams a system (hailable at its station), embodies reputation poles
 (Values), and turns rival per his `Rival when:` guard against the player's personal
 standing with him. He speaks via dialogue scenes (Speaker = his key). Driven by
 universe_captains.py.
@@ -471,7 +471,7 @@ File: dialogue/frontier.amd
 File: dialogue/officers.amd
 ---
 
-Clan conversations (movie-script scenes) live in dialogue/<clan>.amd, one file per
-clan, spliced here in order. A scene's Speaker is a clan; When: comms makes it the
+Side conversations (movie-script scenes) live in dialogue/<side>.amd, one file per
+side, spliced here in order. A scene's Speaker is a side; When: comms makes it the
 scene a station hail opens. Driven by universe_dialogue.py + the //comms/dialogue
-route. Add a clan's voice by adding its file and a `File:` line.
+route. Add a side's voice by adding its file and a `File:` line.

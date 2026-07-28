@@ -8,7 +8,7 @@ Generic parsing + value coercion lives in `sbs_utils.procedural.amd`, and the
 generic QUEST vocabulary (Goal/When/Then/Pays/Scope/State/Win/Lose/Tier/Display and
 the trigger verbs) now lives in `sbs_utils.procedural.amd_quest` - shared with any
 mission (e.g. the LM siege map), so universe AMD is a strict SUPERSET of that
-subset. This file keeps only the Open Universe's OWN vocabulary (clans, generation,
+subset. This file keeps only the Open Universe's OWN vocabulary (sides, generation,
 worldlets, admiralty, reputation) and composes the shared quest handler underneath
 it. `universe_amd_data` is still the public entry (`data_parser=universe_amd_data`).
 """
@@ -33,7 +33,7 @@ _quest_facts = amd_quest_facts(_ROLE_ALIASES)
 
 def _f_rep(s):
     """'iron honest 20, iron fearsome 10' -> {iron: {honest: 20, fearsome: 10}}.
-    Each comma item is 'clan pole delta'."""
+    Each comma item is 'side pole delta'."""
     out = {}
     for item in amd_list(s):
         toks = item.split()
@@ -45,14 +45,14 @@ def _f_rep(s):
 def _ou_facts(data, label, value):
     """The Open Universe's label->key interpretation, as an amd_parse_facts handler.
     The shared quest vocabulary is tried first; this adds the universe's own labels
-    (clans, generation, worldlets, admiralty, reputation). Returns True when a label
+    (sides, generation, worldlets, admiralty, reputation). Returns True when a label
     is consumed; None for unknown labels so amd_parse_facts applies its default."""
     if _quest_facts(data, label, value):
         return True
     if label == "color":
         data["color"] = value
     elif label in ("character", "archetype"):
-        # `Character:` is what a clan IS - military, trader, pirate. It used to be
+        # `Character:` is what a side IS - military, trader, pirate. It used to be
         # called `Archetype:`, which is our word for a record's TYPE; a reader met the
         # implementation's noun on the page. Old files still parse.
         data["archetype"] = value
@@ -124,7 +124,7 @@ def _ou_facts(data, label, value):
     elif label in ("file", "files"):
         data.setdefault("file", []).extend(amd_list(value))
     elif label in ("standing", "earns"):
-        # `Standing:` - what finishing this does to how a clan sees you. It was `Earns:`,
+        # `Standing:` - what finishing this does to how a side sees you. It was `Earns:`,
         # which sat next to `Reward:` looking like a second payment; this is reputation,
         # a different currency entirely. And a record speaks in the JOB's voice, so it
         # says what it GIVES, not what the crew "earns".
@@ -185,7 +185,7 @@ def _declare_universe_vocabulary():
                           key="rep", aka=("earns",)),
     }, domain="OpenUniverse")
 
-    # A clan IS A SIDE - universe_clans.py has said so since the beginning ("spawned
+    # A side IS A SIDE - universe_sides.py has said so since the beginning ("spawned
     # as sides"). It was a private archetype because there was nowhere to put the half
     # that is not a side: its standing, its home patch, its fleet mix. Those hang off
     # `side` now, so an author writes Side and the extra words come with it.
@@ -200,9 +200,9 @@ def _declare_universe_vocabulary():
     }, domain="universe")
 
     amd_register_fields("captain", {
-        # `Side:` - the word for the faction now. The stored key stays `clan` so every
+        # `Side:` - the word for the faction now. The stored key stays `side` so every
         # reader (485 references across OU) is untouched.
-        "side": field(ref("node"), key="clan", aka=("clan",)),
+        "side": field(ref("node"), key="side", aka=("side",)),
         "title": text(), "values": weighted(),
         "flies": makeup(), "roams": csv(), "rival when": text(),
         "file": text(hint="a sibling .amd holding this captain's dialogue"),
@@ -245,8 +245,8 @@ def _declare_universe_vocabulary():
     }, domain="universe")
 
     # Sections the universe names its own way.
-    # `## Clans` still parses; `## Sides` is the word.
-    amd_register_section_names(("clans",), "side", domain="universe")
+    # `## Sides` still parses; `## Sides` is the word.
+    amd_register_section_names(("sides",), "side", domain="universe")
     amd_register_section_names(("captains",), "captain", domain="universe")
     amd_register_section_names(("worldlets",), "worldlet", domain="universe")
     amd_register_section_names(("admiralty",), "admiralty", domain="universe")

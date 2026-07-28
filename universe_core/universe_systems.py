@@ -9,7 +9,7 @@ deck returns.
 
 Keeping the deck here (pure Python, stdlib only) makes the content + weights
 data-driven and unit-testable, separate from the MAST spawn calls. POI types:
-loot (trade-good cache), derelict (scannable wreck), outpost (secondary clan
+loot (trade-good cache), derelict (scannable wreck), outpost (secondary side
 holding), mines (lethal field in foe territory). See UNIVERSE_CHANGES.md
 Appendix D.
 """
@@ -41,15 +41,15 @@ def universe_system_deck(key, kind, owner, archetype=None, foe=False, difficulty
 
     key       int system key (universe_system_key)
     kind      effective kind ('home'/'station'/'enemy'/'nebula'/'anomaly'/'empty')
-    owner     owning clan key, or None
-    archetype owning clan's archetype (flavors outpost art), or None
+    owner     owning side key, or None
+    archetype owning side's archetype (flavors outpost art), or None
     foe       True if the owner is hostile to the player side
     difficulty mission difficulty (scales mine count)
 
     Returns a list of MastDataObject, each with .type and .x/.y/.z plus:
       loot     -> .item_key
       derelict -> (position only)
-      outpost  -> .side, .art   (a secondary clan holding; tagged station+outpost)
+      outpost  -> .side, .art   (a secondary side holding; tagged station+outpost)
       mines    -> .count
     """
     r = random.Random()
@@ -72,8 +72,8 @@ def universe_system_deck(key, kind, owner, archetype=None, foe=False, difficulty
         x, y, z = _ring_pos(r, 10000, 35000)
         pois.append(MastDataObject({"type": "derelict", "x": x, "y": y, "z": z}))
 
-    # Secondary outpost - clan systems sometimes have a second, smaller holding
-    # (extra clan-work giver / capture-adjacent flavor). Clan systems only, so the
+    # Secondary outpost - side systems sometimes have a second, smaller holding
+    # (extra side-work giver / capture-adjacent flavor). Side systems only, so the
     # side is always a real registered side.
     if owner is not None and r.random() < universe_generation("outpost", i, j):
         arts = _OUTPOST_ART.get(archetype, _OUTPOST_ART_DEFAULT)

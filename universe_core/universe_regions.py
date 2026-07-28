@@ -12,7 +12,7 @@ lingering is not. Optional `Heat:` / `Damage:` lines tune the per-second rates.
 
 Mostly a driver (parse + point-in-region lookup); the visual effect is the
 skybox_schedule / music_schedule calls in universe.mast. universe_section comes
-from universe_clans.py (shared namespace).
+from universe_sides.py (shared namespace).
 """
 from sbs_utils.mast.mast_node import MastDataObject
 from sbs_utils.procedural.roles import role
@@ -63,7 +63,7 @@ def region_for_system(regions, i, j):
 
 def _region_faint(col):
     """An authored region color forced to a low alpha, so it reads as a subtle map
-    wash that clan/quest colors still override. #RGB -> #RGBA, #RRGGBB -> #RRGGBBAA."""
+    wash that side/quest colors still override. #RGB -> #RGBA, #RRGGBB -> #RRGGBBAA."""
     s = str(col).strip()
     if s.startswith("#"):
         hexd = s[1:]

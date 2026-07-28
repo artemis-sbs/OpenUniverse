@@ -67,4 +67,4 @@ is its description.
 
 Everything after this page is you replacing defaults with authorship.
 
-**Next: [Clans](clans.md)** - who lives here.
+**Next: [Sides](sides.md)** - who lives here.

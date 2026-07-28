@@ -12,7 +12,7 @@ her own - one that reads her *personal* standing with the player.
 
 ```
 // The Silver Reach - a small example universe for the Open Universe.
-// Two clans, honest work, a three-chapter story, a war to win, and a
+// Two sides, honest work, a three-chapter story, a war to win, and a
 // pirate captain who holds a grudge.
 
 # [The Silver Reach](the_silver_reach)
@@ -23,7 +23,7 @@ A ribbon of frontier stars beyond the last patrol line. Freight moves by
 lantern-light convoys, and the dark between systems belongs to whoever
 claims it.
 
-## [Clans](clans)
+## [Sides](sides)
 
 ### [The Lantern Combine](lantern)
 ---
@@ -180,7 +180,7 @@ half promise.
 
 ### [Mara Dusk](mara)
 ---
-Clan: veil
+Side: veil
 Title: the Lanternless
 Values: fearsome 40, violent 30, resourceful 20
 Flies: Torgoth

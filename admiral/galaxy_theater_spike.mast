@@ -117,12 +117,12 @@
 
 
 # Known-locations submenu (restores the retired Nav map's quick-nav list): Home Base,
-# clan homes, and active quest targets. Picking one jumps the OVERSEER there (reuses
+# side homes, and active quest targets. Picking one jumps the OVERSEER there (reuses
 # theater_jump_here). Reached via "Known locations" on the marker menu.
 //comms/admiral/known
     gk_client = get_inventory_value(COMMS_ORIGIN_ID, "cam_client", 0)
     + "Back" //comms
-    for gk in universe_known_locations(UNIVERSE_CLANS, universe_quest_target_sectors()):
+    for gk in universe_known_locations(UNIVERSE_SIDES, universe_quest_target_sectors()):
         gk_name = gk.name
         gk_i = gk.i
         gk_j = gk.j

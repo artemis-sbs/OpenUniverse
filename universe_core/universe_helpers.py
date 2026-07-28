@@ -42,8 +42,8 @@ _MIGRATIONS = {}
 
 def universe_read_optional_file(file):
     """media_read_relative_file, but None when the file doesn't exist instead of
-    raising. Used for the legacy split-file fallbacks (clan_quests.amd) so a
-    modern universe with no ## Jobs section simply offers no clan work."""
+    raising. Used for the legacy split-file fallbacks (side_quests.amd) so a
+    modern universe with no ## Jobs section simply offers no side work."""
     from sbs_utils.helpers import FrameContext
     from sbs_utils.procedural.media import media_read_from_zip, media_read_file
     task = FrameContext.task
@@ -703,15 +703,15 @@ def universe_add_waypoint(agent_id, i, j, name):
 
 
 # --- Sector kind + galaxy map ------------------------------------------------
-# Named landmarks now come from clans (clans.amd home systems), layered onto the
-# galaxy map by universe.mast. The procedural kind below is clan-agnostic; clan
-# ownership/naming is applied on top (see universe_clans.universe_system_clan).
+# Named landmarks now come from sides (sides.amd home systems), layered onto the
+# galaxy map by universe.mast. The procedural kind below is side-agnostic; side
+# ownership/naming is applied on top (see universe_sides.universe_system_side).
 _KIND_ABBR = {"home": "Home", "station": "Base", "enemy": "Threat",
               "nebula": "Neb", "anomaly": "!!", "empty": "."}
 
 
 def universe_system_name(i, j):
-    """Deprecated: procedural names removed - clans name their home systems.
+    """Deprecated: procedural names removed - sides name their home systems.
     Kept (returns '') so existing callers don't break."""
     return ""
 
@@ -788,7 +788,7 @@ def universe_generation(name, i=None, j=None):
 
 def universe_generation_cfg(doc):
     """The universe root's `generation:` config block, or None (-> defaults). Fed to
-    generation_configure. universe_root_node comes from universe_clans.py."""
+    generation_configure. universe_root_node comes from universe_sides.py."""
     root = universe_root_node(doc)
     data = (root.get("data") if root is not None else None) or {}
     return data.get("generation")
@@ -799,7 +799,7 @@ def universe_system_kind(seed, i, j, danger="Quiet"):
 
     (0,0) is always home; otherwise a keyed roll against the authored system mix,
     with Danger scaling enemy density. Both the generator and the galaxy map call
-    this, so what you see on the map is exactly what spawns. Clan ownership/naming
+    this, so what you see on the map is exactly what spawns. Side ownership/naming
     is layered on top in universe.mast.
     """
     i = int(i)

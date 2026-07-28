@@ -1,5 +1,5 @@
 // The Silver Reach - the worked example universe from the writer's walkthrough
-// (mkdocs/docs/writing/, or WRITERS_GUIDE.pdf). Two clans, honest work, a
+// (mkdocs/docs/writing/, or WRITERS_GUIDE.pdf). Two sides, honest work, a
 // three-chapter story, a war to win, and a pirate captain who holds a grudge.
 // Copy this file to start your own universe - register it in universes.mast.
 
@@ -11,7 +11,7 @@ A ribbon of frontier stars beyond the last patrol line. Freight moves by
 lantern-light convoys, and the dark between systems belongs to whoever
 claims it.
 
-## [Sides](clans)
+## [Sides](sides)
 
 ### [The Lantern Combine](lantern)
 ---

@@ -27,10 +27,10 @@ optional, every entry the same heading / fact sheet / prose shape:
 
 ```
 # The Silver Reach              <- the title and the world's prose
-## Clans                        <- the factions (character sheets)
+## Sides                        <- the factions (character sheets)
 ### [The Lantern Combine](lantern)
 ### [The Red Veil](veil)
-## Jobs                         <- the work clans offer
+## Jobs                         <- the work sides offer
 ### [Convoy Escort](escort)
 ## Narrative                    <- the story, chapter by chapter
 ### [The Dimming: A Cold Lane](dimming_1)

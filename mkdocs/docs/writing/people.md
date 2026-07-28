@@ -1,10 +1,10 @@
 # Captains and the cast
 
-Clans are institutions. These two chapters give the galaxy *faces*.
+Sides are institutions. These two chapters give the galaxy *faces*.
 
 ## Captains
 
-Captains are named NPCs of a clan - a person a crew can meet, deal with, and
+Captains are named NPCs of a side - a person a crew can meet, deal with, and
 make an enemy of. A captain has personal `Values`, roams a system, and has one
 dramatic hinge: `Rival when:` - the standing threshold at which they stop
 being a character you talk to and start being a character who hunts you.
@@ -14,7 +14,7 @@ being a character you talk to and start being a character who hunts you.
 
 ### [Mara Dusk](mara)
 ---
-Clan: veil
+Side: veil
 Title: the Lanternless
 Values: fearsome 40, violent 30, resourceful 20
 Flies: Torgoth

@@ -1,5 +1,5 @@
 // Ashfang Raiders dialogue - spliced into default.amd's `## Dialogue` section via
-// `File: dialogue/ashfang.amd`. A scene's Speaker is the clan (face/name/color);
+// `File: dialogue/ashfang.amd`. A scene's Speaker is the side (face/name/color);
 // When: comms makes it the scene a station hail opens. Body lines are % variants;
 // choices link to the next scene with optional `if <guard>` and `; <outcomes>`.
 

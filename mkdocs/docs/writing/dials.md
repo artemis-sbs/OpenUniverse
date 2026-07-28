@@ -29,10 +29,10 @@ How fast trust converts to access:
 
 ```
 Job tiers: 20, 50        // standing needed for tier 2 / tier 3 work
-Foe deals at: 20         // standing at which a foe clan will deal at all
+Foe deals at: 20         // standing at which a foe side will deal at all
 Ceasefire free at: 30    // standing at which peace costs nothing
 Ceasefire per point: 20  // credits per missing point below that
-Alliance at: 60          // standing at which a clan becomes an ally
+Alliance at: 60          // standing at which a side becomes an ally
 Max reward: 2.0          // pay multiplier at maximum standing
 ```
 
@@ -46,7 +46,7 @@ Axis: pious / heretical
 Axis: loyal / faithless
 ```
 
-At which point clans value, and captains are judged on, *your* virtues. That
+At which point sides value, and captains are judged on, *your* virtues. That
 is the deepest dial there is; most universes never need it.
 
 ## The economy (Goods)

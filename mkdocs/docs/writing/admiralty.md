@@ -109,7 +109,7 @@ A small settled world. People, modest industry, and somewhere to come from.
 ## Step 4 - give the fleets captains
 
 Fleets need someone to command them. Add an `## Officers` chapter - the Academy
-roster. Their **Values** use the **same reputation poles as your clans**
+roster. Their **Values** use the **same reputation poles as your sides**
 ([people](people.md)), and they shape the fleet: `by-the-book` burns less fuel,
 `resourceful` salvages richer, `fearsome` fights farther out.
 

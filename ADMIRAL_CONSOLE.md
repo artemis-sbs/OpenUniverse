@@ -53,7 +53,7 @@ Everything in the CQ manual worth a decision, so nothing is left unmined.
 | Three resources: Ore / Gas / Crew | Ore = build, Gas = fuel, Crew = operate | **Mine.** Three is the right count. See section 3. |
 | Command Points | Fleet cap that grows with HQ/sensor infrastructure | **Mine.** The single best anti-snowball lever - caps fleet spam and gives infrastructure a purpose beyond economy. |
 | System Supply (binary in/out of supply) | A system is "in supply" only if connected by jump gates to an HQ system | **Simplify.** In OU, adjacency chains to a supplied system; in a one-system Siege game it collapses to supply *radius* around platforms. Powerful with our engine-network culling: out-of-supply = degraded, not dead. |
-| Jump Gates lock wormholes | Supply line + traffic control; destructible from both sides | **Simplify (OU only).** A "Relay" platform makes a neighboring system reachable-in-supply; foe clans can raid it. Siege games skip it. |
+| Jump Gates lock wormholes | Supply line + traffic control; destructible from both sides | **Simplify (OU only).** A "Relay" platform makes a neighboring system reachable-in-supply; foe sides can raid it. Siege games skip it. |
 | Resupply radius; Supplyship; Repair Platform; repair costs resources | Logistics as gameplay | **Mine minimally.** Docking already refuels/rearms players. Admiral logistics applies to NPC fleets: a fleet out of supply fights at a penalty. One mobile Tender ship class. |
 | Fabricator (builder ship) | Construction is a vulnerable unit, not a menu click | **Mine.** One Fabricator ship the Admiral orders around. Killing it hurts. It's also the natural "temporary art" ship (any freighter hull). |
 | Harvester (off-planet mining) | Gathers from asteroid fields/nebulae | **Phase 2.** Start with platform-based extraction only; add Harvesters when asteroid/nebula mining matters. OU already scatters loot in fields - keep that as the *player* version of harvesting. |
@@ -67,7 +67,7 @@ Everything in the CQ manual worth a decision, so nothing is left unmined.
 | Nebula effect catalog (Helios amplifies damage, Celsius locks supplies, Ion kills shields, Cygnus speeds up...) | Terrain as tactical modifiers | **Phase 2, but keep the list.** OU nebulae are currently scenery; typed nebula effects are a whole feature by themselves and benefit the bridge game even without an Admiral. |
 | Antimatter ribbon: impassable terrain | Absolute movement wall | **Mine, adapted for 3D.** Section 8. |
 | Black holes | Gravity death trap | Already exists in OU prefabs. No action. |
-| Diplomacy screen: alliances + gifting resources | Inter-player relations | **Mine the gift, skip the screen.** OU diplomacy already exists clan-side. Admiral-to-players resource flow is section 7. Multi-Admiral alliance games are far future. |
+| Diplomacy screen: alliances + gifting resources | Inter-player relations | **Mine the gift, skip the screen.** OU diplomacy already exists side-side. Admiral-to-players resource flow is section 7. Multi-Admiral alliance games are far future. |
 | Salvage (Mantis Dissection Chamber refunds resources from wrecks) | Wreck recycling | **Mine.** Wrecks/derelicts already exist in OU. A Salvage fleet order that converts wrecks to resources is cheap to build and very on-theme. |
 | Rally points, idle-worker button, research-platform cycle button | UI quality of life | **Mine the ideas** when the GUI is built - rally = default station for new hulls; an "idle" indicator on the Admiral panel. |
 | Fog of war / LR Sensor Tower | Information warfare | **Simplify.** OU already has Fog of War on the galaxy map. A Sensor platform extends what the Admiral (and science!) can see. Feeds the bridge game: Admiral sensors light up science contacts. |
@@ -202,7 +202,7 @@ fleet-level commands, the admiral grants personality bonuses. Replace "CQ
 admiral" with **our captain system** and the whole thing lands on machinery
 that already exists:
 
-- A **captain** is a lifeform + AMD record (exactly like OU clan captains):
+- A **captain** is a lifeform + AMD record (exactly like OU side captains):
   name, face, `Values:` trait weights, a voice via dialogue scenes.
 - **Traits reuse the reputation poles** and grant fleet bonuses:
   `fearsome` -> damage, `by-the-book` -> supply efficiency, `resourceful` ->
@@ -213,7 +213,7 @@ that already exists:
   `resourceful`; Steele's damage is `fearsome`. The pattern transplants
   1:1 onto poles we already have.)
 - The Academy offers a small roster (3 at launch, authored in the universe
-  AMD - a `## Officers` chapter, or reuse `## Captains` with `Clan: <player
+  AMD - a `## Officers` chapter, or reuse `## Captains` with `Side: <player
   side>`). In OU their *personal standing* with bridge crews can even move -
   captains the crews fly with get better. That's free depth from the
   reputation engine.
@@ -357,8 +357,8 @@ one extractor chain, and one requisition delivered.
 
 ## 11. What we already have (build on, don't rebuild)
 
-- **Sides + clans + diplomacy** (OU) - the Admiral is a side member; foe
-  clans are the opposition; capture already redraws territory.
+- **Sides + sides + diplomacy** (OU) - the Admiral is a side member; foe
+  sides are the opposition; capture already redraws territory.
 - **Reputation poles** - captain traits and their fleet bonuses (section 6).
 - **Captains/lifeforms/dialogue AMD** - the officer roster and its voice.
 - **Quests/objectives** - Admiral "operations" could literally be quests
@@ -421,7 +421,7 @@ the GUI) and each slice ships something a bridge crew notices.
        brutal in a 45-minute Siege.
     3. **Missing in action (recommended)** - she ejects into a pod/wreck
        and becomes a *rescue objective the bridge crews can fly*: reach the
-       pod, or dock it home, before a timer (or a foe clan) claims her.
+       pod, or dock it home, before a timer (or a foe side) claims her.
        Rescued = returns with a scar and maybe a trait shift; unclaimed =
        permadeath. Admiral drama becomes bridge content - exactly the
        loop-touching rule from section 1. Siege can tune the timer short
@@ -429,8 +429,8 @@ the GUI) and each slice ships something a bridge crew notices.
 
 - **Raids: border skirmishes.** Extraction doesn't summon raids globally;
   pressure comes from *proximity to foe territory*. Platforms inside or
-  bordering a foe clan's region draw periodic skirmish raids (scaled by
-  that clan's strength/standing); deep-core mining is safe but the rich
+  bordering a foe side's region draw periodic skirmish raids (scaled by
+  that side's strength/standing); deep-core mining is safe but the rich
   worldlets are seeded near borders and contested regions. Result: the
   frontier is where the Admiral's game and the crews' game meet - defense
   requests become escort orders become quests.
@@ -466,11 +466,11 @@ the GUI) and each slice ships something a bridge crew notices.
 
 - **Captain capture: OU yes, Siege no.** In Siege an MIA captain is just a
   timer (rescue or lose her - keep the mode lean). In the Open Universe a foe
-  clan can *claim* the pod: the captain becomes a prisoner, and getting her
-  back is content - ransom through the clan's comms (priced by standing, a
+  side can *claim* the pod: the captain becomes a prisoner, and getting her
+  back is content - ransom through the side's comms (priced by standing, a
   genuine use for the diplomacy/reputation economy) or a rescue raid at the
-  clan's station. A captured captain is a better story than a dead one, and
-  it gives foe clans something to want.
+  side's station. A captured captain is a better story than a dead one, and
+  it gives foe sides something to want.
 
 - **Border defense: `patrol` first.** Fleets are the answer to skirmish
   pressure at launch; the Bastion platform stays in slice 4 as the later,
@@ -634,7 +634,7 @@ feeds income at `Relay rate:` while the flag is elsewhere; remote depletion
 simulated).
 
 **Captain capture + ransom; HQ campaign uniqueness** (f6c1e3f, 2026-07-02) - a
-lapsed MIA pod is claimed by a hostile foe clan; the officer becomes their prisoner
+lapsed MIA pod is claimed by a hostile foe side; the officer becomes their prisoner
 (ransom priced by standing at a captor station, or break them out by
 destroying/capturing a captor station). The HQ is campaign-unique;
 Shipyard/Academy/Relay stay per-system.
@@ -648,7 +648,7 @@ personal reputation with the captains they fly with.
 
 **Authorable fleet chatter** (eed4545, 2026-07-02) - fleet event lines (order acks,
 gas/salvage blips, pod-away/rescue/capture/lost) are built-in pools with a random
-pick and {ore}/{gas}/{rescuer}/{officer}/{clan} fields; a `## Fleet Chatter` AMD
+pick and {ore}/{gas}/{rescuer}/{officer}/{side} fields; a `## Fleet Chatter` AMD
 section overrides any pool; zero authoring keeps the defaults.
 
 **NPC veil avoidance** (d8ca036, 2026-07-02) - the navy will not operate inside an
@@ -792,7 +792,7 @@ Not the individual features - the loop between them:
    shipped it as build-model *B* (an optional slow builder ship). But the default is
    menu-build, and the CQ-defining verb - convoy a builder to the frontier and found a
    base - is neither the default nor wired into an expand loop.
-4. **No economic AI opponent.** Clans are scripted raiders; they harass but don't run
+4. **No economic AI opponent.** Sides are scripted raiders; they harass but don't run
    an economy or expand. The "others doing the same" half of the loop is PvP-only.
 5. **Held-but-unattended territory doesn't produce.** The multi-cell model keeps only
    *occupied* cells live; an empty system despawns and freezes into its sectors delta.

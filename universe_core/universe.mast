@@ -31,10 +31,10 @@ default shared UNIVERSE_SELECT = "Default"
 # universe can hold several independent campaigns.
 default shared SAVE_SLOT = 1
 default shared universe_diplomacy = {}
-# Active dialogue scene + speaker clan (set when a player hails; see the dialogue
+# Active dialogue scene + speaker side (set when a player hails; see the dialogue
 # routes near the station comms).
 default shared DLG_SCENE = None
-default shared DLG_CLAN = None
+default shared DLG_SIDE = None
 # Engine-network culling: park terrain beyond this radius from all players.
 default shared UNIVERSE_CULL = True
 default shared UNIVERSE_CULL_RADIUS = 25000
@@ -118,10 +118,10 @@ default shared WAYPOINTS_ENABLED = False
     # Point the save store at THIS universe's slot before any load/save, so each universe
     # (and each mission that loads the engine) has its own saves and can hold several.
     universe_set_active_save(UNIVERSE_SELECT, SAVE_SLOT)
-    # Load the selected universe from one merged AMD file (identity + clans + jobs
+    # Load the selected universe from one merged AMD file (identity + sides + jobs
     # + narrative; see UNIVERSE_CHANGES.md capstone). Parsed once into UNIVERSE_DOC;
-    # clans/jobs/narrative are sections of it. Legacy split-file universes have no
-    # sections, so jobs fall back to a standalone clan_quests.amd.
+    # sides/jobs/narrative are sections of it. Legacy split-file universes have no
+    # sections, so jobs fall back to a standalone side_quests.amd.
     shared UNIVERSE_DOC = universe_doc(universe_read_content(universe_file(UNIVERSE_SELECT)))
     # Section includes: a section with `File: x.amd` in its fence pulls its entries
     # from that file (so the main universe.amd stays a table of contents). One level.
@@ -134,17 +134,17 @@ default shared WAYPOINTS_ENABLED = False
     # Generation knobs (the root `generation:` block): system-kind mix + POI-deck
     # weights. Must run before universe_enter_system / the galaxy map use them.
     generation_configure(universe_generation_cfg(UNIVERSE_DOC))
-    # Clans -> spawned as sides below. The player sides already exist from the
-    # server-start create_sides signal, so foe clans' hostile relations resolve.
-    shared UNIVERSE_CLANS = universe_clans_from_doc(UNIVERSE_DOC)
-    # Generic clan jobs: the universe's `jobs` section. Legacy split-file universes
-    # may still carry a standalone clan_quests.amd; a modern universe with no
-    # ## Jobs section (and no legacy file) simply offers no clan work.
-    shared UNIVERSE_CLAN_QUESTS = universe_jobs_from_doc(UNIVERSE_DOC)
-    if UNIVERSE_CLAN_QUESTS is None:
-        legacy_jobs = universe_read_optional_file("clan_quests.amd")
+    # Sides -> spawned as sides below. The player sides already exist from the
+    # server-start create_sides signal, so foe sides' hostile relations resolve.
+    shared UNIVERSE_SIDES = universe_sides_from_doc(UNIVERSE_DOC)
+    # Generic side jobs: the universe's `jobs` section. Legacy split-file universes
+    # may still carry a standalone side_quests.amd; a modern universe with no
+    # ## Jobs section (and no legacy file) simply offers no side work.
+    shared UNIVERSE_SIDE_QUESTS = universe_jobs_from_doc(UNIVERSE_DOC)
+    if UNIVERSE_SIDE_QUESTS is None:
+        legacy_jobs = universe_read_optional_file("side_quests.amd")
         if legacy_jobs is not None:
-            UNIVERSE_CLAN_QUESTS = universe_parse_clan_quests(legacy_jobs)
+            UNIVERSE_SIDE_QUESTS = universe_parse_side_quests(legacy_jobs)
     # Shared narrative arcs (the `narrative` section, may be None); granted below.
     shared UNIVERSE_NARRATIVE = universe_section(UNIVERSE_DOC, "narrative")
     # Campaign goals (the `goals` section, may be None): shared quests like narrative,
@@ -152,7 +152,7 @@ default shared WAYPOINTS_ENABLED = False
     # //signal/quest_succeeded). Granted game-wide below alongside the narrative.
     shared UNIVERSE_GOALS = universe_section(UNIVERSE_DOC, "goals")
     # Dialogue scenes (the `dialogue` section): key -> scene node, driven by the
-    # //comms/dialogue route when a player hails a clan station.
+    # //comms/dialogue route when a player hails a side station.
     shared UNIVERSE_DIALOGUE = dialogue_scenes(UNIVERSE_DOC)
     # Named NPC captains (the `captains` section): people with a personal reputation
     # who can be hailed where they roam and turn rival per their `Rival when:` guard.
@@ -188,11 +188,11 @@ default shared WAYPOINTS_ENABLED = False
         research_configure(universe_parse_research(UNIVERSE_DOC))
         officers_configure(universe_parse_officers(UNIVERSE_DOC))
         fleet_chatter_configure(UNIVERSE_DOC)
-    for _clan in UNIVERSE_CLANS:
-        # A foe clan is hostile to every player side (the live roster), not just a
+    for _side in UNIVERSE_SIDES:
+        # A foe side is hostile to every player side (the live roster), not just a
         # hardcoded "tsn" - so foes stay foes no matter which sides are playing.
-        _clan_enemies = ",".join(universe_player_sides()) if _clan.diplomacy == "foe" else ""
-        await prefab_spawn(prefab_side_generic, {"key": _clan.key, "name": _clan.name, "desc": _clan.desc, "color": _clan.color, "enemies": _clan_enemies})
+        _side_enemies = ",".join(universe_player_sides()) if _side.diplomacy == "foe" else ""
+        await prefab_spawn(prefab_side_generic, {"key": _side.key, "name": _side.name, "desc": _side.desc, "color": _side.color, "enemies": _side_enemies})
     # Seed the Admiral side's starting stockpiles (guarded - once per campaign)
     # and start the extraction economy + the fleet order loop (admiral.mast).
     default shared UNIVERSE_GAME_OVER = False
@@ -236,7 +236,7 @@ default shared WAYPOINTS_ENABLED = False
         shared universe_systems = {}
         shared universe_diplomacy = {}
     universe_save(universe_seed, universe_i, universe_j, universe_systems)
-    # Re-apply any negotiated relation changes (clans/sides now exist).
+    # Re-apply any negotiated relation changes (sides/sides now exist).
     universe_apply_dip(universe_diplomacy)
     # Grant the shared narrative arcs (the universe's `narrative` section) game-wide:
     # state: active steps go live now, secret steps wait for their reveal. Idempotent
@@ -334,12 +334,12 @@ default shared WAYPOINTS_ENABLED = False
     jump veil_loop
 
 
-# Capture: hold a foe clan station's space clear of its ships to take it. Once
+# Capture: hold a foe side station's space clear of its ships to take it. Once
 # the garrison is gone and the area stays clear long enough, the station morphs
 # to the player's side (persisted). Ends if you leave or it is destroyed.
 === universe_capture_watch
     default cap_station = None
-    default cap_clan = None
+    default cap_side = None
     default cap_hold = 0
     ->END if cap_station is None
     # Multi-cell: the watched station fixes the cell (from its position), not the
@@ -353,7 +353,7 @@ default shared WAYPOINTS_ENABLED = False
     ->END if not UNIVERSE_ACTIVE
     ->END if not object_exists(cap_station)
     ->END if not universe_cell_live(cap_i, cap_j)
-    near = closest(cap_station, role(cap_clan) - role("station"), 12000)
+    near = closest(cap_station, role(cap_side) - role("station"), 12000)
     if near is None:
         cap_hold += 2
     else:
@@ -371,8 +371,8 @@ default shared WAYPOINTS_ENABLED = False
         universe_save(universe_seed, cap_i, cap_j, universe_systems)
         comms_broadcast(role("__player__"), "Starbase captured!", "#0f0")
         # Taking the station also empties its brig: captured Admiralty
-        # officers held by this clan walk free (the bloodless rescue raid).
-        for _freed_key in officers_captured_by(cap_clan):
+        # officers held by this side walk free (the bloodless rescue raid).
+        for _freed_key in officers_captured_by(cap_side):
             officer_release(cap_side, _freed_key)
             officer_card(_freed_key, "They left my cell unlocked on the way out. Ready for duty.")
         universe_save_players()
@@ -381,12 +381,12 @@ default shared WAYPOINTS_ENABLED = False
     jump cwatch
 
 
-# Re-capture: a clan tries to retake a captured station. If its re-assault fleet
-# is destroyed, the attempt fails (you keep it). If the clan holds the station's
-# space (no player near) long enough, it reverts to the clan.
+# Re-capture: a side tries to retake a captured station. If its re-assault fleet
+# is destroyed, the attempt fails (you keep it). If the side holds the station's
+# space (no player near) long enough, it reverts to the side.
 === universe_recapture_watch
     default cap_station = None
-    default cap_clan = None
+    default cap_side = None
     default cap_hold = 0
     ->END if cap_station is None
     # Multi-cell: cell fixed by the station's position; watch ends when it despawns.
@@ -398,8 +398,8 @@ default shared WAYPOINTS_ENABLED = False
     ->END if not UNIVERSE_ACTIVE
     ->END if not object_exists(cap_station)
     ->END if not universe_cell_live(cap_i, cap_j)
-    # Re-assault repelled once no clan ships remain in the system.
-    foes = closest(cap_station, role(cap_clan) - role("station"), 60000)
+    # Re-assault repelled once no side ships remain in the system.
+    foes = closest(cap_station, role(cap_side) - role("station"), 60000)
     ->END if foes is None
     pl = closest(cap_station, role("__player__"), 12000)
     if pl is None:
@@ -408,7 +408,7 @@ default shared WAYPOINTS_ENABLED = False
         cap_hold = 0
     if cap_hold >= 20:
         cap_obj = to_object(cap_station)
-        cap_obj.set_side(cap_clan)
+        cap_obj.set_side(cap_side)
         universe_systems = universe_set_system_flag(universe_systems, cap_i, cap_j, "captured", False)
         universe_save(universe_seed, cap_i, cap_j, universe_systems)
         comms_broadcast(role("__player__"), "Starbase retaken by the enemy!", "#f00")
@@ -416,17 +416,17 @@ default shared WAYPOINTS_ENABLED = False
     jump rwatch
 
 
-# Ambient chatter: occasional clan lines while in their space (flavor only).
+# Ambient chatter: occasional side lines while in their space (flavor only).
 === universe_chatter_loop
 --- loop
     await delay_sim(45)
     ->END if not UNIVERSE_ACTIVE
-    loop_owner = universe_system_clan(UNIVERSE_CLANS, universe_seed, universe_i, universe_j, universe_system_kind(universe_seed, universe_i, universe_j, DANGER))[0]
+    loop_owner = universe_system_side(UNIVERSE_SIDES, universe_seed, universe_i, universe_j, universe_system_kind(universe_seed, universe_i, universe_j, DANGER))[0]
     if loop_owner is not None:
-        loop_clan = clan_get(UNIVERSE_CLANS, loop_owner)
-        loop_chatter = universe_chatter_line(loop_clan)
+        loop_side = sides_get(UNIVERSE_SIDES, loop_owner)
+        loop_chatter = universe_chatter_line(loop_side)
         if loop_chatter:
-            universe_chatter_card(loop_clan, loop_chatter)
+            universe_chatter_card(loop_side, loop_chatter)
     # Near-POI: hint when a player is close to an unscanned derelict (discovery).
     loop_players = to_object_list(role("__player__"))
     if len(loop_players) > 0:
@@ -461,9 +461,9 @@ default shared WAYPOINTS_ENABLED = False
 # Apply a completed quest's declarative rep: block to the captain (universe).
 //shared/signal/quest_succeeded if UNIVERSE_ACTIVE
     reputation_apply(AGENT_ID, DATA.get("rep"))
-    # On-change chatter: clans note a shift in your standing.
+    # On-change chatter: sides note a shift in your standing.
     if DATA.get("rep") is not None:
-        universe_info_card("Word of your deeds spreads among the clans.", title="Comms Chatter")
+        universe_info_card("Word of your deeds spreads among the sides.", title="Comms Chatter")
     # A campaign goal carrying Win/Lose ends the campaign when it completes. The end
     # is announced on the info panel and broadcast as a signal so an end screen (or
     # any addon) can hook it; the goal's own prose is the citation.
@@ -552,14 +552,14 @@ default shared WAYPOINTS_ENABLED = False
     h_i = hail_cell[0]
     h_j = hail_cell[1]
     # Hail: open a conversation (universe_dialogue.py + the //comms/dialogue route)
-    # with the station's clan, and with any named captain who roams this system. A
+    # with the station's side, and with any named captain who roams this system. A
     # captain entry scene is keyed the same way (Speaker = his key, When: comms).
-    hail_clan = get_side(COMMS_SELECTED_ID)
-    hail_entry = dialogue_clan_entry(UNIVERSE_DIALOGUE, hail_clan)
+    hail_side = get_side(COMMS_SELECTED_ID)
+    hail_entry = dialogue_side_entry(UNIVERSE_DIALOGUE, hail_side)
     if hail_entry is not None:
-        + "Hail {clan_name(UNIVERSE_CLANS, hail_clan)}" universe_dialogue_start {"scene": hail_entry}
+        + "Hail {sides_name(UNIVERSE_SIDES, hail_side)}" universe_dialogue_start {"scene": hail_entry}
     for hail_cap in captains_in_system(UNIVERSE_CAPTAINS, h_i, h_j):
-        cap_entry = dialogue_clan_entry(UNIVERSE_DIALOGUE, hail_cap.key)
+        cap_entry = dialogue_side_entry(UNIVERSE_DIALOGUE, hail_cap.key)
         if cap_entry is not None:
             + "Hail {captain_full_name(hail_cap)}" universe_dialogue_start {"scene": cap_entry}
     # ENGINE RULE (found running in the real engine): `+` button CONDITIONS
@@ -597,47 +597,47 @@ default shared WAYPOINTS_ENABLED = False
             quest_grant_amd(ship_id, BRIDGE_STORY_DOC)
             universe_save_players()
             >> "Patrol orders uploaded. Check your quest log - scan this starbase to begin."
-    # Clan work: if this station belongs to a clan that will deal with you, offer
+    # Side work: if this station belongs to a side that will deal with you, offer
     # jobs from its pool (gated + reward-scaled by your standing). One button per
     # offer; the data dict captures which job for the accept handler.
-    for offer in clan_work_offers(ship_id, UNIVERSE_CLANS, get_side(COMMS_SELECTED_ID), UNIVERSE_CLAN_QUESTS):
+    for offer in side_work_offers(ship_id, UNIVERSE_SIDES, get_side(COMMS_SELECTED_ID), UNIVERSE_SIDE_QUESTS):
         job_label = f"{offer.title}  ({offer.credits} cr)"
-        + "{job_label}" universe_accept_clan_job {"job_clan": offer.clan, "job_type": offer.type}
-    # Diplomacy: a captain can shift side-wide relations with this clan. A
+        + "{job_label}" universe_accept_side_job {"job_side": offer.side, "job_type": offer.type}
+    # Diplomacy: a captain can shift side-wide relations with this side. A
     # ceasefire can be bought with a tribute when standing is low (free at
     # standing>=30); an alliance must be earned (standing>=60). Live relation via
     # side_get_relations; changes persist (universe_set_dip + save).
-    dip_clan = get_side(COMMS_SELECTED_ID)
-    dip_rec = clan_get(UNIVERSE_CLANS, dip_clan)
+    dip_side = get_side(COMMS_SELECTED_ID)
+    dip_rec = sides_get(UNIVERSE_SIDES, dip_side)
     my_side = get_side(ship_id)
-    if dip_rec is not None and dip_clan != my_side:
-        dip_rel = side_get_relations(my_side, dip_clan)
-        dip_standing = clan_standing(ship_id, dip_rec)
+    if dip_rec is not None and dip_side != my_side:
+        dip_rel = side_get_relations(my_side, dip_side)
+        dip_standing = sides_standing(ship_id, dip_rec)
         dip_side_id = to_side_id(my_side)
         dip_credits = get_inventory_value(dip_side_id, "credits", 0)
-        ceasefire_cost = clan_ceasefire_cost(dip_standing)
+        ceasefire_cost = side_ceasefire_cost(dip_standing)
         # Statement-gated (see the engine rule above): dip_rel/dip_credits are
         # task variables and must not appear in a button condition.
         if dip_rel == sbs.DIPLOMACY.HOSTILE and dip_credits >= ceasefire_cost:
             + "Negotiate Ceasefire":
                 set_inventory_value(dip_side_id, "credits", dip_credits - ceasefire_cost)
-                side_set_relations(my_side, dip_clan, sbs.DIPLOMACY.NEUTRAL)
-                universe_diplomacy = universe_set_dip(universe_diplomacy, my_side, dip_clan, sbs.DIPLOMACY.NEUTRAL)
+                side_set_relations(my_side, dip_side, sbs.DIPLOMACY.NEUTRAL)
+                universe_diplomacy = universe_set_dip(universe_diplomacy, my_side, dip_side, sbs.DIPLOMACY.NEUTRAL)
                 universe_save_diplomacy(universe_diplomacy)
                 >> "We have an understanding. Hostilities are suspended (tribute: {ceasefire_cost} cr)."
-        if dip_rel == sbs.DIPLOMACY.NEUTRAL and dip_standing >= clan_alliance_standing():
+        if dip_rel == sbs.DIPLOMACY.NEUTRAL and dip_standing >= side_alliance_standing():
             + "Propose Alliance":
-                side_set_relations(my_side, dip_clan, sbs.DIPLOMACY.ALLIED)
-                universe_diplomacy = universe_set_dip(universe_diplomacy, my_side, dip_clan, sbs.DIPLOMACY.ALLIED)
+                side_set_relations(my_side, dip_side, sbs.DIPLOMACY.ALLIED)
+                universe_diplomacy = universe_set_dip(universe_diplomacy, my_side, dip_side, sbs.DIPLOMACY.ALLIED)
                 universe_save_diplomacy(universe_diplomacy)
-                >> "Then we stand together. The clan is honored to call you ally."
-        # Ransom: this clan holds captured Admiralty officers (a lapsed MIA
+                >> "Then we stand together. The side is honored to call you ally."
+        # Ransom: this side holds captured Admiralty officers (a lapsed MIA
         # pod they claimed - universe_fleets). Buying them back is priced by
-        # standing (clan_ransom_cost): friends sell prisoners back cheap.
-        for _ransom_key in officers_captured_by(dip_clan):
+        # standing (side_ransom_cost): friends sell prisoners back cheap.
+        for _ransom_key in officers_captured_by(dip_side):
             _ransom_o = officer_def(_ransom_key)
             if _ransom_o is not None:
-                _ransom_cost = clan_ransom_cost(dip_standing)
+                _ransom_cost = side_ransom_cost(dip_standing)
                 _ransom_label = f"Ransom {_ransom_o.name}  ({_ransom_cost} cr)"
                 if dip_credits >= _ransom_cost:
                     + "{_ransom_label}" universe_pay_ransom {"ransom_key": _ransom_key, "ransom_cost": _ransom_cost}
@@ -662,7 +662,7 @@ default shared WAYPOINTS_ENABLED = False
     ->END
 
 
-# Pay a clan's ransom for a captured Admiralty officer (from the station comms
+# Pay a side's ransom for a captured Admiralty officer (from the station comms
 # above). data: ransom_key (officer), ransom_cost (credits, priced at offer time).
 === universe_pay_ransom
     default ransom_key = None
@@ -679,23 +679,23 @@ default shared WAYPOINTS_ENABLED = False
     ->END
 
 
-# Accept a clan job (from the station comms above). Grants + activates it on the
+# Accept a side job (from the station comms above). Grants + activates it on the
 # captain's ship with a standing-scaled reward, then persists.
-=== universe_accept_clan_job
+=== universe_accept_side_job
     ship_id = COMMS_ORIGIN_ID
-    universe_grant_clan_job(ship_id, UNIVERSE_CLANS, job_clan, job_type, UNIVERSE_CLAN_QUESTS)
+    universe_grant_side_job(ship_id, UNIVERSE_SIDES, job_side, job_type, UNIVERSE_SIDE_QUESTS)
     universe_save_players()
     comms_broadcast(ship_id, "Job accepted - check your quest log.", "#0cf")
     ->END
 
 
 # Dialogue (the movie-script flavor): authored scenes in universe.amd's `## Dialogue`
-# section, driven at runtime by universe_dialogue.py. A Hail opens a clan's entry
-# scene; each scene shows the speaker's line (as a clan comms card) and the choices
+# section, driven at runtime by universe_dialogue.py. A Hail opens a side's entry
+# scene; each scene shows the speaker's line (as a side comms card) and the choices
 # whose guards pass; picking one applies its outcomes and advances to the next
 # scene. A scene with no choices is the end.
 
-# Start a conversation from a Hail button (clan or captain). The scene's Speaker
+# Start a conversation from a Hail button (side or captain). The scene's Speaker
 # field decides the voice + the reputation context, so only the scene is needed.
 === universe_dialogue_start
     DLG_SCENE = scene
@@ -703,13 +703,13 @@ default shared WAYPOINTS_ENABLED = False
 
 # Show the current scene's spoken line, then render its choices (//comms/dialogue).
 # Reached on hail and after every choice, so each line is delivered exactly once.
-# The Speaker (a captain or a clan) sets the voice AND the rep context - a captain
+# The Speaker (a captain or a side) sets the voice AND the rep context - a captain
 # reads the player's PERSONAL standing with him.
 === universe_dialogue_enter
     dlg_node = dialogue_get(UNIVERSE_DIALOGUE, DLG_SCENE)
     if dlg_node is not None:
         dlg_scene = dialogue_parse(dlg_node)
-        dlg_spk = dialogue_speaker(UNIVERSE_CLANS, UNIVERSE_CAPTAINS, UNIVERSE_LIFEFORMS, dlg_scene.get("speaker"))
+        dlg_spk = dialogue_speaker(UNIVERSE_SIDES, UNIVERSE_CAPTAINS, UNIVERSE_LIFEFORMS, dlg_scene.get("speaker"))
         universe_chatter_card(dlg_spk, dialogue_pick_line(dlg_scene, COMMS_ORIGIN_ID, dlg_spk))
     comms_navigate("//comms/dialogue")
     ->END
@@ -718,7 +718,7 @@ default shared WAYPOINTS_ENABLED = False
 # can't be afforded the pick is refused and the scene re-renders.
 === universe_dialogue_choose
     dlg_node = dialogue_get(UNIVERSE_DIALOGUE, DLG_SCENE)
-    dlg_spk = dialogue_speaker(UNIVERSE_CLANS, UNIVERSE_CAPTAINS, UNIVERSE_LIFEFORMS, dialogue_parse(dlg_node).get("speaker"))
+    dlg_spk = dialogue_speaker(UNIVERSE_SIDES, UNIVERSE_CAPTAINS, UNIVERSE_LIFEFORMS, dialogue_parse(dlg_node).get("speaker"))
     if dialogue_apply(COMMS_ORIGIN_ID, dlg_spk, outcomes):
         universe_save_players()
         DLG_SCENE = to
@@ -733,7 +733,7 @@ default shared WAYPOINTS_ENABLED = False
     dlg_node = dialogue_get(UNIVERSE_DIALOGUE, DLG_SCENE)
     if dlg_node is not None:
         dlg_scene = dialogue_parse(dlg_node)
-        dlg_spk = dialogue_speaker(UNIVERSE_CLANS, UNIVERSE_CAPTAINS, UNIVERSE_LIFEFORMS, dlg_scene.get("speaker"))
+        dlg_spk = dialogue_speaker(UNIVERSE_SIDES, UNIVERSE_CAPTAINS, UNIVERSE_LIFEFORMS, dlg_scene.get("speaker"))
         for dlg_ch in dialogue_choices(dlg_scene, COMMS_ORIGIN_ID, dlg_spk):
             + "{dlg_ch.label}" universe_dialogue_choose {"to": dlg_ch.target, "outcomes": dlg_ch.outcomes}
     + !0 "Leave" //comms
@@ -855,10 +855,10 @@ default shared WAYPOINTS_ENABLED = False
         _last_cur_j = cur_j
     prev_i = cur_i
     prev_j = cur_j
-    cur_res = universe_system_clan(UNIVERSE_CLANS, universe_seed, cur_i, cur_j, universe_system_kind(universe_seed, cur_i, cur_j, DANGER))
+    cur_res = universe_system_side(UNIVERSE_SIDES, universe_seed, cur_i, cur_j, universe_system_kind(universe_seed, cur_i, cur_j, DANGER))
     cur_owner = cur_res[0]
     cur_kind = cur_res[1]
-    sec_name = clan_name(UNIVERSE_CLANS, cur_owner) if cur_owner is not None else ""
+    sec_name = sides_name(UNIVERSE_SIDES, cur_owner) if cur_owner is not None else ""
     gui_section(style="area: 4, 3, 96, 11; background:#1578;")
     """justify:center; font:gui-5; $text:System ({cur_i}, {cur_j})  {sec_name}  [{cur_kind}]"""
 
@@ -874,16 +874,16 @@ default shared WAYPOINTS_ENABLED = False
             cj = VIEW_J + dj
             txt = universe_map_cell_text(universe_seed, ci, cj, DANGER, universe_systems, MAP_REVEAL)
             cell_bg = "#0006"
-            home_owner = clan_home_owner(UNIVERSE_CLANS, ci, cj)
-            cell_owner = universe_system_clan(UNIVERSE_CLANS, universe_seed, ci, cj, universe_system_kind(universe_seed, ci, cj, DANGER))[0]
+            home_owner = sides_home_owner(UNIVERSE_SIDES, ci, cj)
+            cell_owner = universe_system_side(UNIVERSE_SIDES, universe_seed, ci, cj, universe_system_kind(universe_seed, ci, cj, DANGER))[0]
             cell_revealed = universe_cell_known(universe_systems, ci, cj, MAP_REVEAL)
             if home_owner is not None:
-                txt = clan_name(UNIVERSE_CLANS, home_owner)
-                cell_bg = clan_color(UNIVERSE_CLANS, home_owner)
+                txt = sides_name(UNIVERSE_SIDES, home_owner)
+                cell_bg = sides_color(UNIVERSE_SIDES, home_owner)
             elif cell_owner is not None and cell_revealed:
-                cell_bg = clan_color(UNIVERSE_CLANS, cell_owner)
+                cell_bg = sides_color(UNIVERSE_SIDES, cell_owner)
             else:
-                # Region wash (geography backdrop): only where no clan colors the cell.
+                # Region wash (geography backdrop): only where no side colors the cell.
                 region_bg = region_map_color(UNIVERSE_REGIONS, ci, cj)
                 if region_bg is not None:
                     cell_bg = region_bg
@@ -923,11 +923,11 @@ default shared WAYPOINTS_ENABLED = False
         gui_task_jump("repaint")
 
     # Selected-system info (explore before committing to a jump).
-    sel_res = universe_system_clan(UNIVERSE_CLANS, universe_seed, SEL_I, SEL_J, universe_system_kind(universe_seed, SEL_I, SEL_J, DANGER))
+    sel_res = universe_system_side(UNIVERSE_SIDES, universe_seed, SEL_I, SEL_J, universe_system_kind(universe_seed, SEL_I, SEL_J, DANGER))
     sel_owner = sel_res[0]
     sel_kind = sel_res[1]
     sel_known = universe_cell_known(universe_systems, SEL_I, SEL_J, MAP_REVEAL)
-    info_owner = (clan_name(UNIVERSE_CLANS, sel_owner) if sel_owner is not None else "Unclaimed") if sel_known else "Unknown"
+    info_owner = (sides_name(UNIVERSE_SIDES, sel_owner) if sel_owner is not None else "Unclaimed") if sel_known else "Unknown"
     info_kind = sel_kind if sel_known else "Unknown"
     sel_dist = abs(SEL_I - cur_i) + abs(SEL_J - cur_j)
     gui_section(style="area: 58, 11, 96, 32; background:#1572;")
@@ -949,7 +949,7 @@ default shared WAYPOINTS_ENABLED = False
     # Known locations: pick one to select + center the map on it. The listbox's
     # own title shows the label, so it uses the whole section.
     gui_section(style="area: 58, 33, 96, 57; background:#1572;")
-    loc_box = gui_list_box(universe_known_locations(UNIVERSE_CLANS, quest_targets), "row-height:0.1em;", item_template=universe_location_template, title_template=universe_location_title, select=True)
+    loc_box = gui_list_box(universe_known_locations(UNIVERSE_SIDES, quest_targets), "row-height:0.1em;", item_template=universe_location_template, title_template=universe_location_title, select=True)
     on change loc_box.get_value():
         loc_sel = loc_box.get_value()
         if loc_sel is not None:
@@ -1037,20 +1037,20 @@ default shared WAYPOINTS_ENABLED = False
     # (the on_reach quest pays the fare separately). Reuses the lifeform substrate.
     for _pax_id in universe_passengers_destined(ei, ej):
         comms_broadcast(role("__player__"), universe_deliver_passenger(_pax_id) + " delivered safely.", "#0f0")
-    # Base kind (clan-agnostic) + clan overlay: a clan home -> that clan + a
-    # station; a keyed enemy system -> a foe clan. Map and spawn use the same
+    # Base kind (side-agnostic) + side overlay: a side home -> that side + a
+    # station; a keyed enemy system -> a foe side. Map and spawn use the same
     # helper so they agree.
     base_kind = universe_system_kind(universe_seed, ei, ej, DANGER)
-    res = universe_system_clan(UNIVERSE_CLANS, universe_seed, ei, ej, base_kind)
+    res = universe_system_side(UNIVERSE_SIDES, universe_seed, ei, ej, base_kind)
     owner = res[0]
     kind = res[1]
     universe_kind = kind
-    # Ambient: a clan greeting on arrival in their space (flavor only).
+    # Ambient: a side greeting on arrival in their space (flavor only).
     if owner is not None:
-        arrival_clan = clan_get(UNIVERSE_CLANS, owner)
-        arrival_chatter = universe_chatter_line(arrival_clan)
+        arrival_side = sides_get(UNIVERSE_SIDES, owner)
+        arrival_chatter = universe_chatter_line(arrival_side)
         if arrival_chatter:
-            universe_chatter_card(arrival_clan, arrival_chatter)
+            universe_chatter_card(arrival_side, arrival_chatter)
     # Remember we've been here (drives the galaxy-map fog of war).
     universe_systems = universe_set_system_flag(universe_systems, ei, ej, "visited")
 
@@ -1092,14 +1092,14 @@ default shared WAYPOINTS_ENABLED = False
         if not universe_system_flag(universe_systems, ei, ej, "station_destroyed"):
             random.seed(key + 1)
             st_type = random.choice(["starbase_command", "starbase_civil", "starbase_science", "starbase_industry"])
-            # Clan-owned systems get the clan's station; a captured one flies the
+            # Side-owned systems get the side's station; a captured one flies the
             # player's flag; otherwise a friendly base on the primary player side.
             captured = universe_system_flag(universe_systems, ei, ej, "captured")
             st_side = universe_primary_side()
             st_name = "Starbase"
             if owner is not None and not captured:
                 st_side = owner
-                st_name = clan_name(UNIVERSE_CLANS, owner)
+                st_name = sides_name(UNIVERSE_SIDES, owner)
             station = npc_spawn(co.x, co.y, co.z, st_name, f"{st_side}, station", st_type, "behav_station")
             station_id = to_id(station)
             # Market: restore this sector's saved stock, else seed deterministically.
@@ -1109,26 +1109,26 @@ default shared WAYPOINTS_ENABLED = False
             else:
                 market_seed(station_id, key)
             if universe_hostile_to_players(st_side):
-                # Foe clan home: a defending garrison; clear its space and hold to
+                # Foe side home: a defending garrison; clear its space and hold to
                 # capture the station (universe_capture_watch).
                 random.seed(key + 7)
                 gpos = Vec3.rand_in_sphere(4000, 9000, False, True)
-                prefab_spawn(prefab_fleet_raider, {"race": clan_pick_race(clan_get(UNIVERSE_CLANS, owner)), "fleet_difficulty": DIFFICULTY, "ship_roles": owner + ", raider", "START_X": gpos.x + co.x, "START_Y": gpos.y + co.y, "START_Z": gpos.z + co.z})
-                task_schedule(universe_capture_watch, {"cap_station": station_id, "cap_clan": owner})
+                prefab_spawn(prefab_fleet_raider, {"race": sides_pick_race(sides_get(UNIVERSE_SIDES, owner)), "fleet_difficulty": DIFFICULTY, "ship_roles": owner + ", raider", "START_X": gpos.x + co.x, "START_Y": gpos.y + co.y, "START_Z": gpos.z + co.z})
+                task_schedule(universe_capture_watch, {"cap_station": station_id, "cap_side": owner})
             else:
                 await task_schedule(docking_standard_player_station)
-                # A captured foe-clan station: the clan mounts a re-assault to
+                # A captured foe-side station: the side mounts a re-assault to
                 # retake it. Defend (clear the fleet) to keep it, or it reverts.
                 if captured and owner is not None and universe_hostile_to_players(owner):
                     random.seed(key + 9)
                     rpos = Vec3.rand_in_sphere(15000, 25000, False, True)
-                    prefab_spawn(prefab_fleet_raider, {"race": clan_pick_race(clan_get(UNIVERSE_CLANS, owner)), "fleet_difficulty": DIFFICULTY, "ship_roles": owner + ", raider", "START_X": rpos.x + co.x, "START_Y": rpos.y + co.y, "START_Z": rpos.z + co.z})
-                    task_schedule(universe_recapture_watch, {"cap_station": station_id, "cap_clan": owner})
+                    prefab_spawn(prefab_fleet_raider, {"race": sides_pick_race(sides_get(UNIVERSE_SIDES, owner)), "fleet_difficulty": DIFFICULTY, "ship_roles": owner + ", raider", "START_X": rpos.x + co.x, "START_Y": rpos.y + co.y, "START_Z": rpos.z + co.z})
+                    task_schedule(universe_recapture_watch, {"cap_station": station_id, "cap_side": owner})
     elif kind == "enemy":
         # Skip enemies in a sector the players have already cleared (persisted).
         if not universe_system_flag(universe_systems, ei, ej, "enemy_cleared"):
             random.seed(key + 3)
-            enemy_clan = clan_get(UNIVERSE_CLANS, owner)
+            enemy_side = sides_get(UNIVERSE_SIDES, owner)
             count = 1 + int(DIFFICULTY / 3)
             near = 20_000
             far = 40_000
@@ -1136,14 +1136,14 @@ default shared WAYPOINTS_ENABLED = False
                 # Spawn at the far edge so arrival isn't an immediate swarm.
                 near = 42_000
                 far = 49_000
-            # The owning foe clan's fleets fly the clan's side (still tagged
+            # The owning foe side's fleets fly the side's side (still tagged
             # "raider" so the clear-check and existing queries keep working).
             ship_roles = "raider"
             if owner is not None:
                 ship_roles = owner + ", raider"
             for n in range(count):
                 pos = Vec3.rand_in_sphere(near, far, False, True)
-                prefab_spawn(prefab_fleet_raider, {"race": clan_pick_race(enemy_clan), "fleet_difficulty": DIFFICULTY, "ship_roles": ship_roles, "START_X": pos.x + co.x, "START_Y": pos.y + co.y, "START_Z": pos.z + co.z})
+                prefab_spawn(prefab_fleet_raider, {"race": sides_pick_race(enemy_side), "fleet_difficulty": DIFFICULTY, "ship_roles": ship_roles, "START_X": pos.x + co.x, "START_Y": pos.y + co.y, "START_Z": pos.z + co.z})
             task_schedule(universe_watch_enemy_cleared, {"ei": ei, "ej": ej})
     elif kind == "anomaly":
         random.seed(key + 4)
@@ -1169,10 +1169,10 @@ default shared WAYPOINTS_ENABLED = False
 
     # Richer systems: a keyed POI deck layered on the template core above
     # (universe_systems.py). Deterministic per system; loot/derelicts feed
-    # on_collect/on_scan quests, secondary outposts add clan-work givers, and foe
+    # on_collect/on_scan quests, secondary outposts add side-work givers, and foe
     # territory seeds mine fields. Decided here in Python, spawned here in MAST.
     owner_foe = owner is not None and universe_hostile_to_players(owner)
-    owner_arch = clan_archetype(UNIVERSE_CLANS, owner)
+    owner_arch = sides_character(UNIVERSE_SIDES, owner)
     for poi in universe_system_deck(key, kind, owner, owner_arch, owner_foe, DIFFICULTY, ei, ej):
         match poi.type:
             case "loot":
@@ -1180,7 +1180,7 @@ default shared WAYPOINTS_ENABLED = False
             case "derelict":
                 terrain_spawn(poi.x + co.x, poi.y + co.y, poi.z + co.z, "Derelict", "wreck, universe_derelict", "wreck", "behav_wreck")
             case "outpost":
-                npc_spawn(poi.x + co.x, poi.y + co.y, poi.z + co.z, clan_name(UNIVERSE_CLANS, poi.side) + " Outpost", poi.side + ", station, outpost", poi.art, "behav_station")
+                npc_spawn(poi.x + co.x, poi.y + co.y, poi.z + co.z, sides_name(UNIVERSE_SIDES, poi.side) + " Outpost", poi.side + ", station, outpost", poi.art, "behav_station")
             case "mines":
                 for _m in range(poi.count):
                     moff = Vec3.rand_in_sphere(600, 2500, False, True)
@@ -1270,7 +1270,7 @@ default shared WAYPOINTS_ENABLED = False
     dstr_cell = object_cell(DAMAGE_SELECTED_ID)
     universe_systems = universe_set_system_flag(universe_systems, dstr_cell[0], dstr_cell[1], "station_destroyed")
     universe_save(universe_seed, dstr_cell[0], dstr_cell[1], universe_systems)
-    # The rescue raid: bringing down a captor clan's station frees every
+    # The rescue raid: bringing down a captor side's station frees every
     # Admiralty officer it holds (the other way out of a ransom).
     for _freed_key in officers_captured_by(get_side(DAMAGE_SELECTED_ID)):
         officer_release(universe_primary_side(), _freed_key)
@@ -1289,7 +1289,7 @@ default shared WAYPOINTS_ENABLED = False
     ->END if not universe_cell_live(ei, ej)
     # Raiders confined to THIS cell (objects_in_cell) - a bare role("raider") spans
     # every live combat system, so two of them would keep each other from clearing.
-    # Diplomacy-scoped: a clan you ceasefired (NEUTRAL, still raider-tagged) no longer
+    # Diplomacy-scoped: a side you ceasefired (NEUTRAL, still raider-tagged) no longer
     # counts, so the sector can register cleared after a negotiated peace.
     if len(objects_in_cell(to_object_list(universe_player_hostiles_scoped()), ei, ej)) == 0:
         universe_systems = universe_set_system_flag(universe_systems, ei, ej, "enemy_cleared")

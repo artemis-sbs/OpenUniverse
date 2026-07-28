@@ -11,7 +11,7 @@ types). Every admiral call-site left in core files sits behind admiralty_active(
 admiral_present(), so a core-only load never evaluates a missing admiral symbol.
 
 Shared-namespace note (like the other universe_*.py files): universe_section comes
-from universe_clans.py; no relative sibling imports.
+from universe_sides.py; no relative sibling imports.
 """
 
 # Mission-shape presets (the `Mode` dial). Each preset provides DEFAULTS for a few

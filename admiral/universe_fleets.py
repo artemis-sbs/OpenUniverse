@@ -23,7 +23,7 @@ Captains are not immortal (slice 4): a destroyed fleet puts its officer MIA
 in an escape pod - a rescue objective the bridge crews fly before the beacon
 lapses (officer_mia_tick; fates persist via adm_officers).
 
-Shared-namespace notes: universe_section from universe_clans.py; admiralty_*
+Shared-namespace notes: universe_section from universe_sides.py; admiralty_*
 pool/tuning from universe_worldlets.py.
 """
 import math
@@ -76,7 +76,7 @@ def _evt(officer_key, text):
 # --- Fleet chatter (## Fleet Chatter) --------------------------------------------
 # Fleet event lines are authorable: order acks, gas/salvage/no-target blips, the
 # loss / capture / rescue lines. Each event key owns a pool; fleet_line() picks
-# one at random and fills its fields ({ore}/{gas}/{rescuer}/{officer}/{clan}).
+# one at random and fills its fields ({ore}/{gas}/{rescuer}/{officer}/{side}).
 # A universe overrides any pool via a `## Fleet Chatter` section (### <key> with
 # the candidate lines as its body); zero authoring -> these defaults stand.
 _FLEET_LINES_DEFAULT = {
@@ -102,8 +102,8 @@ _FLEET_LINES_DEFAULT = {
                      "This veil is death. We're holding until you clear us a lane."],
     "rescue":       ["Aboard and breathing, thanks to the {rescuer}. Put me back to work, Admiral.",
                      "The {rescuer} pulled me out of the black. I owe them one."],
-    "captured":     ["{officer}'s pod went silent - then a {clan} claim signal. {officer} is their"
-                     " prisoner: pay the ransom at a {clan} station, or take one down."],
+    "captured":     ["{officer}'s pod went silent - then a {side} claim signal. {officer} is their"
+                     " prisoner: pay the ransom at a {side} station, or take one down."],
     "lost":         ["{officer}'s beacon has gone dark. {officer} is not coming home."],
 }
 _FLEET_LINES = {k: list(v) for k, v in _FLEET_LINES_DEFAULT.items()}
@@ -131,12 +131,12 @@ def fleet_chatter_configure(doc):
 
 def fleet_line(key, **fields):
     """A line for an event key: a random candidate from its pool, formatted with
-    the given fields (ore/gas/rescuer/officer/clan; any unset -> blank). Falls
+    the given fields (ore/gas/rescuer/officer/side; any unset -> blank). Falls
     back to the raw line if it references an unknown field, and to the key if a
     pool is empty."""
     pool = _FLEET_LINES.get(key) or [key]
     line = random.choice(pool)
-    ctx = {"ore": "", "gas": "", "rescuer": "", "officer": "", "clan": ""}
+    ctx = {"ore": "", "gas": "", "rescuer": "", "officer": "", "side": ""}
     ctx.update({k: str(v) for k, v in fields.items()})
     try:
         return line.format(**ctx)
@@ -304,10 +304,10 @@ def officer_bonus(key, kind):
 # that becomes a rescue objective the bridge crews can fly (decision 13.3 -
 # Admiral drama becomes bridge content). Reach the pod inside the MIA timer
 # and the officer returns to the roster. A lapsed beacon is claimed by a
-# hostile foe clan when one exists (decision 14.2 - a captured captain is a
+# hostile foe side when one exists (decision 14.2 - a captured captain is a
 # better story than a dead one): ransom them at the captor's stations
-# (priced by standing - universe_reputation.clan_ransom_cost) or break them
-# out by destroying/capturing a captor-clan station. No foe clans -> lost.
+# (priced by standing - universe_reputation.side_ransom_cost) or break them
+# out by destroying/capturing a captor-side station. No foe sides -> lost.
 MIA_RESCUE_RANGE = 1500.0
 
 
@@ -317,16 +317,16 @@ def officer_status(key):
 
 
 def officer_captor(key):
-    """The clan holding this officer prisoner, or None."""
+    """The side holding this officer prisoner, or None."""
     st = _OFFICER_STATE.get(key)
     return st.get("captor") if isinstance(st, dict) else None
 
 
-def officers_captured_by(clan_key):
-    """Officer keys held prisoner by this clan (the ransom-comms list)."""
+def officers_captured_by(side_key):
+    """Officer keys held prisoner by this side (the ransom-comms list)."""
     return [k for k, st in _OFFICER_STATE.items()
             if isinstance(st, dict) and st.get("status") == "captured"
-            and st.get("captor") == clan_key]
+            and st.get("captor") == side_key]
 
 
 def officer_release(side, key):
@@ -341,14 +341,14 @@ def officer_release(side, key):
     _officers_sync(side)
 
 
-def _pick_captor(clans, side):
-    """The clan that claims a lapsed pod: a currently hostile foe clan, or
-    None (deep space - the officer is simply lost). _clan_is_foe is the
+def _pick_captor(sides, side):
+    """The side that claims a lapsed pod: a currently hostile foe side, or
+    None (deep space - the officer is simply lost). _side_is_foe is the
     skirmish module's ceasefire-aware check (shared namespace)."""
-    if not clans:
+    if not sides:
         return None
     try:
-        foes = [c.get("key") for c in clans if _clan_is_foe(clans, c.get("key"), side)]
+        foes = [c.get("key") for c in sides if _side_is_foe(sides, c.get("key"), side)]
     except NameError:
         foes = []
     return random.choice(foes) if foes else None
@@ -402,10 +402,10 @@ def _officer_mia_begin(side, key, x, z):
         co.data_set.set("local_scale_" + ax + "_coeff", 0.35)
 
 
-def officer_mia_tick(side, dt_seconds, clans=None):
+def officer_mia_tick(side, dt_seconds, sides=None):
     """One rescue step for every MIA officer. A player ship within reach of
-    the pod recovers them; a lapsed beacon is claimed by a hostile foe clan
-    (captured - ransom or break them out) or, with no foe clans, lost.
+    the pod recovers them; a lapsed beacon is claimed by a hostile foe side
+    (captured - ransom or break them out) or, with no foe sides, lost.
     Returns a list of events - officer-keyed lines speak as the officer,
     officer=None lines are Admiralty operations traffic."""
     evts = []
@@ -429,13 +429,13 @@ def officer_mia_tick(side, dt_seconds, clans=None):
                 delete_object(pod.id)
             o = _OFFICERS.get(key)
             oname = str(o.get("name")) if o is not None else "An officer"
-            captor = _pick_captor(clans, side)
+            captor = _pick_captor(sides, side)
             if captor is not None:
                 st["status"] = "captured"
                 st["captor"] = captor
                 _officers_sync(side)
-                cname = str(clan_name(clans, captor) or captor)
-                evts.append(_evt(None, fleet_line("captured", officer=oname, clan=cname)))
+                cname = str(sides_name(sides, captor) or captor)
+                evts.append(_evt(None, fleet_line("captured", officer=oname, side=cname)))
             else:
                 st["status"] = "lost"
                 _officers_sync(side)
@@ -586,7 +586,7 @@ def fleet_try_form(side, officer_key, yard_id=None):
     if o_status == "mia":
         return o.get("name") + " is missing in action - the pod beacon is still live."
     if o_status == "captured":
-        return o.get("name") + " is held prisoner - ransom them at the captor clan's stations."
+        return o.get("name") + " is held prisoner - ransom them at the captor side's stations."
     if o_status == "lost":
         return o.get("name") + " was lost in action."
     if officer_fleet(officer_key) is not None:
@@ -782,9 +782,9 @@ def fleet_tick(fleet_key, dt_seconds, veiled=False):
     if order != "hold":
         _officer_add_service(side, okey, dt_seconds)
     engage = 6000.0 * officer_bonus(okey, "engage")
-    # The "raider" role is ceasefire-BLIND: a clan you negotiated to NEUTRAL keeps
+    # The "raider" role is ceasefire-BLIND: a side you negotiated to NEUTRAL keeps
     # its raider tag. Intersect with the live enemy set so player fleets stop firing
-    # on a ceasefired clan (mirrors the diplomacy-aware fleet brains in LM). role()
+    # on a ceasefired side (mirrors the diplomacy-aware fleet brains in LM). role()
     # scopes to actual combat SHIPS (keeps non-positional clients/stations out of the
     # distance check); side_enemy_members_set is the allegiance test.
     hostiles = role("raider") & side_enemy_members_set(side)

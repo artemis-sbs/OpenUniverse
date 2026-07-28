@@ -291,9 +291,9 @@ check("scout_signal: admiral gated OFF despite worldlet types", admiralty_active
 check("scout_signal: not PvP (co-op/solo)", universe_mode_is_pvp() is False)
 check("scout_signal has a Goals (win) section", universe_section(_sig_doc, "goals") is not None)
 check("scout_signal has a Narrative section", universe_section(_sig_doc, "narrative") is not None)
-# No ## Clans chapter - the load path must handle an empty clan list, not crash.
-_sig_clans = NS["universe_clans_from_doc"](_sig_doc)
-check("scout_signal: clans parse to a list (0 clans ok)", isinstance(_sig_clans, list))
+# No ## Sides chapter - the load path must handle an empty side list, not crash.
+_sig_sides = NS["universe_sides_from_doc"](_sig_doc)
+check("scout_signal: sides parse to a list (0 sides ok)", isinstance(_sig_sides, list))
 # default.amd: Mode migrated to ## Scenario; economy dials stay in ## Admiralty.
 with open(os.path.join(OU, "default.amd"), "r", encoding="utf-8") as f:
     _def_adm = universe_admiralty_cfg(universe_doc(f.read()))

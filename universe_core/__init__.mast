@@ -9,11 +9,11 @@
 # later files call the earlier helpers by bare name).
 import universe_helpers.py
 import universe_mode.py
+import universe_doc.py
 import universe_sides.py
 import universe_amd.py
-import universe_clans.py
 import universe_reputation.py
-import universe_clan_quests.py
+import universe_side_quests.py
 import universe_dialogue.py
 import universe_captains.py
 import universe_lifeforms.py

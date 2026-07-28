@@ -38,7 +38,7 @@ the Reach.
 
 - **Center / Radius** - a square patch of map: `Center: 5, -4` with
   `Radius: 3` covers everything within 3 cells of that system. Centering a
-  region on a clan's home turns their neighborhood into their territory.
+  region on a side's home turns their neighborhood into their territory.
 - **Skybox / Music / Color** - arrival mood. The sky and music change when
   the crew jumps in; the color faintly washes those cells on the map.
 - **The danger lines** (`Enemy mix`, `Station mix`, `Mine chance`...) - these
@@ -77,7 +77,7 @@ The Combine's great beacon at the heart of the home lanes - half port,
 half promise.
 ```
 
-`Kind:` is `station` or `derelict`; a station can name a `Side:` (a clan key)
+`Kind:` is `station` or `derelict`; a station can name a `Side:` (a side key)
 and an `Art:` (its model). `At:` pins it to a system.
 
 **Next: [Captains and the cast](people.md)** - give the galaxy faces.

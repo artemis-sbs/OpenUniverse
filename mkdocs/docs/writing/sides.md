@@ -1,13 +1,13 @@
-# Clans - who lives here
+# Sides - who lives here
 
-Clans are your factions - the recurring characters of the galaxy. Each one is
+Sides are your factions - the recurring characters of the galaxy. Each one is
 a character sheet: what they look like on the map, where they live, what they
 value, and what kind of people they are.
 
-Add a `## Clans` chapter with two entries:
+Add a `## Sides` chapter with two entries:
 
 ```
-## [Clans](clans)
+## [Sides](sides)
 
 ### [The Lantern Combine](lantern)
 ---
@@ -36,20 +36,20 @@ respect exactly one thing: a captain more dangerous than they are.
 
 ## Reading the fact sheet as a writer
 
-- **Color** - the clan's color on the galaxy map. Any web color like
+- **Color** - the side's color on the galaxy map. Any web color like
   `#cc2244`.
-- **Archetype** - the clan's genre role, one word: `military`, `trader`,
+- **Archetype** - the side's genre role, one word: `military`, `trader`,
   `settler`, `mercenary`, `pirate`, or `cult`. This flavors their chatter,
   their stations, and their fleets.
 - **Disposition** - `neutral` (will talk) or `foe` (shoots first). A `foe`
-  clan can still be won over in play - through reputation, ceasefires, even
+  side can still be won over in play - through reputation, ceasefires, even
   alliance. You are writing their opening attitude, not their fate.
 - **Home** - their home system as map coordinates, `column, row`. The galaxy
   is a grid of systems centered on `0, 0`, where the players start; a home at
   `5, -4` is five columns and four rows away in the other direction. Give
-  clans some distance from each other (and from `0, 0`) so their territories
+  sides some distance from each other (and from `0, 0`) so their territories
   read on the map.
-- **Values** - the clan's moral leanings, as traits with weights. These are
+- **Values** - the side's moral leanings, as traits with weights. These are
   the seven built-in trait pairs a captain is measured on:
 
     | | |
@@ -59,8 +59,8 @@ respect exactly one thing: a captain more dangerous than they are.
     | `kind` / `cruel` | `resourceful` / `by-the-book` |
     | `intellectual` / `foolish` | |
 
-    Pick two or three poles that define the clan and weight them (they need
-    not add to 100). A clan warms to captains who act like it - the Veil
+    Pick two or three poles that define the side and weight them (they need
+    not add to 100). A side warms to captains who act like it - the Veil
     respects `fearsome` deeds, the Combine respects `honest` ones. This one
     line is the engine of the whole reputation game, and it is pure
     characterization.
@@ -70,7 +70,7 @@ respect exactly one thing: a captain more dangerous than they are.
   `Kralien`, `Torgoth`, `Arvonian`, `Ximni`. Skip it for a random mix.
 
 !!! success "In play"
-    Your clans now hold home systems, their colors mark the map, their fleets
+    Your sides now hold home systems, their colors mark the map, their fleets
     fly their colors, and every captain has a personal standing with each of
     them that moves with how the captain behaves.
 

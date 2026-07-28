@@ -26,7 +26,7 @@ structural switches**, not four codebases.
 OU already separates **mechanism from content**:
 
 - **Mechanism** = the `universe/` addon (`*.py` + `*.mast`).
-- **Content** = the `.amd` (clans, jobs, story, map, worldlets, tuning).
+- **Content** = the `.amd` (sides, jobs, story, map, worldlets, tuning).
 
 A mission is meant to be *"a new `.amd` + a thin `story.mast` that lists the
 addon."* The `Economy pace` preset is the template for how *all* variation should
@@ -77,7 +77,7 @@ active, so no worldlets spawn without it), so an entire set of files is `admiral
 | Belongs to | Files |
 |---|---|
 | **`admiral`** | `universe_worldlets.py` (economy + worldlet spawn), `universe_fleets.py`, `universe_skirmish.py`, `universe_fabricator.py`, `universe_research.py`, `admiral.mast` |
-| **`universe_core`** | `universe.mast`, `universe_helpers.py`, `universe_sides.py`, `universe_clans.py`, `universe_regions.py`, `universe_systems.py`, `universe_landmarks.py`, `universe_dialogue.py`, captains/passengers/quests-glue |
+| **`universe_core`** | `universe.mast`, `universe_helpers.py`, `universe_sides.py`, `universe_sides.py`, `universe_regions.py`, `universe_systems.py`, `universe_landmarks.py`, `universe_dialogue.py`, captains/passengers/quests-glue |
 | **parser (core, knows admiral vocab)** | `universe_amd.py` |
 
 **The addon boundary = these cross-references, all already gated by
@@ -171,7 +171,7 @@ multiplayer/PvP shapes need an in-engine playtest.
   loaded, and **`admiral_present()` detects `admiralty_configure` in the shared namespace
   — order-independent**, so alphabetical local-folder discovery (`admiral` before
   `universe_core`) is harmless. **The audit was re-run — the 2026-07-04 "six files" list
-  was stale** (galaxy-theater/warstate/goods/lifeforms/clan-quests postdated it); the real
+  was stale** (galaxy-theater/warstate/goods/lifeforms/side-quests postdated it); the real
   split is 17 core / 9 admiral. Two enabling changes landed with it: (1) a **mission-
   relative `.amd` loader** (`universe_read_content`) so a consumer supplies its OWN
   universe content; (2) an **sbs_utils core fix** — packaged-mastlib `.py` now share a

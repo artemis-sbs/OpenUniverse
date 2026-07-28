@@ -13,7 +13,7 @@ inventory - the same home as the shared `credits` pool. Extraction platforms
 tick driven from admiral.mast.
 
 Shared-namespace notes (like the other universe_*.py files): universe_section
-comes from universe_clans.py; no relative sibling imports.
+comes from universe_sides.py; no relative sibling imports.
 """
 import math
 from sbs_utils.mast.mast_node import MastDataObject
@@ -760,7 +760,7 @@ def admiralty_side_controls_cell(side, i, j):
 
 def admiralty_cell_has_hostiles(side, i, j):
     """True if an armed foe HOSTILE TO `side` is contesting cell (i, j). Uses the
-    raider foe-fleet tag intersected with the side's LIVE enemy set, so a clan you
+    raider foe-fleet tag intersected with the side's LIVE enemy set, so a side you
     have ceasefired (now NEUTRAL, but still raider-tagged) no longer blocks a claim.
     `raider` scopes to actual combat fleets; side_enemy_members_set is the allegiance
     test. (PvP: a RIVAL admiral's adm_fleet doesn't count yet - a later refinement.)"""

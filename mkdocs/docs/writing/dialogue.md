@@ -48,7 +48,7 @@ Speaker: veil
 
 ## How to read a scene
 
-- **Speaker** - whose face and name the message wears: a clan key, a captain
+- **Speaker** - whose face and name the message wears: a side key, a captain
   key, or a cast key. `When: comms` marks the scene that opens when a player
   hails that speaker's station.
 - **`%` lines are alternate takes.** The game performs *one*, at random.

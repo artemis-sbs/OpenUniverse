@@ -82,7 +82,7 @@ default shared ADM_LAST_MSG = ""
     # MIA captains (slice 4): pod rescues, captures, lapsed beacons - per side.
     # Rescued officers speak for themselves; captures/losses are Admiralty traffic.
     for _side in universe_player_sides():
-        for mia_evt in officer_mia_tick(_side, 3, UNIVERSE_CLANS):
+        for mia_evt in officer_mia_tick(_side, 3, UNIVERSE_SIDES):
             if mia_evt.officer is None:
                 universe_info_card(mia_evt.text, "Admiralty Operations", "#f66")
             else:
@@ -103,11 +103,11 @@ default shared ADM_LAST_MSG = ""
     # ever spawn in a live cell, so no raiders appear in a despawned system.
     for _side in universe_player_sides():
         for _skc in universe_live_cells():
-            raid = skirmish_tick(_side, UNIVERSE_CLANS, universe_seed, _skc[0], _skc[1], DANGER, 10)
+            raid = skirmish_tick(_side, UNIVERSE_SIDES, universe_seed, _skc[0], _skc[1], DANGER, 10)
             if raid is not None:
-                raid_clan = clan_get(UNIVERSE_CLANS, raid.clan)
-                prefab_spawn(prefab_fleet_raider, {"race": clan_pick_race(raid_clan), "fleet_difficulty": raid.difficulty, "ship_roles": raid.clan + ", raider, skirmish", "START_X": raid.x, "START_Y": raid.y, "START_Z": raid.z})
-                universe_info_card("ALERT - " + clan_name(UNIVERSE_CLANS, raid.clan) + " skirmish raid inbound on " + raid.target + ".", "Admiralty Operations", "#f66")
+                raid_side = sides_get(UNIVERSE_SIDES, raid.side)
+                prefab_spawn(prefab_fleet_raider, {"race": sides_pick_race(raid_side), "fleet_difficulty": raid.difficulty, "ship_roles": raid.side + ", raider, skirmish", "START_X": raid.x, "START_Y": raid.y, "START_Z": raid.z})
+                universe_info_card("ALERT - " + sides_name(UNIVERSE_SIDES, raid.side) + " skirmish raid inbound on " + raid.target + ".", "Admiralty Operations", "#f66")
     jump skirmish_loop
 
 
@@ -412,7 +412,7 @@ default shared ADM_LAST_MSG = ""
         # unit icons in place. The board centre is remembered on the galaxy cam, so the map
         # is the same objects next activation.
         if get_inventory_value(agv_gcam, "board_ci", 999999) != agv_cell[0] or get_inventory_value(agv_gcam, "board_cj", 999999) != agv_cell[1]:
-            galaxy_theater_build(agv_gcam, universe_seed, DANGER, UNIVERSE_CLANS, universe_systems, MAP_REVEAL, agv_cell[0], agv_cell[1], agv_side)
+            galaxy_theater_build(agv_gcam, universe_seed, DANGER, UNIVERSE_SIDES, universe_systems, MAP_REVEAL, agv_cell[0], agv_cell[1], agv_side)
             set_inventory_value(agv_gcam, "board_ci", agv_cell[0])
             set_inventory_value(agv_gcam, "board_cj", agv_cell[1])
             galaxy_theater_scan_for(agv_gcam)

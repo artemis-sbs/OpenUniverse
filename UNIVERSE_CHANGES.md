@@ -1,7 +1,7 @@
 # Open Universe - Expansion Plan
 
 A plan to grow the Open Universe from "procedural sectors with cargo/mystery
-quests" into a living galaxy of **clans, diplomacy, reputation, capturable
+quests" into a living galaxy of **sides, diplomacy, reputation, capturable
 stations, and author-written narratives**. This document organizes the raw idea
 list into epics so we can agree on scope and order **before any code changes**.
 
@@ -15,8 +15,8 @@ resolve first. Nothing here is built yet.
 
 These set the plan's direction; details still being refined.
 
-1. **Lead epic = Foundations (I UNIVERSE AMD + C clans).** Build the authoring
-   backbone and clans-as-sides first; the interaction epics (D/F/G) build on it.
+1. **Lead epic = Foundations (I UNIVERSE AMD + C sides).** Build the authoring
+   backbone and sides-as-sides first; the interaction epics (D/F/G) build on it.
 2. **Distributed play = someday.** Keep the **single shared live system** model
    for now; H stays a future spike. Size streaming (A2) and system richness (B)
    for one live system.
@@ -27,18 +27,18 @@ These set the plan's direction; details still being refined.
 
 ### Decided (round 2 - Phase 1 shape)
 
-5. **Split AMD:** separate **clans.amd** (factions/data) and **narrative.amd**
-   (lore/arcs); a universe = one clans file + one narrative file.
-6. **6 clans at launch** (the Epic C starter table), mixed foe/neutral.
-7. **Clan->system = home systems + archetype foes:** clans have **named home
+5. **Split AMD:** separate **sides.amd** (factions/data) and **narrative.amd**
+   (lore/arcs); a universe = one sides file + one narrative file.
+6. **6 sides at launch** (the Epic C starter table), mixed foe/neutral.
+7. **Side->system = home systems + archetype foes:** sides have **named home
    systems pinned in AMD** (stable landmarks) AND appear in keyed foe systems
    chosen by archetype/danger.
-8. **Start-screen "Universe" dropdown:** pick a universe (clans + narrative) at
+8. **Start-screen "Universe" dropdown:** pick a universe (sides + narrative) at
    game start, like the map/seed options; selecting one swaps the whole roster.
 
 ### Decided (round 3 - reputation & diplomacy)
 
-9. **6-clan default split (proposal): 2 foe + 4 neutral** (foes = Ashfang Raiders,
+9. **6-side default split (proposal): 2 foe + 4 neutral** (foes = Ashfang Raiders,
    Hollow Choir), with home systems on the existing POI landmarks. See Epic C.
 10. **Comms reputation = gates + optional weight** (`%{axis>N}` eligibility, plus
     optional `w:axis` bias among eligible lines).
@@ -49,16 +49,16 @@ These set the plan's direction; details still being refined.
 
 ### Decided (round 4 - capture, systems, standby)
 
-13. **Capture hold = presence timer:** clear clan ships within radius R for N
+13. **Capture hold = presence timer:** clear side ships within radius R for N
     seconds (no scripted waves); shields stay down while contested.
-14. **Re-capture = yes (defendable frontier):** clans can assault captured docks
+14. **Re-capture = yes (defendable frontier):** sides can assault captured docks
     back; ownership flips both ways and persists.
-15. **System composition = hybrid:** kind/clan sets a template; a keyed POI deck
+15. **System composition = hybrid:** kind/side sets a template; a keyed POI deck
     fills extra detail; named homes (AMD) can override with hand-placed POIs.
 16. **Standby = POI-activation:** POIs stay in standby until a player nears.
     (Spike: confirm pausing AI/stations - not just terrain - resumes cleanly.)
 
-### Decided (round 5 - narrative, chatter, clan quests)
+### Decided (round 5 - narrative, chatter, side quests)
 
 17. **Narrative = reveal-chain arcs:** story arcs are SHARED multi-step quest
     chains authored in `narrative.amd`, reusing `reveal` + the trigger vocab.
@@ -66,7 +66,7 @@ These set the plan's direction; details still being refined.
     periodic/idle (cooldown), and on reputation/diplomacy change.
 19. **Discovery = flavor only:** chatter never auto-reveals/marks the map; the map
     still reveals by visiting (fog of war preserved).
-20. **Clan quests = archetype pools + reputation weighting:** clans offer quests
+20. **Side quests = archetype pools + reputation weighting:** sides offer quests
     from an archetype pool, weighted by the captain's reputation (the `%` idiom),
     not hard gates.
 
@@ -76,10 +76,10 @@ These set the plan's direction; details still being refined.
 
 Concrete target for the first build (details in the open list still apply):
 
-- **Files:** `clans.amd` + `narrative.amd` (loaded like the existing AMD docs via
+- **Files:** `sides.amd` + `narrative.amd` (loaded like the existing AMD docs via
   `document_get_amd_file` + data sections). A start-screen **Universe** dropdown
   selects which pair to load.
-- **Clan record (per heading in clans.amd):** name, color, archetype, default
+- **Side record (per heading in sides.amd):** name, color, archetype, default
   diplomacy (foe/neutral), **home system(s)** `[i,j]`, reputation leanings (the 7
   axes), comms flavor. Example:
   ```
@@ -95,10 +95,10 @@ Concrete target for the first build (details in the open list still apply):
   ```
   (Data fence is a line of only dashes - `---` - not `--- yaml ---`.)
 - **System ownership:** named home systems (from AMD) are pinned landmarks on the
-  galaxy map; other "foe"/clan systems pick an owning clan **deterministically
-  from the seed**, filtered by the clan's archetype/diplomacy - so what the map
+  galaxy map; other "foe"/side systems pick an owning side **deterministically
+  from the seed**, filtered by the side's archetype/diplomacy - so what the map
   shows still matches what spawns.
-- **Clans are sides:** each authored clan becomes a side (`prefab_side_generic`)
+- **Sides are sides:** each authored side becomes a side (`prefab_side_generic`)
   with its color/relations, reusing all existing side/role machinery.
 - **Rename pass:** sector -> system happens here (low-risk cleanup alongside).
 
@@ -121,17 +121,17 @@ Concrete target for the first build (details in the open list still apply):
 | 2 Standby list for off-screen content | A. Tuning & Streaming / H. Scaling |
 | 3 Players in different parts of the universe | H. Distributed Play & Scaling |
 | 4 Bigger systems, multiple stations/POIs | B. Richer Systems |
-| 5 Foe groups/clans in foe systems | C. Clans & Factions |
-| 6 Clans as sides with diplomatic relations | C. Clans / D. Diplomacy |
-| 7 Foe/clan systems have space docks | B. Richer Systems / E. Capture |
+| 5 Foe groups/sides in foe systems | C. Sides & Factions |
+| 6 Sides as sides with diplomatic relations | C. Sides / D. Diplomacy |
+| 7 Foe/side systems have space docks | B. Richer Systems / E. Capture |
 | 8 Space-dock capture behavior (drop shields, hold, morph) | E. Capture Mechanic |
-| 9 Neutral clans | C. Clans & Factions |
+| 9 Neutral sides | C. Sides & Factions |
 | 10 Comms chatter to aid discovery | G. Discovery & Ambient Comms |
 | 11 Change/negotiate diplomatic relations | D. Diplomacy & Negotiation |
 | 12 Reputation system (distinct from diplomacy) | F. Reputation |
 | 13 Reputation spectrums (7 axes) | F. Reputation |
 | 14 Reputation affects comms/rewards/quests + authoring | F. Reputation / G. Comms |
-| 15 Suggest 4-8 clans + author method (AMD) | C. Clans / I. UNIVERSE AMD |
+| 15 Suggest 4-8 sides + author method (AMD) | C. Sides / I. UNIVERSE AMD |
 | 16 UNIVERSE AMD for narratives | I. UNIVERSE AMD |
 | 17 UNIVERSE AMD as a menu option | I. UNIVERSE AMD |
 
@@ -143,7 +143,7 @@ Concrete target for the first build (details in the open list still apply):
    `(universe_seed, i, j)`; only player-made changes are stored. New procedural
    content needs no save migration; only new *stored deltas* do (see the
    versioned save + migration ladder already in place).
-2. **Author-driven.** Clans, narratives, and reputation effects should be
+2. **Author-driven.** Sides, narratives, and reputation effects should be
    describable in data (a **UNIVERSE AMD**), not hard-coded, the way quests and
    items already are.
 3. **Server-authoritative.** All state (diplomacy, reputation, capture, credits)
@@ -189,15 +189,15 @@ bigger epics will lean on.
 ## Epic B - Richer Systems (notes 4, 7)
 
 **Goal:** systems are more than one station + a field - they can hold **multiple
-stations, POIs, and space docks**, with variety by system kind/clan.
+stations, POIs, and space docks**, with variety by system kind/side.
 
 - Multiple stations/POIs per system, deterministically placed from the system
   key (so revisits are stable), with delta-stored changes.
-- Clan/foe systems include **space docks** (the capture targets of Epic E).
-- POI variety: derelicts, anomalies, civilian outposts, clan holdings.
+- Side/foe systems include **space docks** (the capture targets of Epic E).
+- POI variety: derelicts, anomalies, civilian outposts, side holdings.
 
-**Composition (DECIDED: hybrid kind-template + deck).** A system's **kind/clan**
-sets a **template** (e.g. clan-foe = space dock + garrison + field; station = a
+**Composition (DECIDED: hybrid kind-template + deck).** A system's **kind/side**
+sets a **template** (e.g. side-foe = space dock + garrison + field; station = a
 base; home = safe hub), then a weighted **POI deck** fills extra detail, **keyed
 per system** so it's reproducible. Named home systems (Epic I) are pinned via AMD
 and can carry hand-placed POIs that override the template. Reuses the tile-map /
@@ -205,24 +205,24 @@ deck pattern (HereThereBeMonsters/theta_quadrant).
 **[decide]** The template recipes per kind + the deck contents/weights (content
 tuning, settle while authoring).
 
-**Depends on:** A2 (streaming) for object budget; C (clans) for clan holdings.
+**Depends on:** A2 (streaming) for object budget; C (sides) for side holdings.
 
 ---
 
-## Epic C - Clans & Factions (notes 5, 6, 9, 15)
+## Epic C - Sides & Factions (notes 5, 6, 9, 15)
 
-**Goal:** populate the galaxy with **clans** - foe and neutral groups - each a
+**Goal:** populate the galaxy with **sides** - foe and neutral groups - each a
 **side** with its own identity, holdings, and relationships.
 
-- Clans are **sides** (`prefab_side_generic`), so existing side relations,
+- Sides are **sides** (`prefab_side_generic`), so existing side relations,
   colors, and role/query machinery apply (note 6).
-- Mix of **foe** and **neutral** clans (notes 5, 9); diplomacy (Epic D) lets the
+- Mix of **foe** and **neutral** sides (notes 5, 9); diplomacy (Epic D) lets the
   player shift these.
-- **DECIDED: 6 clans at launch**, each with **named home system(s)** pinned in
-  `clans.amd` plus appearance in keyed foe systems by archetype.
-- **Starter clans [spec]** (the agreed 6; foe/neutral split + homes below are a
+- **DECIDED: 6 sides at launch**, each with **named home system(s)** pinned in
+  `sides.amd` plus appearance in keyed foe systems by archetype.
+- **Starter sides [spec]** (the agreed 6; foe/neutral split + homes below are a
   proposal - edit freely. Homes reuse the existing POI landmark coords):
-  | Clan | Archetype | Default | Home | Leans (reputation axes) |
+  | Side | Archetype | Default | Home | Leans (reputation axes) |
   |---|---|---|---|---|
   | Iron Concord | disciplined military | neutral | (6, 4) | By-the-Book, Fearsome, Honest |
   | Verdant Pact | peaceful traders | neutral | (-5, 3) | Peaceful, Generous, Kind |
@@ -234,22 +234,22 @@ tuning, settle while authoring).
     two clear threats; diplomacy/reputation can shift any of them.
   - **[decide]** Confirm the split + homes, or adjust (e.g. make Iron Concord a
     foe for more early pressure).
-- **Clan quest pools (DONE).** Each clan has a `quest_pool` of job types by
-  **archetype** (clans.amd: Ashfang raid/smuggle/bounty; Verdant
+- **Side quest pools (DONE).** Each side has a `quest_pool` of job types by
+  **archetype** (sides.amd: Ashfang raid/smuggle/bounty; Verdant
   supply/escort/survey). Generic jobs are authored once per type in
-  **clan_quests.amd** (key = type; data carries tier + on_* trigger + base
-  reward); any clan offers the jobs in its pool. A clan station's comms surfaces
+  **side_quests.amd** (key = type; data carries tier + on_* trigger + base
+  reward); any side offers the jobs in its pool. A side station's comms surfaces
   them gated + reward-scaled by the captain's **standing**
-  (`universe_reputation.clan_standing`: rep aligned to the clan's leans):
-  tier 1 always, tier 2 at >=20, tier 3 at >=50; reward x1.0..2.0; **foe clans
+  (`universe_reputation.sides_standing`: rep aligned to the side's leans):
+  tier 1 always, tier 2 at >=20, tier 3 at >=50; reward x1.0..2.0; **foe sides
   offer nothing until standing >=20** ("only the dangerous bargain with them").
   Accepting grants the job with the scaled reward + a rep block that earns
-  standing with the offering clan on completion. Files:
-  `universe_clan_quests.py` (offers/grant), `clan_quests.amd`, the
-  `//comms ... station` route + `universe_accept_clan_job` in universe.mast.
-  Authoring stays open: a clan may later carry bespoke quests; generic is the
+  standing with the offering side on completion. Files:
+  `universe_side_quests.py` (offers/grant), `side_quests.amd`, the
+  `//comms ... station` route + `universe_accept_side_job` in universe.mast.
+  Authoring stays open: a side may later carry bespoke quests; generic is the
   baseline.
-- **Authoring:** clans are described in the **UNIVERSE AMD** (Epic I) - name,
+- **Authoring:** sides are described in the **UNIVERSE AMD** (Epic I) - name,
   color, archetype, default diplomacy, home systems, reputation leanings.
 
 **Depends on:** I (UNIVERSE AMD) for authoring; underpins D, E, F, G.
@@ -258,31 +258,31 @@ tuning, settle while authoring).
 
 ## Epic D - Diplomacy & Negotiation (notes 6, 11)
 
-**Goal:** diplomatic relationships between sides/clans are **dynamic** - they can
+**Goal:** diplomatic relationships between sides/sides are **dynamic** - they can
 change in play and be **negotiated**.
 
-**Comms negotiation DONE.** A clan station's comms offers diplomacy shifts gated
+**Comms negotiation DONE.** A side station's comms offers diplomacy shifts gated
 by the captain's standing (`universe_reputation`): **Negotiate Ceasefire**
 (HOSTILE -> NEUTRAL) costs a tribute that scales down with standing
-(`clan_ceasefire_cost`: 600 cr at standing 0, free at >=30) - this breaks the
-catch-22 of needing a truce to earn a foe clan's respect; **Propose Alliance**
+(`side_ceasefire_cost`: 600 cr at standing 0, free at >=30) - this breaks the
+catch-22 of needing a truce to earn a foe side's respect; **Propose Alliance**
 (NEUTRAL -> ALLIED) needs standing >=60. Changes call `side_set_relations` and
 persist via `universe_set_dip` + `universe_save_diplomacy`. Live relation read
 with `side_get_relations`. (`universe.mast` station comms route.) Still open:
-action-driven nudges (note: clan quest completion already warms standing, which
+action-driven nudges (note: side quest completion already warms standing, which
 lowers ceasefire cost) and the per-captain truce overlay below.
 
 - Persist per-pair relations (HOSTILE/NEUTRAL/ALLIED) in the universe save,
-  overriding the clan's authored default.
+  overriding the side's authored default.
 - **Negotiation methods [spec]:**
-  - **Comms-driven:** clan comms offer ceasefire / trade pact / alliance;
+  - **Comms-driven:** side comms offer ceasefire / trade pact / alliance;
     acceptance is gated by reputation (Epic F) + an **offer** (credits/items/
     favors) + difficulty.
-  - **Action-driven:** helping a clan (clearing its enemies, completing its
+  - **Action-driven:** helping a side (clearing its enemies, completing its
     quests) nudges relations warmer; attacking them nudges colder.
   - Each successful negotiation calls `side_set_relations` and saves the delta.
 - **DECIDED: per-captain truce overlay.** Side-wide diplomacy still sets the
-  baseline, but a high enough **per-captain reputation** can override it - a clan
+  baseline, but a high enough **per-captain reputation** can override it - a side
   at war with your side may **hold fire / allow docking** for a captain in good
   standing.
   - **Implementation note (spike RESOLVED):** aggression is decided in the LM AI
@@ -297,47 +297,47 @@ lowers ceasefire cost) and the per-captain truce overlay below.
     target) -> False` in an always-loaded place (e.g. the ai or quests addon, or
     a tiny core helper), which the universe **overrides** with the real
     reputation-based check. Truce rule (v1, tunable): a captain is at truce with a
-    clan when `reputation_standing(captain_ship, clan) >= TRUCE_THRESHOLD`, where
-    standing = sum (or clan-leaned weighting) of the captain's axes with that
-    clan. Wire `is_hostile` into both brains' shoot AND target-selection gates.
+    side when `reputation_standing(captain_ship, side) >= TRUCE_THRESHOLD`, where
+    standing = sum (or side-leaned weighting) of the captain's axes with that
+    side. Wire `is_hostile` into both brains' shoot AND target-selection gates.
 
-**Depends on:** C (clans/sides), F (reputation influences odds), G (comms).
+**Depends on:** C (sides/sides), F (reputation influences odds), G (comms).
 
 ---
 
 ## Epic E - Capture Mechanic: Space Docks (notes 7, 8)
 
-**Goal:** clan **space docks** can be **captured**: drop shields, **hold** the
+**Goal:** side **space docks** can be **captured**: drop shields, **hold** the
 area for a period, then the structure **morphs** to the capturing side.
 
 - **Phased behavior (DECIDED):**
   1. **Assault** - bring the dock's shields down.
-  2. **Hold = presence timer** - keep the area clear of clan ships within radius R
+  2. **Hold = presence timer** - keep the area clear of side ships within radius R
      for N seconds (no scripted reinforcement waves; the system's existing
      defenders are the contest). Shields don't recover while contested.
   3. **Capture** - on hold complete, morph the dock: reassign side + roles to the
      capturing side, switch behavior to friendly (docking/repair/market), persist
      the capture in the system delta.
-- **Re-capture (DECIDED): yes, defendable.** A clan can later assault a captured
+- **Re-capture (DECIDED): yes, defendable.** A side can later assault a captured
   dock back - a dynamic frontier. Ownership flips both ways and persists.
 - Implement as a new **behavior** (like `behav_station`) plus a quest-driver
   objective so capture/loss can grant rewards/reputation and be tracked.
-- **[decide]** Tuning only: hold seconds N, clear-radius R, and how/when a clan
+- **[decide]** Tuning only: hold seconds N, clear-radius R, and how/when a side
   mounts a counter-assault (on revisit? on a timer? difficulty-scaled?).
 
-**Depends on:** B (docks exist in systems), C (clan ownership), and the quest/
+**Depends on:** B (docks exist in systems), C (side ownership), and the quest/
 behavior systems.
 
 ---
 
 ## Epic F - Reputation (notes 12, 13, 14)
 
-**Goal:** a per-captain **reputation** with each clan, **distinct from
+**Goal:** a per-captain **reputation** with each side, **distinct from
 diplomacy** - diplomacy is "are our sides at war?"; reputation is "what do they
 think of you?" (DECIDED: reputation attaches to the **captain/client**, so it
 follows the player across ship changes.)
 
-- **Model [spec]:** for each `(captain/client, clan)`, a vector over **7 axes**,
+- **Model [spec]:** for each `(captain/client, side)`, a vector over **7 axes**,
   each a spectrum scored roughly -100..+100:
   - Liar <-> Honest
   - Cowardly <-> Fearsome
@@ -351,18 +351,18 @@ follows the player across ship changes.)
   universe save. (Persisting by client identity is a small addition to the save -
   today players persist by ship name; we add a captain-keyed reputation map.)
 - **Effects (note 14):** reputation biases **comms outcomes, rewards, and which
-  quests a clan offers**.
+  quests a side offers**.
 - **Reading rep in comms (DECIDED: gates + optional weight).** A line is eligible
   only if its gate passes; among eligible lines an optional weight biases the
   random pick. Extends today's `%` idiom (which already picks randomly):
   ```
-  << [clan]
+  << [side]
      %{honest>40} "Your word is good here. The job's yours."   # gate
      %{kind>0} w:kind "We could use someone decent."           # gate + weight
      %{honest<-40} "We don't deal with liars."
      % "State your business."                                  # fallback
   ```
-  Plus a read helper for `if`/rewards/quest gates, e.g. `rep(clan, "kind") > 30`.
+  Plus a read helper for `if`/rewards/quest gates, e.g. `rep(side, "kind") > 30`.
 - **Changing rep (DECIDED: both).** Declarative rep blocks for the common case
   (auto-applied, like quest `reward`), plus a helper for bespoke logic (like
   quest `label:`):
@@ -372,19 +372,19 @@ follows the player across ship changes.)
   rep: { iron: { honest: +10, fearsome: +5 } }
 
   # imperative (anywhere a route fires):
-  reputation_adjust(clan, "kind", +5)
+  reputation_adjust(side, "kind", +5)
   ```
   - **[decide]** Final field/helper names (`rep` block key, `reputation_adjust`)
     and the exact gate/weight token spelling (`%{axis>N}` / `w:axis`).
 
-**Depends on:** C (clans). **Feeds:** D (negotiation odds), G (comms), quests.
+**Depends on:** C (sides). **Feeds:** D (negotiation odds), G (comms), quests.
 
 ---
 
 ## Epic G - Discovery & Ambient Comms (notes 10, 14)
 
 **Goal:** the galaxy **talks** - ambient comms chatter helps players discover
-POIs, clans, quests, and react to their reputation.
+POIs, sides, quests, and react to their reputation.
 
 - **Triggers (DECIDED: all four):** on **system arrival**, **near a POI**,
   **periodic/idle** (cooldown), and **on reputation/diplomacy change**. Lines are
@@ -399,12 +399,12 @@ POIs, clans, quests, and react to their reputation.
 **Delivery surface (DONE): info panel, NOT the text waterfall.** Chatter used to
 go through `comms_broadcast` (the **text waterfall** - ephemeral, no speaker, no
 history, no interaction). It now uses the **info panel**
-(`gui_info_panel_send_message`) via `universe_chatter_card` (clan voice:
-name+color+optional face/icon) and `universe_info_card` (non-clan ambient:
+(`gui_info_panel_send_message`) via `universe_chatter_card` (side voice:
+name+color+optional face/icon) and `universe_info_card` (non-side ambient:
 sensors/news), modeled on the **HereThereBeMonsters** `here_*_info_message`
-helpers: a message *card* with the clan's name + color, kept in **history**,
+helpers: a message *card* with the side's name + color, kept in **history**,
 auto-dismissed; an optional **button** (future) can suspend for a response. An
-ambient line now reads as a *hail from that clan*, not a log blip. Pure mechanical
+ambient line now reads as a *hail from that side*, not a log blip. Pure mechanical
 status (capture, +credits, job accepted) stays on the waterfall.
 
 **Promoted to sbs_utils (DONE).** The HTBM "incoming comms card" pattern is now a
@@ -461,23 +461,23 @@ riskiest** epic - deferred; revisit with a focused spike before committing.
 ## Epic I - UNIVERSE AMD (notes 15, 16, 17)
 
 **Goal:** a **UNIVERSE AMD** document that authors use to describe a universe -
-its **clans** and its **narrative** - selectable from the menu. This is the
+its **sides** and its **narrative** - selectable from the menu. This is the
 authoring backbone for C/D/F and beyond.
 
-- **Describe clans (note 15):** name, color, archetype, default diplomacy, home
-  systems, reputation leanings, starting comms flavor - one AMD heading per clan
+- **Describe sides (note 15):** name, color, archetype, default diplomacy, home
+  systems, reputation leanings, starting comms flavor - one AMD heading per side
   with a `--- yaml ---` data section (the parser already supports data sections).
 - **Describe narrative (note 16) - DECIDED: reveal-chain arcs.** Story arcs are
   **multi-step quest chains** authored in `narrative.amd` (like the bridge story),
   scoped **SHARED** (game-wide), using `reveal` + the existing trigger vocab to
   span systems. Arcs ARE quests - reuses the whole driver/tab/giver stack.
 - **Menu option (note 17):** pick a UNIVERSE AMD at game start (like map/seed
-  options), so different "universes" (clan rosters + story) are swappable.
+  options), so different "universes" (side rosters + story) are swappable.
 - **[spec]** Reuses the existing AMD pipeline (`document_get_amd_file` +
   data sections + `document_flatten`) and the quest/giver patterns from Q3/Q4.
-- **DECIDED:** **split files** - `clans.amd` + `narrative.amd`; a **start-screen
-  dropdown** picks a universe (a clans+narrative pair). The AMD **pins named home
-  systems**; the deterministic **seed fills the rest** (keyed clan/foe systems by
+- **DECIDED:** **split files** - `sides.amd` + `narrative.amd`; a **start-screen
+  dropdown** picks a universe (a sides+narrative pair). The AMD **pins named home
+  systems**; the deterministic **seed fills the rest** (keyed side/foe systems by
   archetype), so the map still matches what spawns.
 
 **Depends on:** AMD data-section parsing (done). **Underpins:** C, D, F, narrative.
@@ -489,7 +489,7 @@ authoring backbone for C/D/F and beyond.
 jump-to-system, fog-of-war discovery, station markets, a mission-board loop), EVE
 politics (a contestable frontier you can capture/lose, negotiated diplomacy,
 mercenary work), and - most distinctively - **Mount & Blade reputation**, where
-standing is a *character* meter (honest/liar, violent/peaceful, ...) and clans
+standing is a *character* meter (honest/liar, violent/peaceful, ...) and sides
 relate to *you* by how well your conduct matches their leanings. The Star Trek
 bridge/scan/derelict layer is the skin, not the bones. North-star: **"the galaxy
 reacts to who you are,"** not "follow the scripted hero." Authoring should make
@@ -497,46 +497,46 @@ that knob-turnable - a peaceful trade-republic galaxy vs. a brutal pirate warzon
 should be a *content* edit, not a code edit.
 
 **The gap.** A universe's configuration is currently **scattered across four
-places**: `clans.amd` (factions), `universes.mast` (registry wiring),
+places**: `sides.amd` (factions), `universes.mast` (registry wiring),
 **Python** (all the tuning), and the `@map/universe` start-screen metadata
 (runtime options). So *playing* a universe is data-driven, but *authoring a new
 one* is still partly a code task - which cuts against the AMD philosophy used
 everywhere else. Concretely, these are hardcoded / not author-exposed today:
 
 - **Reputation & diplomacy tuning** (in `universe_reputation.py` /
-  `universe_clan_quests.py`): tier thresholds (>=20/>=50), reward-multiplier
+  `universe_side_quests.py`): tier thresholds (>=20/>=50), reward-multiplier
   curve, ceasefire-cost formula, per-job rep deltas. No way to author "the
   pirates forgive quickly but the cult never forgets."
 - **The reputation axes themselves** (`REP_POLES` is a code constant) - can't add
   a "pious/heretical" axis for a religious universe.
 - **The shape of space**: system-kind distribution, POI-deck weights (loot %,
-  derelict %, outpost %, mine %), clan-territory density, galaxy bounds/size,
+  derelict %, outpost %, mine %), side-territory density, galaxy bounds/size,
   encounter cadence / fleet sizes - all in the generator/deck, keyed only off
   Difficulty.
-- **Per-clan bespoke quests** and **hand-placed named systems/POIs** beyond clan
+- **Per-side bespoke quests** and **hand-placed named systems/POIs** beyond side
   homes: "open but not wired."
 - **Narrative**: a file is referenced but not yet a load-bearing content source;
   there is no framework for universe-level **goals / win-lose** (it's a pure
   sandbox, so a *campaign* universe has nothing to hang on).
-- **Per-region flavor**: skybox/music are global, not per-clan or per-kind.
+- **Per-region flavor**: skybox/music are global, not per-side or per-kind.
 - **Dialogue is code-bound.** The *only* author-spoken content in AMD today is a
-  clan's flat `chatter` one-liners; every real conversation (comms menus, taunts,
+  side's flat `chatter` one-liners; every real conversation (comms menus, taunts,
   surrenders, quest hand-offs) is MAST-coded in `comms/*.mast` via
   `<<`/`>>`/`%`/`+`, and quest "speech" is one-off `comms_broadcast` strings. A
   writer can't author a *scene* without scripting.
 
 **The idea (capstone).** Promote the universe itself to a **first-class authored
 document** - a single `universe.amd` (or a much richer registry entry) that
-describes a world holistically, instead of just pointing at a clans file:
+describes a world holistically, instead of just pointing at a sides file:
 
 - **Identity:** name, description, skybox/music theme.
-- **Factions:** inline, or a pointer to `clans.amd`.
-- **Generation knobs:** kind weights, POI-deck weights, clan density, bounds/size,
+- **Factions:** inline, or a pointer to `sides.amd`.
+- **Generation knobs:** kind weights, POI-deck weights, side density, bounds/size,
   encounter cadence.
-- **Reputation rules:** which axes are in play, tier thresholds, per-clan
+- **Reputation rules:** which axes are in play, tier thresholds, per-side
   forgiveness/grudge curves.
 - **Narrative & goals:** optional arc hooks, milestones, win/lose conditions.
-- **Dialogue & voice:** authored comms *scenes* (below), so a clan's personality
+- **Dialogue & voice:** authored comms *scenes* (below), so a side's personality
   is written, not coded.
 
 **Sub-idea: a movie-script dialogue flavor of AMD.** The MAST comms primitives
@@ -559,7 +559,7 @@ Sketch (shape only, to be confirmed):
 ```
 # [Ashfang Hail](scene_ashfang_hail)
 ---
-speaker: ashfang          # resolves face / name / color from the clan
+speaker: ashfang          # resolves face / name / color from the side
 when: //comms
 ---
 % You're a long way from friends, captain.
@@ -574,7 +574,7 @@ when: //comms
 comms; whether to keep it or find a markdown-shaped form is itself a [confirm].)
 
 Wins: writers write (personality becomes content, like leanings already are);
-**reuse via archetype + `{name}`** (one "pirate hail" serves every pirate clan);
+**reuse via archetype + `{name}`** (one "pirate hail" serves every pirate side);
 it rides existing rails (compiles to comms primitives; choices reuse the
 rep/diplomacy/signal hooks; localization- and test-friendly); and it **unifies
 the spoken layer** - chatter, taunts, surrenders, and quest hand-offs become one
@@ -590,10 +590,10 @@ procedural logic - that stays in MAST, and the dialogue AMD compiles down to the
 existing comms primitives. If a request starts adding control flow or computed
 logic to dialogue, steer it back to declarative. (Keep me honest on this.)
 
-Right now the *clans* are authorable but the *universe* is not; making the
+Right now the *sides* are authorable but the *universe* is not; making the
 universe a single authored document is the missing capstone and would close most
 of the gaps above at once. **[explore]** how much to inline vs. keep as split
-files (clans/narrative/dialogue), and which tuning is worth exposing first
+files (sides/narrative/dialogue), and which tuning is worth exposing first
 (reputation curves + generation weights are the highest-leverage; the dialogue
 flavor is the highest-*delight* for content authors).
 
@@ -603,9 +603,9 @@ flavor is the highest-*delight* for content authors).
 
 Resolves the Epic I "unified universe document" exploration above. A universe is
 authored as **one file** - `universe.amd` (per-universe, named by its registry
-label) - that holds identity, clans, clan jobs, and narrative in one place, with a
+label) - that holds identity, sides, side jobs, and narrative in one place, with a
 home for universe-wide tuning knobs. This is the **primary** way to build a
-universe; the split files (`clans.amd` / `clan_quests.amd` / `narrative.amd`)
+universe; the split files (`sides.amd` / `side_quests.amd` / `narrative.amd`)
 remain a **fallback** so nothing existing breaks.
 
 ### Why it's low-risk (no new AMD syntax)
@@ -613,7 +613,7 @@ remain a **fallback** so nothing existing breaks.
 The AMD parser (`document_get_amd_file`, `quest.py`) **already supports nested
 headings**: `#` = level 1, `##` = level 2, `###` = level 3 build a `children`
 tree, and **each** heading carries its own `---` data fence. So one file with
-`## [Clans]` / `## [Jobs]` / `## [Narrative]` sections (each holding `###`
+`## [Sides]` / `## [Jobs]` / `## [Narrative]` sections (each holding `###`
 entries) reuses the exact `# [Display](key)` + `---` fence idioms already in use -
 **nothing new to invent**, satisfying the markdown-shaped / confirm-first
 guardrail. (Confirmed with the user: **nested headings**, and **single-file
@@ -621,7 +621,7 @@ primary with legacy fallback**.)
 
 ### Two gaps this also fixes
 
-- `clan_quests.amd` is currently loaded **hardcoded** (`universe.mast`), not from
+- `side_quests.amd` is currently loaded **hardcoded** (`universe.mast`), not from
   the selected universe - so jobs aren't actually per-universe today. Moving jobs
   into the file's `jobs` section makes them per-universe.
 - `narrative.amd` is **referenced in the registry but never loaded** (the
@@ -638,7 +638,7 @@ display: Default
 ---
 Prose: what this universe is.
 
-## [Clans](clans)
+## [Sides](sides)
 ### [Iron Concord](iron)
 ---
 color: "#3399ff"
@@ -675,18 +675,18 @@ A coded hail from Iron Concord HQ...
 ### Loader changes (all in this repo, all small)
 
 1. **Registry** (`universes.mast`): each `@universe/<key>` label points at one
-   `universe: default.amd` instead of the `clans:`/`narrative:` pair. The loader
-   still reads the old `clans`/`narrative` keys when present (fallback).
-2. **`universe_clans.py`**: add `universe_file(display)` (the .amd filename, falling
-   back to the legacy clans file) and `universe_section(doc, key)` (a child section
-   by key). `universe_parse_clans` iterates the `clans` section's children; if
-   there's no `clans` section (a legacy flat file), it iterates the root - a
+   `universe: default.amd` instead of the `sides:`/`narrative:` pair. The loader
+   still reads the old `sides`/`narrative` keys when present (fallback).
+2. **`universe_sides.py`**: add `universe_file(display)` (the .amd filename, falling
+   back to the legacy sides file) and `universe_section(doc, key)` (a child section
+   by key). `universe_parse_sides` iterates the `sides` section's children; if
+   there's no `sides` section (a legacy flat file), it iterates the root - a
    one-line branch, backward compatible.
-3. **`universe_clan_quests.py`**: same pattern reading the `jobs` section (fallback
+3. **`universe_side_quests.py`**: same pattern reading the `jobs` section (fallback
    to flat). Fixes the hardcoded-jobs gap.
 4. **`universe.mast` load block** (currently 2 parses, lines ~59-62): read the file
    **once** into `UNIVERSE_DOC = document_get_amd_file(..., content=...)`, then
-   derive `UNIVERSE_CLANS` / `UNIVERSE_CLAN_QUESTS` / new `UNIVERSE_NARRATIVE` from
+   derive `UNIVERSE_SIDES` / `UNIVERSE_SIDE_QUESTS` / new `UNIVERSE_NARRATIVE` from
    its sections.
 5. **Narrative wiring** (new, small): load the `narrative` section and grant its
    `scope: shared` arcs via `quest_grant_amd` (the dead reference goes live). May
@@ -695,7 +695,7 @@ A coded hail from Iron Concord HQ...
 ### Capstone payoff (phased)
 
 The level-1 root's data fence is the home for universe-wide knobs. Ship the
-**container** first (identity + clans + jobs + narrative), then expose tuning
+**container** first (identity + sides + jobs + narrative), then expose tuning
 **incrementally** - each knob a small, testable change rather than one big bang:
 - now: `display` (move off the registry label; the label just names file + key);
 - next: skybox/music theme, generation weights (kind distribution, POI-deck
@@ -703,12 +703,12 @@ The level-1 root's data fence is the home for universe-wide knobs. Ship the
 
 ### Migration & scope
 
-- Fold `clans.amd` + `clan_quests.amd` + the Appendix C narrative draft into
+- Fold `sides.amd` + `side_quests.amd` + the Appendix C narrative draft into
   `universe/default.amd`.
 - Keep the legacy split-file load path as a fallback; new universes are one file.
 - **Save:** no structural change (`universe_selection` already persists; identity
   is authored, not saved) - **no version bump**.
-- **Test:** headless `--test 30 --map universe --use-working-tree` - clans spawn,
+- **Test:** headless `--test 30 --map universe --use-working-tree` - sides spawn,
   jobs offer, a narrative arc grants, and a legacy split-file universe still loads
   via fallback; add a unit test for `universe_section` / section partitioning.
 
@@ -735,9 +735,9 @@ tuning knobs together**.
 ### What's hardcoded today
 
 - `universe_reputation.py`: `REP_POLES` (7 axes / 14 poles) as a module constant;
-  `REP_MIN/MAX`; tier thresholds (`>=20/>=50` in `clan_offer_tier` AND the foe gate
-  in `clan_work_offers`); reward curve (`clan_reward_mult`); `CEASEFIRE_FREE_AT=30`
-  + per-point cost in `clan_ceasefire_cost`; and the **alliance threshold is a bare
+  `REP_MIN/MAX`; tier thresholds (`>=20/>=50` in `side_offer_tier` AND the foe gate
+  in `side_work_offers`); reward curve (`side_reward_mult`); `CEASEFIRE_FREE_AT=30`
+  + per-point cost in `side_ceasefire_cost`; and the **alliance threshold is a bare
   literal `60`** in the `universe.mast` station comms route (not even a constant).
 - Nuance: `_axis_sign` already defaults an unknown pole to `(pole, +1)`, so a new
   pole name *already* works one-directionally; what's missing is a **paired
@@ -764,7 +764,7 @@ reputation:
   min: -100
   max: 100
   tiers: { t2: 20, t3: 50 }      # standing to unlock job tiers 2 / 3
-  foe_deal_standing: 20          # standing a foe clan needs before it deals
+  foe_deal_standing: 20          # standing a foe side needs before it deals
   reward_mult_max: 2.0           # reward multiplier at standing +100
   ceasefire_free_at: 30          # ceasefire free at/above; scales below
   ceasefire_per_point: 20        # cr per standing-point under the free line
@@ -802,14 +802,14 @@ reputation:
    - New `reputation_configure(rep_cfg)`: **reset to defaults first** (module
      globals persist process-wide, so re-selecting a universe must not leak prior
      config), then rebuild `_REP_POLES` from `axes:` and apply any tuning overrides.
-   - `_axis_sign`, `clan_offer_tier`, `clan_reward_mult`, `clan_ceasefire_cost`,
-     and `clan_work_offers`' foe gate read the globals instead of literals.
-   - New getter `clan_alliance_standing()` (so the comms route stops hardcoding 60).
+   - `_axis_sign`, `side_offer_tier`, `side_reward_mult`, `side_ceasefire_cost`,
+     and `side_work_offers`' foe gate read the globals instead of literals.
+   - New getter `side_alliance_standing()` (so the comms route stops hardcoding 60).
 2. **`universe.mast`**
    - Load block: after `UNIVERSE_DOC` is parsed, call
      `reputation_configure((universe_root_node(UNIVERSE_DOC).get("data") or {}).get("reputation"))`.
    - Station comms route: replace the literal `dip_standing >= 60` with
-     `dip_standing >= clan_alliance_standing()`.
+     `dip_standing >= side_alliance_standing()`.
 3. **`default.amd`**: add the explicit default `reputation:` block above - it both
    documents the feature and serves as the authoring template (no behavior change,
    since it equals the built-in defaults).
@@ -822,11 +822,11 @@ reputation:
   different rep context anyway). Document it.
 - **Test:** unit-test `reputation_configure` (axes replace; tuning override;
   no-block fallback; reset-between-loads). Headless: a probe universe with custom
-  axes (`pious/heretical`) - leans, `clan_standing`, job gating, and a `rep:` block
+  axes (`pious/heretical`) - leans, `sides_standing`, job gating, and a `rep:` block
   all resolve on the custom poles; and the default universe is byte-for-byte
   unchanged in behavior.
 
-> Out of scope (Phase C, flag only): **per-clan** forgiveness/grudge *rates* (decay
+> Out of scope (Phase C, flag only): **per-side** forgiveness/grudge *rates* (decay
 > over time, asymmetric gain/loss) - a different flexibility axis than the set of
 > axes; revisit separately so this stays declarative.
 
@@ -836,19 +836,19 @@ reputation:
 
 New state each epic stores. All are **new keys read with `.get(default)`**, so per
 the save-format & migration design they are **additive - no version bump** unless
-we restructure an existing key. Keys anchor on stable ids (side/clan key, client
+we restructure an existing key. Keys anchor on stable ids (side/side key, client
 id, `"i,j"` system, quest id) - the same migration anchors the save already uses.
 
-- **Clans:** authored (from `clans.amd`), not saved. Only **deltas** save:
-  - **Diplomacy deltas** - per side/clan pair, overriding authored defaults.
-  - **Ownership/capture** - clan or captured-dock owner per system (system delta).
-- **Reputation:** per-captain (client) -> clan axis map.
+- **Sides:** authored (from `sides.amd`), not saved. Only **deltas** save:
+  - **Diplomacy deltas** - per side/side pair, overriding authored defaults.
+  - **Ownership/capture** - side or captured-dock owner per system (system delta).
+- **Reputation:** per-captain (client) -> side axis map.
 - **Narrative/arcs:** progress already persists via the quest layer (SHARED arcs
   use the existing `shared_quests`; per-ship quests by name).
-- **Universe selection:** which `clans.amd` / `narrative.amd` pair was chosen, so
+- **Universe selection:** which `sides.amd` / `narrative.amd` pair was chosen, so
   **Continue** reloads the same universe.
 
-Galaxy-map display: clan **home/owned** systems show the clan's color/marker
+Galaxy-map display: side **home/owned** systems show the side's color/marker
 (reuse the existing map-cell coloring); discovery stays fog-of-war (round 5).
 
 ---
@@ -881,21 +881,21 @@ than feared.
 - So a personal truce = a **brain-layer override**: replace the raw
   `side_are_enemies(...)` gate with `is_hostile(agent, target)` =
   `side_are_enemies(...) and not captain_truce(agent, target)`, where
-  `captain_truce` checks the target captain's reputation with the agent's clan.
+  `captain_truce` checks the target captain's reputation with the agent's side.
 - Touches the **brain MAST** (`ai/npc_brains.mast`, `prefabs/defender.mast`) + a
   reputation helper - **not engine combat code**. Scope is contained.
-- **Caveat:** only governs brain-driven NPCs (the standard path); clan fleets use
+- **Caveat:** only governs brain-driven NPCs (the standard path); side fleets use
   these brains (via `prefab_fleet_raider`), so they're covered.
 - **Verdict:** feasible at the brain layer; spike narrowed to "edit the brains'
   shoot/target gate + add `captain_truce()`."
 
-### 3. Clans-as-sides + universe discovery (Epic C/I) - LOW RISK, confirmed
+### 3. Sides-as-sides + universe discovery (Epic C/I) - LOW RISK, confirmed
 - **Sides:** `prefab_side_generic` + `side_set_relations(a, b, relation)` +
-  `side_are_enemies` all exist and are used throughout. Each clan = one
+  `side_are_enemies` all exist and are used throughout. Each side = one
   `prefab_side_generic` (color/desc), relations set from authored `diplomacy`.
 - **Dropdown discovery:** reuse the **label-registry** pattern (items use
   `labels_get_type("item/")`, maps use `@map`). Add a discoverable
-  `@universe/key "Display"` label per universe naming its `clans.amd`/
+  `@universe/key "Display"` label per universe naming its `sides.amd`/
   `narrative.amd`; the dropdown lists `labels_get_type("universe/")`. Consistent,
   no new mechanism. (Alternative: fs-scan a folder - but the label registry
   matches existing conventions.)
@@ -906,7 +906,7 @@ than feared.
 ## Suggested dependency order (a build path)
 
 ```
-LEAD -> I UNIVERSE AMD  ->  C clans  ->  D diplomacy
+LEAD -> I UNIVERSE AMD  ->  C sides  ->  D diplomacy
                                      ->  F reputation -> G comms chatter
 A1 nebula tuning           (independent, trivial; fold into Phase 1)
 B  richer systems     ->  E capture mechanic
@@ -916,7 +916,7 @@ H  distributed play        (DEFERRED - someday)
 
 Phasing (lead = Foundations):
 
-1. **Foundations (LEAD):** I UNIVERSE AMD (clan + narrative schema); C clans-as-
+1. **Foundations (LEAD):** I UNIVERSE AMD (side + narrative schema); C sides-as-
    sides authored via AMD; + A1 nebula tuning + the sector->system rename as
    low-risk cleanups done alongside.
 2. **Interactions:** F reputation (per-captain) + `%`-style authoring; D
@@ -930,13 +930,13 @@ Phasing (lead = Foundations):
 ## Decisions still open (the remaining forks)
 
 Resolved (16 decisions): lead epic (Foundations); distributed play (someday);
-rename to "system"; reputation per-captain; split AMD; 6 clans; home systems +
+rename to "system"; reputation per-captain; split AMD; 6 sides; home systems +
 archetype foes; universe dropdown; comms gates+weight; per-captain truce; rep
 changes declarative+helper; capture presence-timer; re-capture defendable; hybrid
 system composition; POI-activation standby. Remaining are **tuning + spikes**:
 
 1. **Confirm Phase 1 authoring:** the proposed 2 foe / 4 neutral split + home
-   coords (Epic C table) and the final per-clan AMD field list. Your call.
+   coords (Epic C table) and the final per-side AMD field list. Your call.
 2. **Final token/helper names (Phase 2):** `rep:` block key, `reputation_adjust`,
    gate/weight spelling (`%{axis>N}` / `w:axis`).
 3. ~~Spike - per-captain truce~~ **RESOLVED (spike findings):** brain-layer
@@ -945,16 +945,16 @@ system composition; POI-activation standby. Remaining are **tuning + spikes**:
 4. ~~Spike - standby of AI/stations~~ **RESOLVED (spike findings):** standby
    removes objects from the sim and works on NPCs (already used by hangar/cag);
    resume re-classifies. Just track parked POIs with a `universe_standby` role.
-5. **Tuning (Phase 3):** capture hold seconds N + clear-radius R + clan counter-
+5. **Tuning (Phase 3):** capture hold seconds N + clear-radius R + side counter-
    assault cadence; per-kind system templates + deck contents/weights.
 
 ---
 
 ## Implementation status (live)
 
-- **Phase 1 - DONE** (LegendaryMissions): clans-as-sides, deterministic clan
-  ownership of systems, clan-owned stations (foe hostile / neutral dockable),
-  clan-sided enemy fleets, galaxy-map clan display, start-screen Universe
+- **Phase 1 - DONE** (LegendaryMissions): sides-as-sides, deterministic side
+  ownership of systems, side-owned stations (foe hostile / neutral dockable),
+  side-sided enemy fleets, galaxy-map side display, start-screen Universe
   dropdown, sector->system rename. All verified headless.
 - **Phase 2 - DONE:**
   - reputation core (per-ship, 7 signed axes, persisted); declarative
@@ -966,15 +966,15 @@ system composition; POI-activation standby. Remaining are **tuning + spikes**:
     on_kill/collect/scan/dock/reach); comms `%`-line **gates + weights**
     (`%N` weight, `%{cond}` gate eval'd in the task scope, `%N{cond}` both;
     backward compatible) - the shared-parser piece, with unit tests; ambient
-    clan **chatter** - all four triggers (arrival, periodic, near-POI, and on
-    reputation/diplomacy change); archetype/authored lines, clan-colored.
+    side **chatter** - all four triggers (arrival, periodic, near-POI, and on
+    reputation/diplomacy change); archetype/authored lines, side-colored.
 
 > Parser note: MAST double-quoted strings treat `{...}` as format-interpolation,
 > so comms rep-gates use the `%{cond}` form on `%` lines (the gate is captured in
 > the line prefix, not the interpolated text) and `.amd`/data is read from files,
 > not inline MAST string literals.
 - **Phase 3 - IN PROGRESS:**
-  - DONE: space-dock **capture** - foe clan home spawns station + garrison;
+  - DONE: space-dock **capture** - foe side home spawns station + garrison;
     clear + hold the area -> station morphs to the player's side
     (obj.set_side), persisted, docking opens; captured systems re-spawn friendly.
   - DONE: **terrain network culling** (standby) - distant asteroid/nebula
@@ -987,8 +987,8 @@ system composition; POI-activation standby. Remaining are **tuning + spikes**:
     brain and resumes on retrieve, so self-brained NPCs/POIs cull safely; cull
     set broadened to black_hole/mine. (Fleet ships still a follow-up: their brain
     lives on the fleet agent, not the ship.)
-  - DONE: clan **re-capture** - revisiting a captured foe system spawns the
-    clan's re-assault fleet; defend to keep it, or the clan holds the station's
+  - DONE: side **re-capture** - revisiting a captured foe system spawns the
+    side's re-assault fleet; defend to keep it, or the side holds the station's
     space and it reverts (set_side back, captured cleared). Dynamic frontier.
   - DONE: richer systems - **kind-template + keyed POI deck** framework
     (`universe_systems.py`): the kind if/elif spawns the template core (primary
@@ -997,8 +997,8 @@ system composition; POI-activation standby. Remaining are **tuning + spikes**:
     POIs that universe.mast spawns via `match poi.type`. Deck types: **loot**
     caches (trade goods, denser in nebula/anomaly; on_collect), **derelict**
     wrecks (science-scannable, on_scan, salvage; likelier in nebulae), **secondary
-    outpost** (a smaller clan holding in ~40% of clan systems - tagged
-    `station, outpost` so it's an extra clan-work giver; the //damage/destroy
+    outpost** (a smaller side holding in ~40% of side systems - tagged
+    `station, outpost` so it's an extra side-work giver; the //damage/destroy
     station-persistence guard excludes `outpost` so it doesn't nuke the primary),
     and **mine field** (lethal terrain in foe territory). Pure-Python + unit-probed
     for variety/determinism. Archetype flavors outpost art.
@@ -1008,9 +1008,9 @@ system composition; POI-activation standby. Remaining are **tuning + spikes**:
     raider_fleet agent) is paused; retrieved + resumed the moment a player nears.
     Completes Epic A2 - terrain, self-brained NPCs/POIs, AND fleets all cull
     safely.
-  - DONE: clan **makeup** (Epic C/I) - clans.amd `makeup` sets a clan's race
-    composition (single race / even list / weighted dict); `clan_pick_race`
-    drives all of a clan's fleet spawns (garrison, re-assault, foe systems), so
+  - DONE: side **makeup** (Epic C/I) - sides.amd `makeup` sets a side's race
+    composition (single race / even list / weighted dict); `sides_pick_race`
+    drives all of a side's fleet spawns (garrison, re-assault, foe systems), so
     Ashfang flies all-Torgoth, Iron a Kralien/Arvonian mix, etc. No makeup -> the
     old random pool.
   - DONE: chatter on the **info panel** not the text waterfall (Epic G) -
@@ -1019,7 +1019,7 @@ system composition; POI-activation standby. Remaining are **tuning + spikes**:
     helper into sbs_utils (see Epic G note).
 
 - **Authoring format (Epic I capstone) - DONE:**
-  - DONE: **one `universe.amd`** merged file (clans + jobs + narrative + dialogue
+  - DONE: **one `universe.amd`** merged file (sides + jobs + narrative + dialogue
     sections), legacy split-file fallback; reputation axes + tuning authored in the
     root `reputation:` block (`reputation_configure`).
   - DONE: **friendly fact-sheet syntax** - `Label: value` fact lines instead of
@@ -1036,24 +1036,24 @@ system composition; POI-activation standby. Remaining are **tuning + spikes**:
     `File: path.amd` (repeat the line or a comma `Files:` list); the loader reads
     each and splices its top-level entries into the section, in order. So
     `universe.amd` stays a slim table of contents and a growing section fans out
-    into files (e.g. `dialogue/ashfang.amd`, `dialogue/verdant.amd` - one per clan).
+    into files (e.g. `dialogue/ashfang.amd`, `dialogue/verdant.amd` - one per side).
     One level (included files are entries, not further includes).
     `universe_includes` / `universe_splice`; the mast reads via
     `media_read_relative_file` (subfolders resolve).
   - DONE (first cut): the **movie-script dialogue flavor** - a `## Dialogue`
-    section authors clan conversations as scenes (`Speaker` = a clan; `When: comms`
+    section authors side conversations as scenes (`Speaker` = a side; `When: comms`
     = the hail entry; `%` lines; choices = markdown links with optional
     `if <guard>` and `; <outcomes>`). Driven at runtime by `universe_dialogue.py`
     (parse + guard eval + outcome apply) and the `//comms/dialogue` scene loop; a
     station Hail opens it. Declarative only (no loops/vars), per the "writer's room"
     rule. Parsing + guards unit-tested; interactive comms flow wants a GUI pass.
-  - DONE (first cut): **NPC captains + rivals** (`## Captains` section, per-clan
-    files). A captain is an authored person: Clan, Title, Values (the reputation
+  - DONE (first cut): **NPC captains + rivals** (`## Captains` section, per-side
+    files). A captain is an authored person: Side, Title, Values (the reputation
     poles he embodies), Flies, Roams (hailable at that station). The player holds a
     **personal reputation** with him - the same per-(agent, subject) rep store keyed
-    by his key, so `clan_standing` / dialogue guards + outcomes work on a captain
+    by his key, so `sides_standing` / dialogue guards + outcomes work on a captain
     record unchanged (free). He's a **dialogue Speaker** (scenes `Speaker: <his
-    key>` resolve his name/face/clan-color and read PERSONAL standing). A captain
+    key>` resolve his name/face/side-color and read PERSONAL standing). A captain
     turns **rival** when his authored `Rival when: <guard>` holds - emergent from
     conduct, self-undoing, no script (reuses the dialogue guard grammar).
     `universe_captains.py`; sample Vex Karr (Ashfang). Parse + rival guard + speaker
@@ -1062,10 +1062,10 @@ system composition; POI-activation standby. Remaining are **tuning + spikes**:
   - IN PROGRESS: **the cast (lifeforms)** on the library substrate
     (`sbs_utils.procedural.lifeform`: a named Agent with a face, roles, a host, and
     a comms `path` = its voice). A `## Lifeforms` section authors characters
-    (per-clan/per-file); the driver spawns each via `lifeform_spawn` and points its
+    (per-side/per-file); the driver spawns each via `lifeform_spawn` and points its
     `path` at one bridge route (`//comms/universe_cast`) that plays the lifeform's
     `Scene` through the dialogue driver - so a comms character's voice IS a dialogue
-    scene. `dialogue_speaker` now resolves a captain, a cast lifeform, or a clan.
+    scene. `dialogue_speaker` now resolves a captain, a cast lifeform, or a side.
     Done (slice 1): host-less galaxy comms NPCs (sample Frontier Command), parse +
     speaker + face unit-tested, headless PASS.
     Done (slice 2): **passenger delivery**. A passenger is a lifeform you transport -
@@ -1119,7 +1119,7 @@ system composition; POI-activation standby. Remaining are **tuning + spikes**:
   documents addon's `document_screen` renderer; the content is `universe/lore.amd` -
   a classic documents AMD (markdown, bare `#`/`##` headings rendered as content,
   parsed by the default reader not the friendly one). Per-universe (a universe can
-  ship its own lore.amd). Sample lore: intro, the clans, reputation/diplomacy, the
+  ship its own lore.amd). Sample lore: intro, the sides, reputation/diplomacy, the
   regions. Parse + tab load verified headless; the rendered tab wants a GUI pass.
 
 - **Landmarks - DONE.** A `## Landmarks` section pins named stations/wrecks to a
@@ -1128,7 +1128,7 @@ system composition; POI-activation standby. Remaining are **tuning + spikes**:
   `universe_landmarks.py` (parse + `universe_landmarks_in_system` +
   deterministic-per-landmark position); spawned on arrival in `universe_enter_system`.
   Samples: the Drifting Cathedral (Choir wreck), Tycho Station (TSN post). Headless
-  PASS. (Note: a landmark naming a Side that no clan spawns logs a harmless
+  PASS. (Note: a landmark naming a Side that no side spawns logs a harmless
   `Side not found` - Tycho's `tsn`.)
 - **Goods - DONE.** A `## Goods` section authors the loot pool (good keys + Weight);
   the POI deck scatters loot drawn from this weighted pool. `universe_goods.py`
@@ -1144,10 +1144,10 @@ system composition; POI-activation standby. Remaining are **tuning + spikes**:
   via `quest_grant_amd` (like narrative). Sample: break the Ashfang (kill 20 -> Win).
   Parse + headless PASS.
 - **Region map coloring - DONE.** A region's optional `Color` washes its cells on the
-  Navigation galaxy map (forced low alpha so clan/quest/current/selected colors still
+  Navigation galaxy map (forced low alpha so side/quest/current/selected colors still
   override), so a region's geography reads at a glance; shown even in fog (geography,
   not intel). `region_map_color` + `_region_faint` in `universe_regions.py`; applied
-  in the map repaint below clan ownership. This closes the Regions follow-up. Tint
+  in the map repaint below side ownership. This closes the Regions follow-up. Tint
   helper unit-tested; headless PASS (the visual wants a GUI pass).
 
 > Fixed: universe_jump_to's console loops crashed (`'int' object has no
@@ -1162,14 +1162,14 @@ system composition; POI-activation standby. Remaining are **tuning + spikes**:
 
 The Foundations shape is agreed (see "Phase 1 design" above). The only Phase-1
 items left are **authoring choices** (foe/neutral split, home coords, exact AMD
-fields), which we can finalize while writing the clan content. When you give the
+fields), which we can finalize while writing the side content. When you give the
 go, the next artifact is a **Phase 1 implementation plan** (still its own doc /
 section) covering:
 
-- the `clans.amd` schema + the 6 authored clans (with homes + foe/neutral),
+- the `sides.amd` schema + the 6 authored sides (with homes + foe/neutral),
 - the start-screen Universe dropdown + load path,
-- clans-as-sides spawning from the AMD,
-- keyed clan ownership of foe systems (archetype-filtered) + galaxy-map display,
+- sides-as-sides spawning from the AMD,
+- keyed side ownership of foe systems (archetype-filtered) + galaxy-map display,
 - the sector -> system rename pass.
 
 > Reminder: another session is touching code, so this stays **planning only**
@@ -1182,45 +1182,45 @@ section) covering:
 A concrete shape for when implementation is safe. Names are proposals.
 
 ### Files
-- `clans.amd`, `narrative.amd` - content (mission folder or a shared content dir).
-- `maps/universe_clans.py` (new) - clan load/spawn + system-ownership helpers.
-- `maps/universe.mast` - add the Universe dropdown property; load clans at start;
-  owner-aware system entry; clan colors on the galaxy map.
-- `maps/universe_helpers.py` - sector->system rename; clan-ownership delta +
+- `sides.amd`, `narrative.amd` - content (mission folder or a shared content dir).
+- `maps/universe_sides.py` (new) - side load/spawn + system-ownership helpers.
+- `maps/universe.mast` - add the Universe dropdown property; load sides at start;
+  owner-aware system entry; side colors on the galaxy map.
+- `maps/universe_helpers.py` - sector->system rename; side-ownership delta +
   new save keys (selection, diplomacy deltas, reputation map).
 
-### clans.amd schema (per clan heading)
+### sides.amd schema (per side heading)
 | field | meaning |
 |---|---|
-| heading key | clan id / side key (e.g. `iron`) |
+| heading key | side id / side key (e.g. `iron`) |
 | color | side icon color |
 | archetype | military / trader / pirate / cult / settler / mercenary |
 | diplomacy | `foe` or `neutral` (authored default vs the player side) |
 | homes | list of `[i, j]` named home systems (pinned landmarks) |
-| leans | reputation-axis defaults the clan rewards |
-| quest_pool | archetype quest types the clan can offer |
+| leans | reputation-axis defaults the side rewards |
+| quest_pool | archetype quest types the side can offer |
 | prose body | description (+ comms greeting flavor) |
 
 ### Helpers (proposed)
-- `universe_load_clans(content)` - parse clans.amd; spawn each clan as a side
+- `universe_load_sides(content)` - parse sides.amd; spawn each side as a side
   (`prefab_side_generic`); set default relations vs the player side from `diplomacy`.
-- `clan_for_system(seed, i, j, danger)` - owning clan of a keyed clan/foe system:
+- `sides_for_system(seed, i, j, danger)` - owning side of a keyed side/foe system:
   named homes win, else an archetype/danger-weighted keyed pick. Pure (map-safe),
   so the galaxy map and the spawn agree.
 - `universe_system_owner(sectors, i, j)` - delta override (capture / diplomacy).
-- extend the map-cell color to show a clan's home/owned color.
+- extend the map-cell color to show a side's home/owned color.
 
 ### Universe dropdown + load
 - `@map/universe` metadata gains
   `Universe: gui_drop_down("$text: {UNIVERSE_SELECT};list: ...", var="UNIVERSE_SELECT")`
-  listing discovered clans/narrative pairs (Phase 1: a built-in `Default` + any
+  listing discovered sides/narrative pairs (Phase 1: a built-in `Default` + any
   discovered).
-- On start: load the selected `clans.amd` (+ `narrative.amd`), spawn clans-as-sides,
+- On start: load the selected `sides.amd` (+ `narrative.amd`), spawn sides-as-sides,
   store the selection in the save so **Continue** reloads the same universe.
 
 ### System ownership at entry
-- In `universe_enter_sector`: if the system kind resolves to a clan/foe system,
-  `clan_for_system(...)` picks the owner; spawn that clan's ships/station/dock
+- In `universe_enter_sector`: if the system kind resolves to a side/foe system,
+  `sides_for_system(...)` picks the owner; spawn that side's ships/station/dock
   (Epic B template) instead of generic raiders; honor capture/diplomacy deltas.
 
 ### sector -> system rename checklist
@@ -1231,18 +1231,18 @@ A concrete shape for when implementation is safe. Names are proposals.
 - Coordinate with the other session to avoid file collisions.
 
 ### Save keys added (additive - no version bump)
-`universe_selection`; `diplomacy` (per side/clan-pair deltas); `reputation`
-(per client -> clan axis map); clan/dock `owner` inside existing system deltas.
+`universe_selection`; `diplomacy` (per side/side-pair deltas); `reputation`
+(per client -> side axis map); side/dock `owner` inside existing system deltas.
 
 ---
 
-## Appendix B - clans.amd content draft (the 6 clans)
+## Appendix B - sides.amd content draft (the 6 sides)
 
 Ready-to-author content; tweak names/colors/homes/flavor freely. Data fence is a
 line of only dashes.
 
 ```
-// The launch clans. Each heading is a clan (its key = side key); the data
+// The launch sides. Each heading is a side (its key = side key); the data
 // section sets identity + home systems; the prose is description/comms flavor.
 
 # [Iron Concord](iron)
@@ -1318,7 +1318,7 @@ A secretive cult chasing forbidden knowledge in the deep dark. Honeyed words hid
 sharp intent; trust them at your peril.
 ```
 
-> Comms greeting flavor (Epic F gates+weight) can live in the clan comms tree or
+> Comms greeting flavor (Epic F gates+weight) can live in the side comms tree or
 > narrative.amd, e.g.:
 > ```
 > << [iron]
@@ -1397,21 +1397,21 @@ Return to a Concord starbase to seal the accord.
 
 ## Appendix D - Epic B per-kind system templates
 
-A system = **template (by kind/owning-clan)** + a keyed **deck** of weighted
+A system = **template (by kind/owning-side)** + a keyed **deck** of weighted
 extras. Templates are the fixed core; decks add procedural variety. Named home
-systems (clans.amd) can override with hand-placed POIs.
+systems (sides.amd) can override with hand-placed POIs.
 
 | System kind | Template core (always) | Deck (weighted extras, keyed) |
 |---|---|---|
 | home (0,0) | friendly starbase + market + docking; safe | light asteroid field; a pickup or two |
-| station (neutral) | 1 neutral-clan outpost (market, comms quests) | asteroid/nebula field; pickups; rare derelict |
-| clan-foe | owning clan's **space dock** (capturable) + garrison fleet | mines/lethal terrain; reinforcement patrol; pickups |
-| clan-neutral | neutral clan outpost (comms quest pool, market) | patrol ship; field; cargo POI |
+| station (neutral) | 1 neutral-side outpost (market, comms quests) | asteroid/nebula field; pickups; rare derelict |
+| side-foe | owning side's **space dock** (capturable) + garrison fleet | mines/lethal terrain; reinforcement patrol; pickups |
+| side-neutral | neutral side outpost (comms quest pool, market) | patrol ship; field; cargo POI |
 | nebula | dense nebula field | hidden **derelict** (scan) ; monster; pickup |
 | anomaly | black hole(s) + the mystery giver (built) | extra anomaly; rare high-value cache |
 | empty | sparse field only | occasional lone POI (derelict/pickup) |
 
-**Clan archetype flavors the clan-foe/neutral templates:**
+**Side archetype flavors the side-foe/neutral templates:**
 
 | Archetype | Dock/outpost flavor | Garrison/patrol |
 |---|---|---|

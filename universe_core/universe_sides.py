@@ -1,4 +1,12 @@
-"""Player-side roster for the Open Universe.
+"""Sides in the Open Universe: which exist and what they are like, and which
+of them a player COMMANDS.
+
+The authored half was called "sides" - a private word for something universe_sides.py
+itself described as "spawned as sides". It lives here now: what a side is called, its
+colour, its character, the systems it calls home, the ships it flies. The document
+plumbing that used to sit beside it is in universe_doc.py.
+
+Player-side roster
 
 Which sides are player-COMMANDED (Admiral economy + consoles), so the game is
 multi-side instead of assuming "tsn". The roster is the set of sides marked at
@@ -8,6 +16,14 @@ Relations between player sides come purely from diplomacy config - co-op vs riva
 is just how the universe sets `side_set_relations`, so this layer never assumes
 ally or enemy (the "configurable" model).
 """
+import os
+import random
+from sbs_utils import scatter
+from sbs_utils.procedural.amd_doc import amd_section, amd_root_data
+from sbs_utils.procedural.roles import all_roles
+from sbs_utils.procedural.gui import gui_row, gui_text
+from sbs_utils.procedural.comms import comms_info_card
+from sbs_utils.mast.mast_node import MastDataObject
 from sbs_utils.helpers import FrameContext
 from sbs_utils.procedural.query import to_object
 from sbs_utils.procedural.roles import role
@@ -66,7 +82,7 @@ def universe_hostile_to_players(side):
 
 def universe_player_enemy_members():
     """Agent ids of every ship on a side HOSTILE to any player side (diplomacy
-    driven). A ceasefired clan (now NEUTRAL, though its ships keep the raider tag)
+    driven). A ceasefired side (now NEUTRAL, though its ships keep the raider tag)
     drops out. Empty before player sides are registered."""
     out = set()
     for ps in _PLAYER_SIDES:
@@ -89,3 +105,261 @@ def universe_mode_is_pvp():
     global (universe_worldlets.py); the caller applies the relation in MAST where
     sbs.DIPLOMACY lives. See FOUNDATION_PLAN.md (Phase 3)."""
     return mission_mode() in ("skirmish", "war")
+
+
+
+# Fallback race pool when a side declares no makeup.
+_DEFAULT_RACES = ["Kralien", "Torgoth", "Arvonian", "Ximni"]
+
+
+
+
+# --- Nav "known locations" list ----------------------------------------------
+def universe_known_locations(sides, quest_targets):
+    """Notable systems for the nav list: home base, side homes, and active quest
+    targets - each a MastDataObject with name + i/j."""
+    locs = [MastDataObject({"name": "Home Base", "i": 0, "j": 0})]
+    for c in sides:
+        for h in (c.get("homes") or []):
+            if len(h) == 2:
+                locs.append(MastDataObject({"name": c.name, "i": int(h[0]), "j": int(h[1])}))
+    for t in quest_targets:
+        locs.append(MastDataObject({"name": "Quest Target", "i": int(t[0]), "j": int(t[1])}))
+    return locs
+
+
+
+
+def universe_location_template(item):
+    gui_row("row-height: 1.2em;")
+    gui_text(f"$text:{item.name}  ({item.i}, {item.j});justify:left;font:gui-1")
+
+
+
+
+def universe_location_title():
+    gui_row("row-height: 1.2em;padding:6px;background:#1578;")
+    gui_text("$text:Known Locations;justify:left;")
+
+
+
+
+def universe_sides_from_doc(doc):
+    """Side records from a parsed universe doc: the `sides` section's children if
+    present, else the doc's top-level children (a legacy flat sides.amd).
+
+    A modern universe file is one root heading (identity fence + section
+    children); if it simply has no ## Sides section that means NO sides - don't
+    mistake the root itself for a legacy flat-file side entry."""
+    section = universe_section(doc, "sides")
+    if section is not None:
+        return _sides_from_nodes(section.get("children", []))
+    kids = doc.get("children", []) if doc else []
+    if len(kids) == 1 and (kids[0].get("children") or (kids[0].get("data") or {}).get("display")):
+        return []
+    return _sides_from_nodes(kids)
+
+
+
+
+def universe_parse_sides(content):
+    """Parse universe.amd / sides.amd content into a list of side records
+    (MastDataObject). Section-aware with a legacy flat-file fallback.
+
+    Each record: key, name, desc, color, archetype, diplomacy (foe/neutral),
+    homes [[i,j],...], leans {axis:val}, quest_pool [..]. A foe side's hostile
+    relations are set at spawn against the live player-side roster (universe.mast),
+    not baked here - so "foe" means foe of whatever sides are playing.
+    """
+    return universe_sides_from_doc(universe_doc(content))
+
+
+
+
+def _sides_from_nodes(nodes):
+    sides = []
+    for n in nodes:
+        data = n.get("data") or {}
+        diplomacy = data.get("diplomacy", "neutral")
+        sides.append(MastDataObject({
+            "key": n.get("key"),
+            "name": n.get("display_text"),
+            "desc": (n.get("description") or "").strip(),
+            "color": data.get("color", "#888888"),
+            "archetype": data.get("archetype", "neutral"),
+            "diplomacy": diplomacy,
+            "homes": data.get("homes") or [],
+            "leans": data.get("leans") or {},
+            "quest_pool": data.get("quest_pool") or [],
+            "chatter": data.get("chatter") or [],
+            # makeup: race composition of this side's ships - a single race, an
+            # even list, or a {race: weight} dict (see sides_pick_race).
+            "makeup": data.get("makeup"),
+            # Optional comms-card identity (info panel): a face string + an icon.
+            "face": data.get("face"),
+            "icon": data.get("icon"),
+        }))
+    return sides
+
+
+# Ambient comms chatter by archetype (sides.amd may override with a `chatter:`
+# list). {name} is substituted with the side name. Flavor only - never reveals
+# the map (round-5 decision).
+_ARCHETYPE_CHATTER = {
+    "military":  ["This is {name} space - mind your conduct, captain.",
+                  "{name} patrols have you on scope."],
+    "trader":    ["{name} welcomes honest custom - credits talk.",
+                  "Safe lanes, captain. {name} has cargo if you have coin."],
+    "settler":   ["{name} holds the drift out here. Keep it civil.",
+                  "Not much law this far out - {name} looks after its own."],
+    "mercenary": ["{name} works for the highest bidder. Got a contract?",
+                  "Coin first, questions later - the {name} way."],
+    "pirate":    ["{name} smells weakness, captain...",
+                  "Best run along - this is {name} territory."],
+    "cult":      ["The {name} sees more than you know.",
+                  "{name} whispers in the dark between stars."],
+}
+
+
+
+
+def universe_chatter_line(side):
+    """A random ambient line for a side (its authored chatter, else archetype
+    defaults), with {name} substituted. '' if none."""
+    if side is None:
+        return ""
+    lines = side.get("chatter") or _ARCHETYPE_CHATTER.get(side.get("archetype"), [])
+    if not lines:
+        return ""
+    return random.choice(lines).replace("{name}", side.get("name", "the locals"))
+
+
+
+
+# --- Chatter / narrative comms delivery (info panel, NOT the text waterfall) ---
+# Chatter reads as a hail from a side, not a log blip: an info-panel card carrying
+# the side's name + color (+ optional face/icon), kept in history, auto-dismissed.
+# These are thin wrappers over the reusable sbs_utils helper comms_info_card
+# (promoted from the HereThereBeMonsters here_*_info_message pattern).
+def _chatter_consoles():
+    """The comms consoles that should receive universe chatter/comms cards."""
+    return all_roles("console, comms")
+
+
+
+
+def universe_chatter_card(side, line, time=10):
+    """Deliver a side's ambient line as an info-panel card (face/name/color)."""
+    if not line:
+        return
+    color = side.get("color", "#0cf") if side is not None else "#0cf"
+    name = side.get("name") if side is not None else None
+    comms_info_card(
+        _chatter_consoles(), line, title=name, color=color,
+        face=(side.get("face") if side is not None else None),
+        icon_index=(side.get("icon") if side is not None else None), time=time,
+        notify=True)
+
+
+
+
+def sides_pick_race(side):
+    """Pick a race for one of a side's ships from its authored makeup.
+
+    makeup may be a single race string, an even list ([Torgoth, Kralien]), or a
+    weighted dict ({Torgoth: 70, Kralien: 30}). No makeup (or no side) -> a random
+    pick from the default pool, preserving the old mixed behavior.
+    """
+    makeup = side.get("makeup") if side is not None else None
+    if not makeup:
+        return random.choice(_DEFAULT_RACES)
+    if isinstance(makeup, dict):
+        races = list(makeup.keys())
+        weights = list(makeup.values())
+        return random.choices(races, weights=weights)[0]
+    if isinstance(makeup, list):
+        return random.choice(makeup) if makeup else random.choice(_DEFAULT_RACES)
+    return str(makeup)
+
+
+
+
+def sides_get(sides, key):
+    """The side record with this key, or None."""
+    for c in sides:
+        if c.key == key:
+            return c
+    return None
+
+
+
+
+def sides_home_owner(sides, i, j):
+    """The side key whose home is system (i,j), or None (named homes win)."""
+    for c in sides:
+        for h in c.get("homes", []):
+            if len(h) == 2 and int(h[0]) == int(i) and int(h[1]) == int(j):
+                return c.key
+    return None
+
+
+
+
+def sides_name(sides, key):
+    """Display name for a side key (or the key if unknown)."""
+    c = sides_get(sides, key)
+    return c.name if c is not None else key
+
+
+
+
+def sides_color(sides, key):
+    """Map/side color for a side key (or a default)."""
+    c = sides_get(sides, key)
+    return c.color if c is not None else "#888888"
+
+
+
+
+def sides_character(sides, key):
+    """Archetype for a side key (military/trader/...), or None. Used to flavor the
+    system POI deck (universe_systems.py)."""
+    c = sides_get(sides, key)
+    return c.archetype if c is not None else None
+
+
+
+
+def universe_system_side(sides, seed, i, j, base_kind):
+    """Owning side key + effective kind for a system, given its base kind.
+
+    A side home -> that side + 'station' (a side presence); a keyed 'enemy'
+    system -> a foe side (still 'enemy'); otherwise no side. Both the map and the
+    generator call this so naming/ownership match what spawns. base_kind comes
+    from universe_system_kind (side-agnostic) - passed in to avoid a cross-import.
+    """
+    home = sides_home_owner(sides, i, j)
+    if home is not None:
+        return home, "station"
+    if base_kind == "enemy":
+        return sides_for_system(sides, seed, i, j), "enemy"
+    return None, base_kind
+
+
+
+
+def sides_for_system(sides, seed, i, j):
+    """Owning side key for a side/foe system: home wins, else a keyed pick among
+    foe sides (deterministic). Returns None if there are no foe sides.
+
+    The caller decides whether a given system IS a side system (by kind); this
+    just names the owner reproducibly so the map and spawn agree.
+    """
+    owner = sides_home_owner(sides, i, j)
+    if owner is not None:
+        return owner
+    foes = [c.key for c in sides if c.diplomacy == "foe"]
+    if not foes:
+        return None
+    roll = scatter.cell_roll(seed, 13, int(i), int(j), 7)
+    return foes[int(roll * len(foes)) % len(foes)]

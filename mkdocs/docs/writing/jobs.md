@@ -1,7 +1,7 @@
 # Jobs - the work they offer
 
-Jobs are the work a clan posts at its stations. Two steps: write the job, then
-put it in a clan's offer list.
+Jobs are the work a side posts at its stations. Two steps: write the job, then
+put it in a side's offer list.
 
 Add a `## Jobs` chapter:
 
@@ -36,8 +36,8 @@ Sealed crates, no manifest, no questions. Bring them in quietly and be
 paid the same way.
 ```
 
-Then give each clan its offerings - add an `Offers:` line to the clan fact
-sheets from the [Clans page](clans.md):
+Then give each side its offerings - add an `Offers:` line to the side fact
+sheets from the [Sides page](sides.md):
 
 ```
 // in the Lantern Combine's fence:
@@ -65,11 +65,11 @@ that's how the two connect.
 
     The same line is shown to players as the objective, so write it well.
 
-- **Tier** is how trusted a captain must be before the clan offers this work:
-  `1` is offered to anyone the clan will talk to, `2` to captains in good
+- **Tier** is how trusted a captain must be before the side offers this work:
+  `1` is offered to anyone the side will talk to, `2` to captains in good
   standing, `3` to proven friends. Higher-tier work should pay better and read
-  more sensitive - you are writing the clan's inner circle.
-- **Pays** - the reward. Standing quietly scales it up for captains a clan
+  more sensitive - you are writing the side's inner circle.
+- **Pays** - the reward. Standing quietly scales it up for captains a side
   likes.
 - **Accept On** / **Engage On** (optional) - which bridge station may take on or
   travel to *this* job, e.g. `Accept On: comms`. Leave them off and the job uses
@@ -82,8 +82,8 @@ that's how the two connect.
     economy with a `## Goods` chapter later - see [The dials](dials.md).
 
 !!! success "In play"
-    Hail a clan station and its work is on offer, gated by standing.
-    Completing a clan's job earns standing along the traits that clan values -
+    Hail a side station and its work is on offer, gated by standing.
+    Completing a side's job earns standing along the traits that side values -
     do the Combine's honest work and the Combine starts to love you.
 
 **Next: [Story and goals](story.md)** - give the sandbox a spine.

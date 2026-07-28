@@ -1,7 +1,7 @@
 # Open Universe
 
 An endless, procedurally generated **sandbox** mission for **Artemis Cosmos** —
-jump between star systems, trade and take work from rival clans, build (or burn)
+jump between star systems, trade and take work from rival sides, build (or burn)
 your reputation, negotiate or wage war, and seize space docks on a shifting
 frontier. The whole galaxy is grown from a single **seed**, so the same seed
 always produces the same stars, fields, and factions.
@@ -23,18 +23,18 @@ than walking you through a scripted story.
 - **Jump** between systems on the Navigation console. Only the system you're in
   exists at any moment (rebuilt around you on arrival), so the universe is
   effectively limitless.
-- **Trade & take jobs** — station markets buy and sell; clans offer work (bounties,
+- **Trade & take jobs** — station markets buy and sell; sides offer work (bounties,
   supply runs, salvage, raids…) drawn from their character and **gated by your
   standing** with them.
-- **Build reputation** — every captain earns a personal standing with each clan
-  across seven traits (honest/violent/generous/…). Do a clan's work and they warm
+- **Build reputation** — every captain earns a personal standing with each side
+  across seven traits (honest/violent/generous/…). Do a side's work and they warm
   to you; better standing unlocks better jobs and cheaper peace.
 - **Diplomacy** — negotiate a ceasefire (buy your way in when standing is low, earn
   it when they respect you), then propose an alliance once you've truly won them.
-- **Capture & hold** — clear a foe clan's space dock and hold its space to take the
-  station; clans mount counter-assaults to retake it. The frontier is yours to
+- **Capture & hold** — clear a foe side's space dock and hold its space to take the
+  station; sides mount counter-assaults to retake it. The frontier is yours to
   redraw.
-- **Richer systems** — loot caches, scannable derelicts, secondary clan outposts,
+- **Richer systems** — loot caches, scannable derelicts, secondary side outposts,
   and mine fields lurking in hostile space.
 
 Distant, irrelevant objects are quietly **culled** from the engine network as you
@@ -73,9 +73,9 @@ This mission is **content** that stands on two sibling repos:
 | **sbs_utils** | The library + engine API the mission runs on (loaded via `story.json` `sbslib`). |
 | **LegendaryMissions** | Reusable addons (mastlibs) the universe loads: prefabs, fleets, docking, commerce, consoles, comms, AI, damage, science scans, hangar, **quests**, documents, and more. |
 
-The actual universe — the map, clans, quests, systems, reputation, and economy —
+The actual universe — the map, sides, quests, systems, reputation, and economy —
 lives in the local **`universe/`** addon. The galaxy itself is **authored as
-data** in `universe/default.amd` (clans, jobs, story, regions, captains, cast,
+data** in `universe/default.amd` (sides, jobs, story, regions, captains, cast,
 and dialogue in one plain-text file), so a writer can reshape — or replace —
 the galaxy without touching code.
 

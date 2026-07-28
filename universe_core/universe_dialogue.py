@@ -4,7 +4,7 @@ Now a thin binder over the shared sbs_utils.procedural.amd_dialogue driver (prom
 here). The generic engine - scene parsing, `%` random lines, guarded choices, outcome
 dispatch - lives in the library; OU injects the two domain seams:
   * metric resolver: guard left-sides `credits` / `standing` / a reputation pole.
-  * outcome handlers: `costs <n> credits` (spend), `earns <clan> <pole> <±n>` (reputation);
+  * outcome handlers: `costs <n> credits` (spend), `earns <side> <pole> <±n>` (reputation);
     `signal` is built into the shared driver.
 Speaker resolution (key -> face/color/name card) stays OU-specific in universe_captains.py
 (dialogue_speaker); the shared driver treats the speaker record opaquely.
@@ -27,27 +27,27 @@ def dialogue_scenes(doc):
     return _dlg_scenes(universe_section(doc, "dialogue"))
 
 
-def dialogue_clan_entry(scenes, clan_key):
-    """The entry scene key for a clan's hail (Speaker == clan, When == comms), or None."""
-    return dialogue_entry_for(scenes, clan_key, "comms")
+def dialogue_side_entry(scenes, side_key):
+    """The entry scene key for a side's hail (Speaker == side, When == comms), or None."""
+    return dialogue_entry_for(scenes, side_key, "comms")
 
 
 # --- OU seams: reputation-aware guards + credit/reputation outcomes ----------
-def _ou_metric(name, agent_id, clan):
+def _ou_metric(name, agent_id, side):
     """Resolve a guard's left side: `credits` (side inventory), `standing`, or a reputation
-    pole read against the speaker clan/captain record."""
+    pole read against the speaker side/captain record."""
     name = str(name).strip().lower()
     if name == "credits":
         return get_inventory_value(to_side_id(get_side(agent_id)), "credits", 0)
     if name in ("standing", "rep", "reputation"):
-        return reputation_standing(agent_id, clan)
-    return reputation_get(agent_id, (clan.get("key") if clan else None), _dlg_norm(name))
+        return reputation_standing(agent_id, side)
+    return reputation_get(agent_id, (side.get("key") if side else None), _dlg_norm(name))
 
 
 dialogue_set_metric_resolver(_ou_metric)
 
 
-def _ou_costs(agent_id, clan, toks):
+def _ou_costs(agent_id, side, toks):
     """`costs <n> [credits]` - spend credits from the agent's side; refuse if unaffordable."""
     if not toks or not str(toks[0]).lstrip("-").isdigit():
         return
@@ -59,8 +59,8 @@ def _ou_costs(agent_id, clan, toks):
     set_inventory_value(sid, "credits", have - n)
 
 
-def _ou_earns(agent_id, clan, toks):
-    """`earns <clan> <pole...> <±n>` - shift reputation with a clan along a pole."""
+def _ou_earns(agent_id, side, toks):
+    """`earns <side> <pole...> <±n>` - shift reputation with a side along a pole."""
     if len(toks) >= 3 and str(toks[-1]).lstrip("+-").isdigit():
         reputation_adjust(agent_id, toks[0], _dlg_norm(" ".join(toks[1:-1])), int(toks[-1]))
 

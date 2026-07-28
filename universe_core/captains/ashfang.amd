@@ -1,6 +1,6 @@
-// Ashfang Raiders captains - named people of the clan, spliced into default.amd's
+// Ashfang Raiders captains - named people of the side, spliced into default.amd's
 // `## Captains` section via `File: captains/ashfang.amd`. A captain belongs to a
-// clan, flies a ship, embodies reputation poles (Values), roams a system (hailable
+// side, flies a ship, embodies reputation poles (Values), roams a system (hailable
 // at its station), and has a `Rival when:` guard that turns him hostile against
 // the player's PERSONAL standing with him. His voice is authored in dialogue with
 // `Speaker: <his key>`.

@@ -55,7 +55,7 @@ captains who end this quietly.
 - **Then: reveal <key>** - chains to the next beat. The chain is your table
   of contents: `dimming_1 -> dimming_2 -> dimming_3`.
 - **Pays / Earns** - beats can pay credits and shift reputation, exactly like
-  jobs. `Earns: lantern honest 15` reads: with the *lantern* clan, along the
+  jobs. `Earns: lantern honest 15` reads: with the *lantern* side, along the
   *honest* trait, gain *15*.
 
 !!! success "In play"

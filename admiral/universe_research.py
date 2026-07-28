@@ -16,7 +16,7 @@ Requisition converts Admiralty resources into a real item (the LM item
 registry) delivered beside the player ships - research reaching the bridge
 crews, per the section-1 rule.
 
-Shared-namespace notes: universe_section comes from universe_clans.py;
+Shared-namespace notes: universe_section comes from universe_sides.py;
 admiralty_* pool/tuning calls come from universe_worldlets.py.
 """
 from sbs_utils.mast.mast_node import MastDataObject

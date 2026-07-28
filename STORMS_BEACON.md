@@ -38,7 +38,7 @@ Here's the real answer from surveying the OU working tree.
 | **Multi-system jump** (single ship, per-cell) | Real, engine-verified (`universe_jump_to`, per-ship `ship_cell`) | authoring systems in `.amd`; `When: reach i,j` chapters drive the jump |
 | **`Mode: story`** (RTS/economy OFF) | Shipped; cleanly gates off the whole Admiral economy | set `Mode: story` in `## Scenario` |
 | **Quest driver** (clue-chaining) | Shipped in LM `quest_driver` (`on_reach`/`on_scan`/`on_dock`/`on_signal`/`on_comms`) | episodes = narrative chapters + goals |
-| **Reputation** | **Already exists** in OU (`universe_reputation.py`) — per-captain, signed axes vs clans, persisted | configure clans + rep rules; **do not build from scratch** |
+| **Reputation** | **Already exists** in OU (`universe_reputation.py`) — per-captain, signed axes vs sides, persisted | configure sides + rep rules; **do not build from scratch** |
 | **Persistence** | `PersistentStore` in sbs_utils; OU saves per-ship + credits + quests | inherited for free (rep, credits, progress persist across episodes) |
 | **OU as a `.mastlib` dependency** | **Not built** (Phase 2b) — `universe/` has no `__lib__.json` | — |
 
@@ -153,7 +153,7 @@ This hits "beginning-middle-end + procedurally generated" and keeps authoring sa
 1. **Vertical slice:** the Opening tentpole as a single `.amd`, end-to-end (hail Storm
    → jump → scan a derelict relic → one fighter-squad complication → clue → hail Storm).
    Prove the loop + tone headless (`--test`) then in-browser.
-2. **Reputation wiring:** configure OU's clans + rep rules; make one gate real (a
+2. **Reputation wiring:** configure OU's sides + rep rules; make one gate real (a
    faction that will/won't fight for you).
 3. **Procedural generator:** the episode template as a parameterized chapter factory.
 4. **Tentpoles:** author Eddy's Emporium (midpoint) and the Finale.
@@ -163,12 +163,12 @@ This hits "beginning-middle-end + procedurally generated" and keeps authoring sa
 
 ## 5. Reputation (consume OU's module — do not rebuild)
 
-OU already has `universe_reputation.py`: per-captain reputation vs **clans**, **7 signed
+OU already has `universe_reputation.py`: per-captain reputation vs **sides**, **7 signed
 axes**, with `reputation_configure / get / adjust / apply`, persisted per-ship. Storm's
 Beacon **configures and consumes it** rather than inventing one.
 
 **Design (kept simple):**
-- **Factions (clans):** the ancient civs (**Torgoth**, **Kralien**), a **Merchant/Salvage
+- **Factions (sides):** the ancient civs (**Torgoth**, **Kralien**), a **Merchant/Salvage
   guild**, a **Bounty-Hunter guild**, and **XORN's crew**. (Fewer is fine — start with 3.)
 - **Bands:** map a signed axis to 5 readable bands — **Hostile ▸ Wary ▸ Neutral ▸
   Friendly ▸ Allied** — so the player can read where they stand at a glance.
@@ -259,7 +259,7 @@ want, per the detached-console / spawn-role note in `MAST_CLAUDE.md`.)
 
 **Genuinely new (the short list — this is the real work):**
 1. **The `.amd` campaign content** — episodes, chapters, landmarks (ancient ruins),
-   Prof. Storm's dispatcher dialogue, clans + rep rules, Crazy Eddy.
+   Prof. Storm's dispatcher dialogue, sides + rep rules, Crazy Eddy.
 2. **XORN pursuit** — a scripted pursuer that raises tension across systems (§7).
 3. **Crafting mini-system** — the 3–4 expedition items (§8), if OU has no substrate to
    reuse. *(Scope check pending.)*
@@ -370,7 +370,7 @@ buy-market substrate (LM `casino/market.mast`, `items/item_market.mast`).
    gear is a gamble). Eddy already added in Phase 1. *Remaining: 1–2 faction voices when
    factions exist.*
 7. **Reputation** (§2 decision: tactical + narrative) — ✅ **real slice via Eddy loyalty.**
-   No clan/side machinery needed: a lifeform's dialogue rep keys on the lifeform key
+   No side/side machinery needed: a lifeform's dialogue rep keys on the lifeform key
    (`crazy_eddy`) and the built-in `generous/selfish` axis. Every purchase `earns crazy_eddy
    generous`; at `generous > 15` a **"Regulars only" branch unlocks** (a new dialogue menu)
    with **discounted honest gear** (Sensor Array 400→250, genuine shield emitters) — so rep
@@ -381,7 +381,7 @@ buy-market substrate (LM `casino/market.mast`, `items/item_market.mast`).
 
 > Dialogue rep mechanics learned (reusable): guards are a single `lhs op number` (no
 > compound `and`) where lhs ∈ {`credits`, `standing`/`rep`, any rep pole vs the speaker's
-> clan key}; outcomes are `costs N credits` / `earns <clan> <pole> <n>` / `signal <name>`
+> side key}; outcomes are `costs N credits` / `earns <side> <pole> <n>` / `signal <name>`
 > (universe_dialogue.py). A `costs` it can't afford refuses the pick.
 
 ### Phase 3 — Content build-out — **campaign spine DONE 2026-07-07**

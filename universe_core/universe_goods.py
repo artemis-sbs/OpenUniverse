@@ -4,7 +4,7 @@ the POI deck scatters loot drawn from this weighted pool. Defaults reproduce the
 built-in five. A universe can drop goods or reweight them (a spice-route galaxy vs.
 a tech-salvage one); good keys must be registered items (the LM items mastlib) -
 adding brand-new items is a follow-up. universe_section comes from
-universe_clans.py (shared namespace).
+universe_sides.py (shared namespace).
 """
 import random
 from sbs_utils.mast.mast_node import MastDataObject

@@ -11,9 +11,9 @@ by other addons), see `AMD_AUTHORS_GUIDE.md` in the missions folder.
 |---|---|
 | `Display:` | The name shown in the Universe dropdown. |
 | `Axis: a / b` | Replace the built-in trait pairs (one line per pair). Authoring *any* axis replaces *all* seven. |
-| `Job tiers: N, M` | Standing needed for tier-2 / tier-3 clan work. |
-| `Foe deals at: N` | Standing at which a `foe` clan will deal with you. |
-| `Alliance at: N` | Standing at which a clan counts as an ally. |
+| `Job tiers: N, M` | Standing needed for tier-2 / tier-3 side work. |
+| `Foe deals at: N` | Standing at which a `foe` side will deal with you. |
+| `Alliance at: N` | Standing at which a side counts as an ally. |
 | `Max reward: X` | Pay multiplier at maximum standing (`2.0` = double). |
 | `Ceasefire free at: N` | Standing at which a ceasefire costs nothing. |
 | `Ceasefire per point: N` | Credits per point of standing below that. |
@@ -30,7 +30,7 @@ The built-in trait pairs: `honest`/`liar`, `fearsome`/`cowardly`,
 `peaceful`/`violent`, `generous`/`selfish`, `kind`/`cruel`,
 `resourceful`/`by-the-book`, `intellectual`/`foolish`.
 
-## `## Clans`
+## `## Sides`
 
 | Fact | Meaning |
 |---|---|
@@ -49,7 +49,7 @@ The built-in trait pairs: `honest`/`liar`, `fearsome`/`cowardly`,
 | `Tier:` | `1` (anyone) / `2` (good standing) / `3` (proven friends). |
 | `Goal:` | English objective; the verb picks the trigger (below). |
 | `Pays:` | Reward, e.g. `300 credits` (scaled up by standing). |
-| `Earns:` | Reputation on completion: `clan pole delta`, comma-separated. |
+| `Earns:` | Reputation on completion: `side pole delta`, comma-separated. |
 
 **Goal / When triggers** - the leading verb decides:
 
@@ -96,7 +96,7 @@ Smaller overlapping regions must be written first - they win.
 |---|---|
 | `At:` | The system it sits in, `col, row`. |
 | `Kind:` | `station` or `derelict`. |
-| `Side:` | *(station)* the owning clan key. |
+| `Side:` | *(station)* the owning side key. |
 | `Art:` | *(station)* the station model. |
 
 ## `## Goods`
@@ -109,7 +109,7 @@ Smaller overlapping regions must be written first - they win.
 
 | Fact | Meaning |
 |---|---|
-| `Clan:` | The clan key they belong to. |
+| `Side:` | The side key they belong to. |
 | `Title:` | An honorific shown with the name. |
 | `Values:` | Personal trait poles, `pole N` weights. |
 | `Flies:` | Their ship's race. |
@@ -133,7 +133,7 @@ Smaller overlapping regions must be written first - they win.
 
 | Piece | Meaning |
 |---|---|
-| `Speaker:` | Clan, captain, or cast key - whose face the scene wears. |
+| `Speaker:` | Side, captain, or cast key - whose face the scene wears. |
 | `When: comms` | This scene opens when the speaker is hailed. |
 | `% line` | One alternate take (one is played at random). |
 | `%{guard} line` | A take that plays only when the guard holds; first match wins. |

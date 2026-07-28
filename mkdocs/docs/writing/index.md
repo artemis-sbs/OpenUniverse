@@ -65,7 +65,7 @@ They take what the light forgets.
   inline `image://` / `ship://` / `face://` objects to make it rich.
 
 The number of `#` marks is the outline level, exactly like headings in a
-document: `#` is the universe itself, `##` is a chapter (Clans, Jobs,
+document: `#` is the universe itself, `##` is a chapter (Sides, Jobs,
 Story...), `###` is one entry in that chapter.
 
 That is the entire format. Everything from here on is just *what to write*.

@@ -9,7 +9,7 @@ to its command cambot via the per-client ADMIRAL_CAM) - the engine-solid way to 
 console's view (assign_client_to_alt_ship did not move the detached comms 2D view).
 
 Shared-namespace notes (like the other universe_*.py files): no relative sibling
-imports; sbs_utils absolute imports only. universe_system_kind / universe_system_clan /
+imports; sbs_utils absolute imports only. universe_system_kind / universe_system_side /
 universe_cell_known come from sibling modules via the merged MAST namespace.
 """
 from sbs_utils.procedural.spawn import terrain_spawn, player_spawn
@@ -99,26 +99,26 @@ def galaxy_theater_marker_label(kind, i, j):
 
 
 # Relation colours for a system marker (diplomacy overrides kind): your controlled territory
-# vs a hostile owner vs a neutral clan's own colour.
+# vs a hostile owner vs a neutral side's own colour.
 _REL_FRIENDLY = "#33ff66"
 _REL_HOSTILE = "#ff4444"
 
 
-def galaxy_theater_marker_color(clans, i, j, side, owner, kind_color):
+def galaxy_theater_marker_color(sides, i, j, side, owner, kind_color):
     """A system marker's radar colour by DIPLOMACY, not just kind. A system YOUR side
-    controls (has built a structure in) reads friendly green; one owned by a clan HOSTILE to
-    your side (ceasefire-aware, _clan_is_foe) reads red; one owned by a NEUTRAL clan takes
-    that clan's own house colour (clan_color); an unowned + uncontrolled system keeps its
-    kind colour. So enemy territory - including a foe clan's HOME, whose kind is 'station' -
-    stops reading as a neutral cyan base. admiralty_side_controls_cell / _clan_is_foe /
-    clan_color are sibling free globals."""
+    controls (has built a structure in) reads friendly green; one owned by a side HOSTILE to
+    your side (ceasefire-aware, _side_is_foe) reads red; one owned by a NEUTRAL side takes
+    that side's own house colour (sides_color); an unowned + uncontrolled system keeps its
+    kind colour. So enemy territory - including a foe side's HOME, whose kind is 'station' -
+    stops reading as a neutral cyan base. admiralty_side_controls_cell / _side_is_foe /
+    sides_color are sibling free globals."""
     if admiralty_side_controls_cell(side, i, j):
         return _REL_FRIENDLY
     if owner is None:
         return kind_color
-    if _clan_is_foe(clans, owner, side):
+    if _side_is_foe(sides, owner, side):
         return _REL_HOSTILE
-    return clan_color(clans, owner)
+    return sides_color(sides, owner)
 
 
 def galaxy_theater_marker_pos(di, dj, rz):
@@ -343,7 +343,7 @@ def galaxy_theater_sync_fleets(cam_id, ci, cj, side, win=GALAXY_UNIT_WIN):
             u.delete_object()
 
 
-def galaxy_theater_build(cam_id, seed, danger, clans, systems, reveal, ci, cj, side, win=GALAXY_GRID_WIN):
+def galaxy_theater_build(cam_id, seed, danger, sides, systems, reveal, ci, cj, side, win=GALAXY_GRID_WIN):
     """Rebuild ONE cam's STATIC system-marker grid: a (2*win+1) window of real system
     markers around cell (ci, cj) in this cam's region, meshed by actual kind (fog ->
     unknown), each tagged board_cam. Only called when the board re-centers (the caller
@@ -360,11 +360,11 @@ def galaxy_theater_build(cam_id, seed, danger, clans, systems, reveal, ci, cj, s
                 kind = "fog"
             else:
                 base_kind = universe_system_kind(seed, i, j, danger)
-                owner, kind = universe_system_clan(clans, seed, i, j, base_kind)
+                owner, kind = universe_system_side(sides, seed, i, j, base_kind)
             icon = _KIND_ICON.get(kind, _KIND_ICON["fog"])
             # Colour by DIPLOMACY (owner relation / your control), falling back to the kind
             # colour for unowned space; a fogged cell keeps its (unknown) kind colour.
-            color = icon[1] if kind == "fog" else galaxy_theater_marker_color(clans, i, j, side, owner, icon[1])
+            color = icon[1] if kind == "fog" else galaxy_theater_marker_color(sides, i, j, side, owner, icon[1])
             p = galaxy_theater_marker_pos(di, dj, rz)
             label = galaxy_theater_marker_label(kind, i, j)
             # Passive map marker: behav_selection draws a flat radar ICON (icon_index) sized

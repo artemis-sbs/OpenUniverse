@@ -118,7 +118,7 @@ unexplored fog). It's your whole theatre at a glance, and where you move forces
   selected system isn't offered - no point sending it where it is.)
 - **Focus here** - take **yourself** (the command camera) to that system to oversee it
   up close.
-- **Known locations** - a shortcut list of notable systems (home, clan capitals, active
+- **Known locations** - a shortcut list of notable systems (home, side capitals, active
   objectives) to focus on without hunting the map.
 
 Your own forces show as **live icons** on the map: **player ships** are health-tinted

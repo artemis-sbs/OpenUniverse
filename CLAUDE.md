@@ -1,7 +1,7 @@
 # Open Universe — Mission Guide for Claude
 
 The **Open Universe** is a standalone Artemis Cosmos mission: a procedurally
-generated, jump-between-systems sandbox (clans, trade, per-captain reputation,
+generated, jump-between-systems sandbox (sides, trade, per-captain reputation,
 diplomacy, space-dock capture). It was extracted from **LegendaryMissions** into
 its own repo. This file is the working guide for an agent focused on this mission.
 
@@ -35,7 +35,7 @@ missions/
   the **quest-log tab** (`documents`), the console layouts + info panel
   (`consoles`/`data_panels`), etc.
 - **The quest system is the LM `quests` mastlib** (quest_driver + bridge_story +
-  hangar_board). The universe's clan quest pools, the bridge story, and the
+  hangar_board). The universe's side quest pools, the bridge story, and the
   on_reach cargo runs all ride it. `quests` was packaged as a mastlib specifically
   so this mission could load it.
 
@@ -78,9 +78,9 @@ OpenUniverse/
     ├── __init__.mast        # imports the files below, in order
     ├── universe.mast        # @map/universe + comms/science/damage routes + Navigation console + system generation
     ├── universe_helpers.py  # generation, delta save + migration, quest-target sectors
-    ├── universe_clans.py    # clans + chatter cards + race "makeup"
-    ├── universe_reputation.py    # per-captain reputation + clan standing/tier/ceasefire
-    ├── universe_clan_quests.py   # clan quest pools (jobs)
+    ├── universe_sides.py    # sides + chatter cards + race "makeup"
+    ├── universe_reputation.py    # per-captain reputation + side standing/tier/ceasefire
+    ├── universe_side_quests.py   # side quest pools (jobs)
     ├── universe_systems.py  # keyed POI deck (loot/derelict/outpost/mines)
     ├── universe_standby.py  # engine-network culling (terrain/NPC/POI/fleet)
     ├── admiral.mast + universe_worldlets/_fleets/_research/_fabricator/_skirmish.py  # the Admiral console (optional; see "The Admiral console")
@@ -89,10 +89,10 @@ OpenUniverse/
     ├── universe_amd.py      # the "friendly fact sheet" AMD reader (data_parser)
     ├── universes.mast       # universe registry (start-screen dropdown)
     ├── universe_codex.mast  # Codex tab (lore.amd document viewer)
-    ├── default.amd          # THE authored universe (capstone: clans/jobs/story/regions/...)
+    ├── default.amd          # THE authored universe (capstone: sides/jobs/story/regions/...)
     ├── silver_reach.amd     # the walkthrough's worked example universe (ships registered)
     ├── jobs.amd / lore.amd  # spliced sections: generic jobs, codex lore
-    └── captains/ cast/ dialogue/  # per-clan captains, cast, dialogue scenes (spliced via File:)
+    └── captains/ cast/ dialogue/  # per-side captains, cast, dialogue scenes (spliced via File:)
 ```
 
 Writer-facing docs live in `mkdocs/` (same structure as LegendaryMissions' docs).
@@ -102,7 +102,7 @@ so pushing OU docs to `origin/v1.4.0_dev` publishes them into the combined site.
 is player-facing (`admiral.md`). GFM tables render by default (Material) — use them.
 Keep the walkthrough + reference in sync with any AMD label changes.
 
-`universe/__init__.mast` import order matters: helpers/clans/reputation/clan_quests/
+`universe/__init__.mast` import order matters: helpers/sides/reputation/side_quests/
 systems/standby, then `universes.mast`, then `universe.mast` last.
 
 ---
@@ -174,7 +174,7 @@ fleets, the six orders, veterancy), `universe_research.py` (tech ladder),
 - **`.mast` comments use `#`.** `//` at column 0 starts a **route** (`//comms`),
   not a comment. (`.amd` files use `//` for comments — the opposite. `.py` uses `#`.)
 - **`import file.py` merges all mission helpers into ONE shared MAST namespace** —
-  do **not** write relative sibling imports (`from .universe_clans import …`); they
+  do **not** write relative sibling imports (`from .universe_sides import …`); they
   fail in-engine. Cross-helper functions are already global once `__init__.mast`
   imported that sibling earlier. Only absolute `sbs_utils...` imports are valid.
 - **Engine-rendered text is ASCII-only** (GUI text, console names, comms,
@@ -196,7 +196,7 @@ fleets, the six orders, veterancy), `universe_research.py` (tech ladder),
   *character* meter), with a Star Trek bridge/scan skin. Principle: **"the galaxy
   reacts to who you are,"** not "follow the scripted hero."
 - **Reputation** is per-captain across 7 signed axes; **diplomacy** is side-wide;
-  **capture** redraws the frontier. Clan jobs are gated/scaled by standing.
+  **capture** redraws the frontier. Side jobs are gated/scaled by standing.
 - **Chatter / narrative comms use the info panel** (`comms_info_card`, the
   HereThereBeMonsters card pattern), **not the text waterfall**. Pure mechanical
   status (credits, capture) may stay on the waterfall.

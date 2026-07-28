@@ -1,12 +1,12 @@
-"""Clan quest pools for the Open Universe (Epic E/F tie-in).
+"""Side quest pools for the Open Universe (Epic E/F tie-in).
 
-Clans offer generic jobs (clan_quests.amd) drawn from each clan's quest_pool
-(clans.amd), gated and reward-scaled by the captain's standing with that clan
-(universe_reputation.clan_standing). Completing a job earns standing with the
-offering clan along the poles it values, so doing a clan's work makes it like you.
+Sides offer generic jobs (side_quests.amd) drawn from each side's quest_pool
+(sides.amd), gated and reward-scaled by the captain's standing with that side
+(universe_reputation.sides_standing). Completing a job earns standing with the
+offering side along the poles it values, so doing a side's work makes it like you.
 
-Generic by design now (one job per pool type, any clan can offer it); authoring
-stays open - a clan can later carry bespoke quests and these remain the baseline.
+Generic by design now (one job per pool type, any side can offer it); authoring
+stays open - a side can later carry bespoke quests and these remain the baseline.
 See UNIVERSE_CHANGES.md.
 """
 from sbs_utils.procedural.quest import (
@@ -15,30 +15,30 @@ from sbs_utils.procedural.quest import (
 from sbs_utils.procedural.execution import get_shared_variable
 from sbs_utils.mast.mast_node import MastDataObject
 # NOTE: no relative sibling imports. Mission .py files are loaded by __init__.mast
-# (`import universe_clans.py`, `import universe_reputation.py`) into one shared engine
-# namespace - they are not a package, so `from .universe_clans import ...` fails to
-# compile in-engine. clan_get / clan_standing / clan_offer_tier / clan_reward_mult are
+# (`import universe_sides.py`, `import universe_reputation.py`) into one shared engine
+# namespace - they are not a package, so `from .universe_sides import ...` fails to
+# compile in-engine. sides_get / sides_standing / side_offer_tier / side_reward_mult are
 # already available because __init__.mast imports those files before this one. Only
 # absolute `sbs_utils...` imports are valid here.
 
 
-def universe_parse_clan_quests(content):
-    """Parse a standalone clan_quests.amd into a doc (each heading key is a pool job
+def universe_parse_side_quests(content):
+    """Parse a standalone side_quests.amd into a doc (each heading key is a pool job
     type). Legacy split-file path; the merged format uses universe_jobs_from_doc."""
-    return document_get_amd_file(None, "ClanQuests", content=content)
+    return document_get_amd_file(None, "SideQuests", content=content)
 
 
 def universe_jobs_from_doc(doc):
     """The `jobs` section node of a merged universe doc, whose children are the job
-    types (the shape clan_work_offers / _clan_job_node expect). None when the doc
+    types (the shape side_work_offers / _side_job_node expect). None when the doc
     has no jobs section (a legacy split file) so the caller falls back to a
-    standalone clan_quests.amd. universe_section is defined in universe_clans.py -
+    standalone side_quests.amd. universe_section is defined in universe_sides.py -
     this cross-file bare call works because all of a mission's .py files now share
     one namespace (the engine shared-namespace fix)."""
     return universe_section(doc, "jobs")
 
 
-def _clan_job_node(doc, job_type):
+def _side_job_node(doc, job_type):
     if doc is None:
         return None
     for n in doc.get("children", []):
@@ -47,26 +47,26 @@ def _clan_job_node(doc, job_type):
     return None
 
 
-def clan_work_offers(agent_id, clans, clan_key, doc):
-    """Jobs a clan extends to this captain: its quest_pool entries whose tier the
+def side_work_offers(agent_id, sides, side_key, doc):
+    """Jobs a side extends to this captain: its quest_pool entries whose tier the
     captain's standing unlocks, with standing-scaled rewards. Returns a list of
-    MastDataObject (type/key/clan/title/objective/credits/tier).
+    MastDataObject (type/key/side/title/objective/credits/tier).
 
-    Empty if the station isn't a known clan, the doc is missing, or the captain
-    hasn't earned the right to do business (foe clans need positive standing
+    Empty if the station isn't a known side, the doc is missing, or the captain
+    hasn't earned the right to do business (foe sides need positive standing
     first - "only the dangerous bargain with them").
     """
-    clan = clan_get(clans, clan_key)
-    if clan is None or doc is None:
+    side = sides_get(sides, side_key)
+    if side is None or doc is None:
         return []
-    standing = clan_standing(agent_id, clan)
-    if clan.get("diplomacy") == "foe" and standing < clan_foe_deal_standing():
+    standing = sides_standing(agent_id, side)
+    if side.get("diplomacy") == "foe" and standing < side_foe_deal_standing():
         return []
-    tier = clan_offer_tier(standing)
-    mult = clan_reward_mult(standing)
+    tier = side_offer_tier(standing)
+    mult = side_reward_mult(standing)
     offers = []
-    for job_type in (clan.get("quest_pool") or []):
-        node = _clan_job_node(doc, job_type)
+    for job_type in (side.get("quest_pool") or []):
+        node = _side_job_node(doc, job_type)
         if node is None:
             continue
         data = node.get("data") or {}
@@ -75,8 +75,8 @@ def clan_work_offers(agent_id, clans, clan_key, doc):
         base = (data.get("reward") or {}).get("credits", 0)
         offers.append(MastDataObject({
             "type": job_type,
-            "key": "clan_" + str(clan_key) + "_" + str(job_type),
-            "clan": clan_key,
+            "key": "side_" + str(side_key) + "_" + str(job_type),
+            "side": side_key,
             "title": node.get("display_text", job_type),
             "objective": data.get("objective", ""),
             "credits": int(base * mult),
@@ -85,28 +85,28 @@ def clan_work_offers(agent_id, clans, clan_key, doc):
     return offers
 
 
-def universe_grant_clan_job(agent_id, clans, clan_key, job_type, doc):
-    """Add + activate a clan job on the captain. Reward credits are scaled by
+def universe_grant_side_job(agent_id, sides, side_key, job_type, doc):
+    """Add + activate a side job on the captain. Reward credits are scaled by
     current standing; a rep block is attached so completing it earns standing with
-    the offering clan (along the poles it values). Idempotent while active/secret;
+    the offering side (along the poles it values). Idempotent while active/secret;
     re-acceptable once completed or failed. Returns the quest id, or None."""
-    clan = clan_get(clans, clan_key)
-    node = _clan_job_node(doc, job_type)
-    if clan is None or node is None:
+    side = sides_get(sides, side_key)
+    node = _side_job_node(doc, job_type)
+    if side is None or node is None:
         return None
-    qid = "clan_" + str(clan_key) + "_" + str(job_type)
+    qid = "side_" + str(side_key) + "_" + str(job_type)
     st = quest_get_state(agent_id, qid)
     if st == QuestState.ACTIVE or st == QuestState.SECRET:
         return qid
     src = node.get("data") or {}
-    standing = clan_standing(agent_id, clan)
-    mult = clan_reward_mult(standing)
+    standing = sides_standing(agent_id, side)
+    mult = side_reward_mult(standing)
     tier = int(src.get("tier", 1))
     data = dict(src)
     data["reward"] = dict(src.get("reward") or {})
     base = data["reward"].get("credits", 0)
     data["reward"]["credits"] = int(base * mult)
-    data["clan"] = clan_key
+    data["side"] = side_key
     # Scale a grind kill target (e.g. "destroy N enemies") to difficulty - the
     # authored count is the DIFFICULTY 5 baseline; single/boss kills (<3) are left
     # as authored. Any grind kill goal (role / roles / hostile) scales; copy the
@@ -116,9 +116,9 @@ def universe_grant_clan_job(agent_id, clans, clan_key, job_type, doc):
         kill = dict(kill)
         kill["count"] = quest_kill_count_for_difficulty(kill.get("count", 1), get_shared_variable("DIFFICULTY", 5))
         data["on_kill"] = kill
-    # Completing clan work earns standing with that clan along its valued poles.
-    data["rep"] = {clan_key: {pole: 5 * tier for pole in (clan.get("leans") or {})}}
-    title = str(clan.get("name")) + ": " + str(node.get("display_text"))
+    # Completing side work earns standing with that side along its valued poles.
+    data["rep"] = {side_key: {pole: 5 * tier for pole in (side.get("leans") or {})}}
+    title = str(side.get("name")) + ": " + str(node.get("display_text"))
     desc = (node.get("description") or "").strip()
     quest_add(agent_id, qid, title, desc, state=QuestState.ACTIVE, data=data)
     return qid

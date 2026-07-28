@@ -1,8 +1,8 @@
 """Landmarks for the Open Universe - named, hand-placed stations / wrecks / beacons
-pinned to a system (like clan homes), as discovery anchors and quest hooks. A
+pinned to a system (like side homes), as discovery anchors and quest hooks. A
 `## Landmarks` section authors them; on entering their system universe.mast spawns
 each by kind at a deterministic position. universe_section comes from
-universe_clans.py (shared namespace).
+universe_sides.py (shared namespace).
 """
 import math
 import random

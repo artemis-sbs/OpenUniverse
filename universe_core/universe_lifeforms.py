@@ -37,8 +37,8 @@ def universe_parse_lifeforms(doc):
                 "roles": data.get("roles") or "",
                 "scene": data.get("scene"),
                 "color": data.get("color") or "green",
-                # `Side:` is the authored word now; `Clan:` still parses.
-                "clan": data.get("side") or data.get("clan"),
+                # `Side:` is the authored word now; `Side:` still parses.
+                "side": data.get("side") or data.get("side"),
                 # Passenger fields (a lifeform you transport): pickup + destination
                 # systems and the fare. A lifeform with a deliver_to is a passenger.
                 "pickup": data.get("pickup"),
@@ -89,7 +89,7 @@ def lifeform_speaker(lifeforms, key):
 # ship (lifeform_transfer to host=ship), and disembarks on reaching its destination
 # system (the on_reach quest pays the fare). B = authored named passengers (a cast
 # lifeform with Pickup + Deliver to + Pays + a voice); A = a generic traveler the
-# clan station offers to the deterministic cargo destination. Reuses the cargo-run
+# side station offers to the deterministic cargo destination. Reuses the cargo-run
 # quest pattern (universe_helpers.universe_delivery_target).
 def universe_passenger_quest_id(key):
     return "passenger_" + str(key)

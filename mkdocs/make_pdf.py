@@ -22,7 +22,7 @@ OUT = os.path.join(HERE, "..", "WRITERS_GUIDE.pdf")
 PAGES = [
     "writing/index.md",
     "writing/getting-started.md",
-    "writing/clans.md",
+    "writing/sides.md",
     "writing/jobs.md",
     "writing/story.md",
     "writing/map.md",
@@ -81,7 +81,7 @@ def main():
     pdf.meta["author"] = "Artemis Cosmos - Open Universe"
     cover = (
         "# Build a Universe\n\n## The Writer's Walkthrough\n\n"
-        "How to author a galaxy for the **Open Universe** - clans, jobs, story,\n"
+        "How to author a galaxy for the **Open Universe** - sides, jobs, story,\n"
         "regions, characters, and dialogue - in one plain-text file, no\n"
         "programming required.\n\n"
         "*An Artemis Cosmos mission - https://github.com/artemis-sbs/OpenUniverse*\n"

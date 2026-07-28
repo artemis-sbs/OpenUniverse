@@ -1,16 +1,16 @@
-"""NPC captains for the Open Universe - named people, not just clans.
+"""NPC captains for the Open Universe - named people, not just sides.
 
-A `## Captains` section authors individuals. A captain belongs to a clan, flies a
+A `## Captains` section authors individuals. A captain belongs to a side, flies a
 ship, has a personality (`Values` = the reputation poles he embodies) and a home/
 roam system. He is a dialogue Speaker (scenes use `Speaker: <his key>`), and the
 player holds a *personal* reputation with him: the very same per-(agent, subject)
-reputation store, keyed by the captain's key instead of a clan's - so clan_standing
+reputation store, keyed by the captain's key instead of a side's - so sides_standing
 and the dialogue guards/outcomes work on a captain record unchanged.
 
 A captain turns **rival** when his authored `Rival when: <guard>` holds against
 that personal standing - emergent from conduct, self-undoing, no script. This is a
 driver (parse + lookup + guard eval + identity resolution); authoring stays a
-fact-sheet. clan_get / clan_standing / reputation_get come from universe_clans.py /
+fact-sheet. sides_get / sides_standing / reputation_get come from universe_sides.py /
 universe_reputation.py; dialogue_guard_ok from universe_dialogue.py (one shared
 mission namespace).
 """
@@ -28,8 +28,8 @@ def universe_parse_captains(doc):
                 "key": n.get("key"),
                 "name": n.get("display_text"),
                 "desc": (n.get("description") or "").strip(),
-                # `Side:` is the authored word now; `Clan:` still parses.
-                "clan": data.get("side") or data.get("clan"),
+                # `Side:` is the authored word now; `Side:` still parses.
+                "side": data.get("side") or data.get("side"),
                 "title": data.get("title"),
                 "leans": data.get("leans") or {},
                 "makeup": data.get("makeup"),
@@ -75,23 +75,23 @@ def captain_is_rival(agent_id, captain):
     return dialogue_guard_ok(guard, agent_id, captain)
 
 
-def dialogue_speaker(clans, captains, lifeforms, key):
+def dialogue_speaker(sides, captains, lifeforms, key):
     """Resolve a scene's Speaker key to a voice record (key/name/color/leans) used by
     the dialogue driver for the card AND as the reputation context. Checks, in order:
-    a captain (his personal-rep key, his clan's color), a cast lifeform (a comms NPC,
+    a captain (his personal-rep key, his side's color), a cast lifeform (a comms NPC,
     no rep), an Academy officer (the Admiral's navy - personal rep via their Values),
-    then a clan. None if unknown. lifeform_speaker comes from universe_lifeforms.py,
+    then a side. None if unknown. lifeform_speaker comes from universe_lifeforms.py,
     officer_speaker from universe_fleets.py (shared namespace)."""
     if key is None:
         return None
     cap = captain_get(captains, key)
     if cap is not None:
-        clan = clan_get(clans, cap.get("clan"))
+        side = sides_get(sides, cap.get("side"))
         return MastDataObject({
             "key": cap.key,
             "name": captain_full_name(cap),
-            "color": clan.get("color") if clan is not None else "#cccccc",
-            "face": cap.get("face") or (clan.get("face") if clan is not None else None),
+            "color": side.get("color") if side is not None else "#cccccc",
+            "face": cap.get("face") or (side.get("face") if side is not None else None),
             "leans": cap.get("leans") or {},
         })
     lf = lifeform_speaker(lifeforms, key)
@@ -103,4 +103,4 @@ def dialogue_speaker(clans, captains, lifeforms, key):
         off = None
     if off is not None:
         return off
-    return clan_get(clans, key)
+    return sides_get(sides, key)

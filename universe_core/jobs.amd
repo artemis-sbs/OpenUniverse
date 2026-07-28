@@ -1,6 +1,6 @@
-// Generic clan jobs for the Open Universe, split out of default.amd via the
+// Generic side jobs for the Open Universe, split out of default.amd via the
 // `## Jobs` section's `File: jobs.amd`. Each heading key is a pool type (see a
-// clan's Offers). Goal is an English verb phrase that both sets the trigger and
+// side's Offers). Goal is an English verb phrase that both sets the trigger and
 // reads as the objective: destroy / recover / scan / dock / reach.
 
 # [Patrol Sweep](patrol)
