@@ -14,6 +14,7 @@
 
 # [Default](default)
 ---
+Universe
 Display: Default
 Nebula mix: 4%
 ---
@@ -418,6 +419,7 @@ the Requisition catalog. Driven by universe_research.py.
 
 ### [Expanded Silos](eng_silos)
 ---
+Also: economy
 Branch: engineering
 Costs: ore 120, gas 40
 Time: 40
@@ -428,6 +430,7 @@ quartermasters start turning shipments away.
 
 ### [Refined Extraction](eng_refining)
 ---
+Also: economy
 Branch: engineering
 Costs: ore 180, gas 90
 Time: 60
@@ -439,6 +442,7 @@ a quarter again as fast.
 
 ### [Milspec Fittings](eng_fittings)
 ---
+Also: economy
 Branch: engineering
 Costs: ore 250, gas 120, crew 10
 Time: 80

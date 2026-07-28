@@ -199,20 +199,18 @@ def _declare_universe_vocabulary():
         "flies": makeup(hint="60% Kralien, 40% Arvonian"),
     }, domain="universe")
 
-    amd_register_fields("captain", {
-        # `Side:` - the word for the faction now. The stored key stays `side` so every
-        # reader (485 references across OU) is untouched.
-        "side": field(ref("node"), key="side", aka=("side",)),
-        "title": text(), "values": weighted(),
-        "flies": makeup(), "roams": csv(), "rival when": text(),
-        "file": text(hint="a sibling .amd holding this captain's dialogue"),
-    }, domain="universe")
-
-    # The universe gives its officers a rank and a personality on top of the
-    # shared LIFEFORM fields.
+    # A captain is a CHARACTER - a named person who flies for a side and is hailable.
+    # It was a private archetype whose `title` and `values` were already declared on
+    # lifeform right below it: the same two fields, twice, which is what a redundant
+    # archetype looks like from the inside.
     amd_register_fields("lifeform", {
         "title": text(hint="rank or role, e.g. Chief Engineer"),
         "values": weighted(hint="what this character cares about"),
+        "side": ref("node", hint="the side this person flies for"),
+        "flies": makeup(hint="60% Kralien, 40% Arvonian"),
+        "roams": csv(hint="the systems they are found in"),
+        "rival when": text(hint="what turns them against you"),
+        "file": text(hint="a sibling .amd holding this character's dialogue"),
     }, domain="universe")
 
     # A worldlet is a LANDMARK that yields - not a kind of thing of its own. `Yields:`
@@ -222,7 +220,7 @@ def _declare_universe_vocabulary():
         "palette": text(hint="the look of the surface"),
     }, domain="universe")
 
-    amd_register_fields("admiralty", {
+    amd_register_fields("map", {
         "economy pace": pct(), "research pace": pct(), "relay rate": pct(),
         "worldlet chance": pct(), "skirmish pressure": pct(),
         "skirmish interval": integer(hint="seconds"),
@@ -248,9 +246,19 @@ def _declare_universe_vocabulary():
     # Sections the universe names its own way.
     # `## Sides` still parses; `## Sides` is the word.
     amd_register_section_names(("sides",), "side", domain="universe")
-    amd_register_section_names(("captains",), "captain", domain="universe")
+    amd_register_section_names(("captains",), "lifeform", domain="universe")
     amd_register_section_names(("worldlets",), "landmark", domain="universe")
-    amd_register_section_names(("admiralty",), "admiralty", domain="universe")
+    amd_register_section_names(("admiralty",), "map", domain="universe")
+    # A trade good IS an item - a thing with a weight that scatters as loot. A research
+    # milestone is an item you unlock, and what it costs and how long it takes come
+    # from the shared `economy` trait.
+    amd_register_section_names(("goods",), "item", domain="universe")
+    amd_register_section_names(("research",), "item", domain="universe")
+    amd_register_fields("item", {
+        "branch": text(hint="which ladder this milestone sits on"),
+        "unlocks": text(hint="storage N | extraction N% | requisition <item>"),
+        "requires": ref("node", hint="the milestone before this one"),
+    }, domain="universe")
     amd_register_section_names(("officers", "cast", "crew"), "lifeform", domain="universe")
 
 
