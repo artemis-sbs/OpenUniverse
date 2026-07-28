@@ -28,7 +28,8 @@ def universe_parse_captains(doc):
                 "key": n.get("key"),
                 "name": n.get("display_text"),
                 "desc": (n.get("description") or "").strip(),
-                "clan": data.get("clan"),
+                # `Side:` is the authored word now; `Clan:` still parses.
+                "clan": data.get("side") or data.get("clan"),
                 "title": data.get("title"),
                 "leans": data.get("leans") or {},
                 "makeup": data.get("makeup"),

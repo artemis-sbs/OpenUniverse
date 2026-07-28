@@ -185,7 +185,11 @@ def _declare_universe_vocabulary():
                           key="rep", aka=("earns",)),
     }, domain="OpenUniverse")
 
-    amd_register_fields("clan", {
+    # A clan IS A SIDE - universe_clans.py has said so since the beginning ("spawned
+    # as sides"). It was a private archetype because there was nowhere to put the half
+    # that is not a side: its standing, its home patch, its fleet mix. Those hang off
+    # `side` now, so an author writes Side and the extra words come with it.
+    amd_register_fields("side", {
         "character": field(enum("military", "trader", "scientist", "pirate", open=True),
                            key="archetype", aka=("archetype",)),
         "disposition": enum("friendly", "neutral", "hostile", open=True),
@@ -196,7 +200,10 @@ def _declare_universe_vocabulary():
     }, domain="universe")
 
     amd_register_fields("captain", {
-        "clan": ref("node"), "title": text(), "values": weighted(),
+        # `Side:` - the word for the faction now. The stored key stays `clan` so every
+        # reader (485 references across OU) is untouched.
+        "side": field(ref("node"), key="clan", aka=("clan",)),
+        "title": text(), "values": weighted(),
         "flies": makeup(), "roams": csv(), "rival when": text(),
         "file": text(hint="a sibling .amd holding this captain's dialogue"),
     }, domain="universe")
@@ -238,7 +245,8 @@ def _declare_universe_vocabulary():
     }, domain="universe")
 
     # Sections the universe names its own way.
-    amd_register_section_names(("clans",), "clan", domain="universe")
+    # `## Clans` still parses; `## Sides` is the word.
+    amd_register_section_names(("clans",), "side", domain="universe")
     amd_register_section_names(("captains",), "captain", domain="universe")
     amd_register_section_names(("worldlets",), "worldlet", domain="universe")
     amd_register_section_names(("admiralty",), "admiralty", domain="universe")

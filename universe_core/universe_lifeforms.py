@@ -37,7 +37,8 @@ def universe_parse_lifeforms(doc):
                 "roles": data.get("roles") or "",
                 "scene": data.get("scene"),
                 "color": data.get("color") or "green",
-                "clan": data.get("clan"),
+                # `Side:` is the authored word now; `Clan:` still parses.
+                "clan": data.get("side") or data.get("clan"),
                 # Passenger fields (a lifeform you transport): pickup + destination
                 # systems and the fare. A lifeform with a deliver_to is a passenger.
                 "pickup": data.get("pickup"),
