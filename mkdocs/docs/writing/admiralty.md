@@ -108,7 +108,7 @@ Reserve: unlimited
 A small settled world. People, modest industry, and somewhere to come from.
 ```
 
-- **Palette** is optional - it paints the planet (base colour, cloud colour,
+- **Palette** is optional - it paints the planet (base color, cloud color,
   and `bands` for a gas giant's stripes). Skip it and you get an engine default.
 - The **home system always gets one** worldlet so the player can always start.
   Elsewhere they appear by chance (the `Worldlet chance` dial in step 6), or you

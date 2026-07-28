@@ -3,7 +3,7 @@ of them a player COMMANDS.
 
 The authored half was called "sides" - a private word for something universe_sides.py
 itself described as "spawned as sides". It lives here now: what a side is called, its
-colour, its character, the systems it calls home, the ships it flies. The document
+color, its character, the systems it calls home, the ships it flies. The document
 plumbing that used to sit beside it is in universe_doc.py.
 
 Player-side roster
