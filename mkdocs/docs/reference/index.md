@@ -35,7 +35,7 @@ The built-in trait pairs: `honest`/`liar`, `fearsome`/`cowardly`,
 | Fact | Meaning |
 |---|---|
 | `Color:` | Map/side color, e.g. `#cc2244`. |
-| `Archetype:` | `military` / `trader` / `settler` / `mercenary` / `pirate` / `cult`. |
+| `Character:` | `military` / `trader` / `settler` / `mercenary` / `pirate` / `cult`. |
 | `Disposition:` | `neutral` (talks) or `foe` (shoots first). |
 | `Home:` / `Homes:` | Home system `col, row`; several separated with `;`. |
 | `Values:` | Trait leanings: `pole N` weights, comma-separated. |

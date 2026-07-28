@@ -4,6 +4,12 @@ Sides are your factions - the recurring characters of the galaxy. Each one is
 a character sheet: what they look like on the map, where they live, what they
 value, and what kind of people they are.
 
+!!! note "These used to be called clans"
+    They were always sides - the universe spawned them as sides from the first day.
+    The private word bought us a private kind of record and a second vocabulary for
+    standing and home systems, so it is gone. `## Clans` and `Clan:` still parse, and
+    nothing you have written needs changing.
+
 Add a `## Sides` chapter with two entries:
 
 ```
@@ -12,7 +18,7 @@ Add a `## Sides` chapter with two entries:
 ### [The Lantern Combine](lantern)
 ---
 Color: #ffcc44
-Archetype: trader
+Character: trader
 Disposition: neutral
 Home: -4, 2
 Values: honest 40, generous 30, peaceful 20
@@ -24,7 +30,7 @@ memories for a kept promise - and longer ones for a broken cargo contract.
 ### [The Red Veil](veil)
 ---
 Color: #cc2244
-Archetype: pirate
+Character: pirate
 Disposition: foe
 Home: 5, -4
 Values: violent 40, fearsome 30, selfish 20

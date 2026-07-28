@@ -4,10 +4,11 @@ Sides are institutions. These two chapters give the galaxy *faces*.
 
 ## Captains
 
-Captains are named NPCs of a side - a person a crew can meet, deal with, and
-make an enemy of. A captain has personal `Values`, roams a system, and has one
-dramatic hinge: `Rival when:` - the standing threshold at which they stop
-being a character you talk to and start being a character who hunts you.
+Captains are **Characters** - the same kind of record as anyone else in the cast, which
+is what they always were. A captain is a person of a side that a crew can meet, deal
+with, and make an enemy of: personal `Values`, a system they roam, and one dramatic
+hinge - `Rival when:`, the standing at which they stop being someone you talk to and
+start being someone who hunts you.
 
 ```
 ## [Captains](captains)

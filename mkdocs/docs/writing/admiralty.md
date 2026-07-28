@@ -36,11 +36,19 @@ with a `(key)`, a `---` fence of facts, and a line of prose:
 
 ### [Cinder World](cinder)
 ---
+Landmark
+Also: economy
 Yields: ore 8
 Reserve: 4000
 ---
 A cracked, mineral-rich ember of a world. Miners love it; nobody else does.
 ```
+
+A worldlet is a **Landmark** - a place on the map - that *also* yields. `Also: economy`
+is where `Yields:` and `Reserve:` come from, and any other landmark that produces
+something can claim the same words. (Records in a `## Worldlets` chapter are read as
+landmarks whether or not they say so; writing it out is clearer once a file has more
+than one kind of thing in it.)
 
 - **Yields** is per minute, per Extractor: `ore 8` means one Extractor here pulls
   8 ore a minute.

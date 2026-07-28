@@ -28,7 +28,7 @@ claims it.
 ### [The Lantern Combine](lantern)
 ---
 Color: #ffcc44
-Archetype: trader
+Character: trader
 Disposition: neutral
 Home: -4, 2
 Values: honest 40, generous 30, peaceful 20
@@ -41,7 +41,7 @@ memories for a kept promise - and longer ones for a broken cargo contract.
 ### [The Red Veil](veil)
 ---
 Color: #cc2244
-Archetype: pirate
+Character: pirate
 Disposition: foe
 Home: 5, -4
 Values: violent 40, fearsome 30, selfish 20

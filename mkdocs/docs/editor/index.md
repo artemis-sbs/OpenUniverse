@@ -45,10 +45,13 @@ makes them easier to see and safer to edit.
 | Feature | What it does |
 |---|---|
 | **Live error-checking** | Red/yellow squiggles for broken headings, dangling links, unfired signals, non-ASCII text — the mistakes that otherwise make a node silently vanish in-game. |
-| **Navigation** | `F12` to jump to a link's target, `Shift+F12` to find every reference, `F2` to rename a key across the whole mission, hover to preview, `Ctrl+Space` to complete node keys. |
+| **Navigation** | `F12` to jump to a link's target, `Shift+F12` to find every reference, `F2` to rename a key across the whole mission, hover to preview. |
+| **Completion that reads where you are** | `Ctrl+Space` on a fence's first line offers the words a record can BE — Beat, Arc, Character, Landmark — each saying what choosing it means; on a field line it offers that record's fields; after `Starts when:` it offers the trigger grammar. Elsewhere, node keys as before. |
+| **Hover that explains the field** | Point at `Fails when:` and read what it takes; point at `Beat` and read what it implies. The format's own words, where you are looking. |
+| **It learns YOUR vocabulary** | A mission that declares its own fields in Python gets the same typed widgets and the same checking as the built-in ones. The extension reads those declarations — it never runs your code. |
 | **Mission Map** | Your landmarks and regions on a grid — drag to move/resize, right-click empty space to add one, click to edit. |
 | **Story Graph** | Your nodes and their links as swimlanes by section — collapse branches, filter sections, focus one conversation, drag between nodes to link them. |
-| **Inspector** | Edit any node as a **form** (display, fields, body) that saves live and stays in sync with the text — in a side panel, a pop-out tab, or a drawer right inside the map/graph. |
+| **Inspector** | Edit any node as a **form** (what it is, display, fields, body) that saves live and stays in sync with the text — in a side panel, a pop-out tab, or a drawer right inside the map/graph. A **"This is a"** picker sets the record's word and tells you what it means; the rest of the fence — your notes, your lists — is left exactly as you wrote it. |
 | **Faces** | A live face preview and a **Face Builder** with a slider per feature — build a character's portrait without memorizing face codes. |
 | **Formatter** | Tidy a `.amd` file's whitespace and fences (optionally on save) without touching your words. |
 
