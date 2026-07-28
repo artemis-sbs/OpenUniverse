@@ -215,9 +215,10 @@ def _declare_universe_vocabulary():
         "values": weighted(hint="what this character cares about"),
     }, domain="universe")
 
-    amd_register_fields("worldlet", {
-        "yields": csv(hint="what can be mined here"),
-        "reserve": integer(hint="how much is left"),
+    # A worldlet is a LANDMARK that yields - not a kind of thing of its own. `Yields:`
+    # and `Reserve:` come from the shared `economy` trait (anything that produces can
+    # claim it); `Palette:` is how this landmark LOOKS, so it belongs to landmark.
+    amd_register_fields("landmark", {
         "palette": text(hint="the look of the surface"),
     }, domain="universe")
 
@@ -248,7 +249,7 @@ def _declare_universe_vocabulary():
     # `## Sides` still parses; `## Sides` is the word.
     amd_register_section_names(("sides",), "side", domain="universe")
     amd_register_section_names(("captains",), "captain", domain="universe")
-    amd_register_section_names(("worldlets",), "worldlet", domain="universe")
+    amd_register_section_names(("worldlets",), "landmark", domain="universe")
     amd_register_section_names(("admiralty",), "admiralty", domain="universe")
     amd_register_section_names(("officers", "cast", "crew"), "lifeform", domain="universe")
 

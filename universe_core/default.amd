@@ -290,6 +290,8 @@ Kind: worldlet. Driven by universe_worldlets.py.
 
 ### [Cinder World](cinder)
 ---
+Landmark
+Also: economy
 Yields: ore 8
 Reserve: 4000
 Palette: base #8c2f1c, emissive #48180c, clouds #776655
@@ -298,6 +300,8 @@ A cracked, mineral-rich ember of a world. Miners love it; nobody else does.
 
 ### [Veiled Giant](veiled_giant)
 ---
+Landmark
+Also: economy
 Yields: gas 10
 Reserve: 6000
 Palette: base #2c4a8c, clouds #b8c4e0, bands 3.7
@@ -306,6 +310,8 @@ A banded gas giant, its high winds rich in fuel-grade volatiles.
 
 ### [Haven World](haven)
 ---
+Landmark
+Also: economy
 Yields: crew 2, ore 2, gas 2
 Reserve: unlimited
 Palette: base #2f6e3a, clouds #ffffff
