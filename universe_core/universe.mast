@@ -149,7 +149,7 @@ default shared WAYPOINTS_ENABLED = False
     shared UNIVERSE_NARRATIVE = universe_section(UNIVERSE_DOC, "narrative")
     # Campaign goals (the `goals` section, may be None): shared quests like narrative,
     # but a goal flagged Win/Lose ends the campaign when it completes (handled in
-    # //signal/quest_finished). Granted game-wide below alongside the narrative.
+    # //signal/quest_succeeded). Granted game-wide below alongside the narrative.
     shared UNIVERSE_GOALS = universe_section(UNIVERSE_DOC, "goals")
     # Dialogue scenes (the `dialogue` section): key -> scene node, driven by the
     # //comms/dialogue route when a player hails a clan station.
@@ -243,7 +243,7 @@ default shared WAYPOINTS_ENABLED = False
     # (skips already-granted steps), and a no-op when the universe has no narrative.
     quest_grant_amd(universe_shared_id(), UNIVERSE_NARRATIVE)
     # Grant the campaign goals the same way (shared, game-wide). A goal completing
-    # is what triggers the Win/Lose end (in //signal/quest_finished).
+    # is what triggers the Win/Lose end (in //signal/quest_succeeded).
     quest_grant_amd(universe_shared_id(), UNIVERSE_GOALS)
 
     await task_schedule(universe_enter_system)
@@ -459,7 +459,7 @@ default shared WAYPOINTS_ENABLED = False
 
 
 # Apply a completed quest's declarative rep: block to the captain (universe).
-//shared/signal/quest_finished if UNIVERSE_ACTIVE
+//shared/signal/quest_succeeded if UNIVERSE_ACTIVE
     reputation_apply(AGENT_ID, DATA.get("rep"))
     # On-change chatter: clans note a shift in your standing.
     if DATA.get("rep") is not None:
@@ -504,7 +504,7 @@ default shared WAYPOINTS_ENABLED = False
 
 # Mode default win: skirmish/war end when one player side remains. An authored
 # victory QUEST (e.g. `destroy 1 <enemy>_capital` for a decapitation win) fires
-# universe_victory earlier via //signal/quest_finished; this is the fallback
+# universe_victory earlier via //signal/quest_succeeded; this is the fallback
 # conquest win. Only PvP Modes act on it - co-op ignores last-standing.
 //shared/signal/last_side_standing if universe_mode_is_pvp()
     UNIVERSE_GAME_OVER = True
