@@ -27,24 +27,30 @@ jobs:
       matrix:
         item: ${{ fromJson(needs.setup.outputs.matrix) }}
 
-    steps:
-      - name: Set env version
-        id: get_version
-        run: echo ::set-output name=VERSION::${GITHUB_REF/refs\/tags\//}
+    env:
+      # Name it exactly what `sbs lib` writes into __lib__ and what a mission's
+      # story.json refers to: {owner}.{repo}.{addon}.{tag}.mastlib. Publishing the bare
+      # addon name meant no consumer could resolve it - every fetch 404'd and fell back
+      # to whatever happened to be on disk.
+      ASSET: ${{ github.repository_owner }}.${{ github.event.repository.name }}.${{ matrix.item }}.${{ github.ref_name }}.mastlib
 
+    steps:
       - uses: actions/checkout@master
-      - name: Archive addon
-        uses: thedoctor0/zip-release@main
-        with:
-          type: 'zip'
-          filename: '${{ matrix.item }}.${{ steps.get_version.outputs.VERSION }}.mastlib'
-          path: "${{ matrix.item }}"
+
+      # FLAT, and that is load-bearing: MAST opens the .mastlib and reads `__init__.mast`
+      # at the ZIP ROOT. The old `zip-release` step passed `path: <addon>`, which nests the
+      # folder, so the archive held `<addon>/__init__.mast`, the open raised, and the addon
+      # silently never loaded - zero labels, and the headless test still reported PASS.
+      - name: Archive addon (flat, matching `sbs lib`)
+        env:
+          SRC: ${{ matrix.item }}
+        run: python .github/zip_flat.py "$SRC" "$ASSET"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: '${{ matrix.item }}'
-          path: '${{ matrix.item }}.${{ steps.get_version.outputs.VERSION }}.mastlib'
+          path: ${{ env.ASSET }}
           retention-days: 1
 
   build_release:
