@@ -19,6 +19,7 @@
         "artemis-sbs.LegendaryMissions.upgrades.v1.4.0.mastlib",
         "artemis-sbs.LegendaryMissions.quests.v1.4.0.mastlib",
         "artemis-sbs.LegendaryMissions.documents.v1.4.0.mastlib",
+        "artemis-sbs.LegendaryMissions.lm_lore.v1.4.0.mastlib",
         "artemis-sbs.LegendaryMissions.data_panels.v1.4.0.mastlib",
         "artemis-sbs.LegendaryMissions.basic_player_destroy.v1.4.0.mastlib",
         "artemis-sbs.LegendaryMissions.basic_random_skybox.v1.4.0.mastlib"
