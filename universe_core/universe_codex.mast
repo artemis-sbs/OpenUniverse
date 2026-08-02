@@ -6,7 +6,13 @@
 # ship its own lore.amd.
 
 # Register the Codex tab (top bar). Runs once at load.
-gui_tab_add_top("codex")
+#
+# ONLY when there is lore to show. A mission loads this addon for the universe ENGINE,
+# and the tab used to register unconditionally - so once the demo lore moved out to the
+# OU mission root, Storm's Beacon was left with a Codex tab containing nothing. A
+# mission that ships its own lore.amd still gets the tab.
+if amd_has_content("lore.amd"):
+    gui_tab_add_top("codex")
 
 
 //gui/tab/codex if UNIVERSE_ACTIVE
