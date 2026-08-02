@@ -5,7 +5,10 @@
 # via admiral_present() (universe_mode.py), so loading core WITHOUT admiral is fully
 # valid - every admiral call-site in core is guarded by admiral_present()/admiralty_active().
 #
-# Helpers/data first, then the registries, then the map itself (shared MAST namespace:
+# Helpers/data first, then the map itself. The example UNIVERSES are NOT here:
+# a universe is mission CONTENT, the same way LM keeps its maps out of its addons,
+# so a mission building on this engine gets no universes it did not ask for.
+# Helpers/data first, then the map itself (shared MAST namespace:
 # later files call the earlier helpers by bare name).
 import universe_helpers.py
 import universe_mode.py
@@ -22,5 +25,4 @@ import universe_landmarks.py
 import universe_goods.py
 import universe_systems.py
 import universe_codex.mast
-import universes.mast
 import universe.mast

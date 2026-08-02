@@ -4,6 +4,10 @@
 # its own @map (OpenUniverse Phase 2b: a map is mission presentation, not engine) - the
 # "Open Universe" start screen, incl. the dropdown of demo universes (universe_options_csv).
 
+# The demo universes are this MISSION's content, not the engine's - moved out of
+# universe_core so a mission building on it (Storm's Beacon) gets the engine only.
+import universes.mast
+
 @map/universe "Open Universe"
 " Explore an endless, procedurally generated universe. Engage the jump drive on
 " the Navigation console to travel between systems - the same seed always
