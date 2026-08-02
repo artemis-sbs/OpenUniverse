@@ -4,7 +4,7 @@
 # [Frontier Command](frontier_hail)
 ---
 Speaker: frontier_command
-Done when: comms
+When: comms
 ---
 % Frontier Command here, captain. You're a long way from home.
 % Report when able. We read what the sides make of you out there.
@@ -32,7 +32,7 @@ Speaker: frontier_command
 # [Doctor Sela Voss](sela_hail)
 ---
 Speaker: sela_voss
-Done when: comms
+When: comms
 ---
 % Thank you for the passage, captain. The Verdant worlds are a long way out.
 % Mind the Ashfang lanes - I'd rather arrive in one piece.
@@ -51,7 +51,7 @@ Speaker: sela_voss
 # [A Nervous Courier](courier_hail)
 ---
 Speaker: courier
-Done when: comms
+When: comms
 ---
 % I paid for passage, not an interrogation. Eyes forward, captain.
 % ...is something wrong? You're looking at me strangely.

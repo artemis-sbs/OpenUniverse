@@ -211,7 +211,7 @@ places. He does not say why, and he pays in advance.
 ### [Veil Hail](veil_hail)
 ---
 Speaker: veil
-Done when: comms
+When: comms
 ---
 % Well now. Fresh freight, flying no colors we fear.
 % You are a long way from the lanterns, captain.
@@ -248,7 +248,7 @@ Speaker: veil
 ### [Mara Dusk](mara_hail)
 ---
 Speaker: mara
-Done when: comms
+When: comms
 ---
 %{standing < -20} You. The Reach is not wide enough for what you owe me.
 %{standing >= 30} The Lanternless remembers her friends, captain. Speak.
@@ -269,7 +269,7 @@ Speaker: mara
 ### [Quill Hail](quill_hail)
 ---
 Speaker: quill
-Done when: comms
+When: comms
 ---
 % Lighthouse control to wandering freight - state your heading, captain.
 % Quill here. The lanes are listening, so make it brief and make it honest.
@@ -297,7 +297,7 @@ Speaker: quill
 ### [Calen Hail](calen_hail)
 ---
 Speaker: calen
-Done when: comms
+When: comms
 ---
 % Thank you for the berth, captain. I am no trouble; I keep to my prayers.
 % The Veilfall, yes. Everyone asks. Some debts are paid where they were made.
