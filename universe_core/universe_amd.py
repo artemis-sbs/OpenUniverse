@@ -212,6 +212,12 @@ def _declare_universe_vocabulary():
         "flies": makeup(hint="60% Kralien, 40% Arvonian"),
         "roams": csv(hint="the systems they are found in"),
         "file": text(hint="a sibling .amd holding this character's dialogue"),
+        # A COURIER job carried by a person rather than a job board: where the parcel is
+        # picked up, where it goes, what it pays, and whether someone is paid to stop it.
+        "pickup": coord2(hint="the cell the parcel is collected from"),
+        "deliver to": coord2(hint="the cell it has to reach"),
+        "reward": text(hint="500 credits"),
+        "sabotage": text(hint="who is paid to make sure it does not arrive"),
     }, domain="universe")
 
     # A worldlet is a LANDMARK that yields - not a kind of thing of its own. `Yields:`
@@ -222,6 +228,10 @@ def _declare_universe_vocabulary():
     }, domain="universe")
 
     amd_register_fields("map", {
+        # A section splices another .amd in (amd_doc's `File:`/`Files:`). Declared on map
+        # as well as lifeform because the sections that DO the splicing - Captains, Cast,
+        # Dialogue - sit under the universe root and resolve as map.
+        "file": text(hint="a sibling .amd spliced into this section"),
         "economy pace": pct(), "research pace": pct(), "relay rate": pct(),
         "worldlet chance": pct(), "skirmish pressure": pct(),
         "skirmish interval": integer(hint="seconds"),
@@ -232,13 +242,19 @@ def _declare_universe_vocabulary():
         "sabotage": text(),
     }, domain="universe")
 
-    # Region generation knobs the universe adds on top of the shared REGION fields.
-    amd_register_fields("region", {
+    # Generation knobs. The SAME dials read at two levels: on the universe root they are
+    # its defaults ("all fall back to built-in defaults when unwritten", default.amd), and
+    # on a region they override for that patch of space. Declared on both archetypes for
+    # that reason - registering only the region half left `Nebula mix: 4%` on the root
+    # looking like a typo.
+    _GEN_DIALS = {
         "skybox": text(), "music": text(),
         "enemy mix": makeup(), "station mix": makeup(), "nebula mix": makeup(),
         "anomaly mix": makeup(), "mine chance": pct(),
         "derelict chance": pct(), "outpost chance": pct(),
-    }, domain="universe")
+    }
+    amd_register_fields("region", dict(_GEN_DIALS), domain="universe")
+    amd_register_fields("map", dict(_GEN_DIALS), domain="universe")
 
     amd_register_fields("landmark", {
         "terrain": csv(), "guards": csv(hint="what defends it"),
