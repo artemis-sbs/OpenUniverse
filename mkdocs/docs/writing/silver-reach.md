@@ -1,7 +1,7 @@
 # The complete example - The Silver Reach
 
 Everything the walkthrough built, in one file. **This universe ships with the
-mission** - it lives at `OpenUniverse/universe/silver_reach.amd` and is
+mission** - it lives at `OpenUniverse/silver_reach.amd` and is
 playable from the Universe dropdown as *The Silver Reach*. Copy the file (and
 its registration entry) as the starting point for your own galaxy, as shown in
 [Getting started](getting-started.md).

@@ -5,7 +5,7 @@ one-heading universe that already plays.
 
 !!! note "The finished example is already in the box"
     The universe this walkthrough builds, **The Silver Reach**, ships with the
-    mission (`universe/silver_reach.amd`) and is playable from the Universe
+    mission (`silver_reach.amd`) and is playable from the Universe
     dropdown right now. You can peek at it whenever a page here leaves you
     unsure - or copy it wholesale and carve your own galaxy out of it. The
     steps below build it from a blank page, using `my_reach` as your file's
@@ -18,11 +18,17 @@ one-heading universe that already plays.
 **1.** Create your file next to the existing ones:
 
 ```
-OpenUniverse/universe/my_reach.amd
+OpenUniverse/my_reach.amd
 ```
 
+Universes live at the mission root, not inside `universe_core/`. That addon is the
+**engine** - a mission built on Open Universe loads it to get the universe machinery,
+and should not inherit somebody else's universes along with it, the same way
+LegendaryMissions keeps its maps out of its addons. Your `.amd` is found because the
+mission's own folder is looked in first.
+
 **2.** Add it to the game's universe list so it appears in the **Universe**
-dropdown on the start screen. Open `OpenUniverse/universe/universes.mast` and
+dropdown on the start screen. Open `OpenUniverse/universes.mast` and
 copy an existing entry, filling in your name (this is the only file you will
 touch that is not your own):
 
