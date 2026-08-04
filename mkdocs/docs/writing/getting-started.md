@@ -13,6 +13,20 @@ one-heading universe that already plays.
     must be unique across the dropdown - when you rebuild the example
     verbatim, keep your own `key:` and `display:` in the registration entry.)
 
+!!! tip "Want your own mission, not an edit to this one?"
+    This page adds a universe **to the Open Universe mission**, which is the quickest
+    way to start writing. If you'd rather have a standalone mission of your own that
+    runs on the same engine — your own name in the mission list, your own repository —
+    start from the template instead:
+
+    ```
+    sbs create MyUniverse -t ou
+    ```
+
+    You get a mission that loads `universe_core` and nothing else of Open Universe's,
+    with a small universe `.amd` and its registration label already written. Every
+    page in this walkthrough then applies to *your* file. (Requires the v1.4.0 line.)
+
 ## Hang your universe on the shelf
 
 **1.** Create your file next to the existing ones:
