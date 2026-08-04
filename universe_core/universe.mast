@@ -582,7 +582,9 @@ default shared WAYPOINTS_ENABLED = False
     # globals (the mock's are more permissive, so --test never caught it).
     # QuestState.IDLE == 0; the story_patrol check below already uses 0.
     for pax in universe_passengers_at(UNIVERSE_LIFEFORMS, h_i, h_j):
-        if quest_get_state(ship_id, "passenger_" + pax.key) == 0:
+        # A passenger whose Patience ran out has gone - stop offering a berth to
+        # someone who is no longer on the ring.
+        if quest_get_state(ship_id, "passenger_" + pax.key) == 0 and not universe_waiting_gone(ship_id, pax.key):
             pax_label = f"Transport {pax.name} to ({pax.deliver_to[0]}, {pax.deliver_to[1]})  ({pax.pays} cr)"
             + "{pax_label}" universe_accept_passenger {"pax": pax}
     pax_tij = universe_delivery_target(universe_seed, h_i, h_j)
@@ -1102,6 +1104,10 @@ default shared WAYPOINTS_ENABLED = False
                 st_name = sides_name(UNIVERSE_SIDES, owner)
             station = npc_spawn(co.x, co.y, co.z, st_name, f"{st_side}, station", st_type, "behav_station")
             station_id = to_id(station)
+            # Authored passengers waiting HERE become people on the ring: spawned on the
+            # station, asking (more insistently as their Patience runs out), and gone if
+            # nobody comes. The clock is a station-held quest; their urges are its voice.
+            universe_waiting_install(station_id, UNIVERSE_LIFEFORMS, ei, ej)
             # Market: restore this sector's saved stock, else seed deterministically.
             saved_market = universe_system_value(universe_systems, ei, ej, "market", None)
             if saved_market is not None:

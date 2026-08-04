@@ -46,6 +46,13 @@ def universe_parse_lifeforms(doc):
                 "pays": (data.get("reward") or {}).get("credits"),
                 # Saboteur: ship systems this lifeform sabotages once aboard (slice 3).
                 "sabotage": data.get("sabotage"),
+                # How long this passenger waits at their pickup before giving up. Drives
+                # a station-held quest with a deadline; the urges under the record are
+                # its voice. Absent -> they wait forever, as before.
+                "patience": data.get("patience"),
+                # The parsed heading itself, so nested `Urge` children can be read
+                # without re-walking the document.
+                "node": n,
             }))
     return out
 
@@ -114,6 +121,83 @@ def universe_generic_passenger(i, j, ti, tj):
         "pays": 400, "roles": "", "color": "#9cf", "scene": None, "face": None})
 
 
+# --- Waiting passengers (a character who asks, and leaves) -------------------
+# A passenger used to be a menu row that sat there forever. With `Patience:` they are
+# spawned ON their pickup station and become a person in the world: they ask, more
+# insistently as their window closes, and go if nobody comes.
+#
+# The stakes live in a STATION-HELD quest with a `fail_after` - so there is one clock,
+# the quest owns the consequence, and the urges are only its voice. That is the whole
+# shape URGE_PLAN.md argues for, and it needs the station-held quest tickers from its
+# phase 2 to work at all.
+def universe_waiting_quest_id(key):
+    return "waiting_" + str(key)
+
+
+def universe_waiting_role(key):
+    return "pax_waiting_" + str(key)
+
+
+def universe_waiting_lifeform(key):
+    """The live waiting lifeform for this passenger key, or None."""
+    for lf_id in role(universe_waiting_role(key)):
+        obj = to_object(lf_id)
+        if obj is not None:
+            return obj
+    return None
+
+
+def universe_waiting_gone(ship_id, key):
+    """True once this passenger's patience ran out - stop offering the transport."""
+    from sbs_utils.procedural.quest_driver import _quest_holders
+    from sbs_utils.procedural.quest import quest_get_state
+    qid = universe_waiting_quest_id(key)
+    for holder in _quest_holders():
+        if int(quest_get_state(holder, qid) or 0) == int(QuestState.FAILED):
+            return True
+    return False
+
+
+def universe_waiting_install(station_id, lifeforms, i, j):
+    """Spawn every authored passenger waiting at (i, j) onto the station, start their
+    patience clock, and give them their authored urges. Returns how many were placed.
+
+    Idempotent per key: re-entering a system does not produce a second Doctor Voss, and
+    one who already gave up is not resurrected.
+    """
+    from sbs_utils.procedural.amd_urge import urges_from_section
+    from sbs_utils.procedural.urge import urge_add
+    from sbs_utils.procedural.amd import amd_duration_seconds
+    from sbs_utils.procedural.roles import add_role
+    placed = 0
+    for pax in universe_passengers_at(lifeforms, i, j):
+        key = pax.get("key")
+        if universe_waiting_lifeform(key) is not None:
+            continue                            # already on the ring
+        if universe_waiting_gone(station_id, key):
+            continue                            # already gave up; they do not come back
+        secs = amd_duration_seconds(pax.get("patience")) if pax.get("patience") else None
+        agent = universe_spawn_lifeform(pax, station_id)
+        add_role(agent, universe_waiting_role(key))
+        if secs:
+            quest_add(station_id, universe_waiting_quest_id(key),
+                      "Passage for " + str(pax.get("name")),
+                      str(pax.get("name")) + " is waiting for a lift.",
+                      state=QuestState.ACTIVE,
+                      data={"fail_after": {"seconds": int(secs)}})
+        # `Until:` is not authored on the nag - it is the same fact every time (they
+        # boarded), so the loader supplies it rather than making every author repeat it.
+        for rec in urges_from_section(pax.get("node")):
+            if not rec.get("until") and not rec.get("whenever_is_failed"):
+                if rec.get("weight", 0) < 90:
+                    rec["until"] = "quest " + universe_passenger_quest_id(key) + " active"
+            if rec.get("whenever") in (None, "", "always"):
+                rec["whenever"] = "quest " + universe_waiting_quest_id(key) + " active"
+            urge_add(agent, rec)
+        placed += 1
+    return placed
+
+
 def universe_grant_passenger(ship_id, passenger):
     """Accept a transport: grant the on_reach delivery quest (the fare) + board the
     passenger lifeform on the ship. Returns the quest id (None if no destination)."""
@@ -133,8 +217,25 @@ def universe_grant_passenger(ship_id, passenger):
     # so the sabotage task runs while one is aboard and a Detain can end it.
     if passenger.get("sabotage"):
         roles = roles + ", saboteur"
-    agent = lifeform_spawn(passenger.get("name"), lifeform_face(passenger), roles, ship_id,
-                           path="//comms/universe_cast", title_color=passenger.get("color") or "green")
+    # A passenger who was WAITING on the ring is already a person in the world - board
+    # that one rather than spawning a second copy of her standing next to herself. Her
+    # patience quest is done the moment she has a berth, which also retires the nag.
+    agent = universe_waiting_lifeform(passenger.get("key"))
+    if agent is not None:
+        from sbs_utils.procedural.roles import add_role, remove_role
+        from sbs_utils.procedural.quest_driver import quest_mark_complete, _quest_holders
+        from sbs_utils.procedural.quest import quest_get_state
+        wqid = universe_waiting_quest_id(passenger.get("key"))
+        for holder in _quest_holders():
+            if int(quest_get_state(holder, wqid) or 0) == int(QuestState.ACTIVE):
+                quest_mark_complete(holder, wqid)
+        remove_role(agent, universe_waiting_role(passenger.get("key")))
+        add_role(agent, roles)
+        lifeform_transfer(agent, ship_id)
+    else:
+        agent = lifeform_spawn(passenger.get("name"), lifeform_face(passenger), roles,
+                               ship_id, path="//comms/universe_cast",
+                               title_color=passenger.get("color") or "green")
     set_inventory_value(agent, "scene", passenger.get("scene"))
     set_inventory_value(agent, "deliver_quest", qid)
     set_inventory_value(agent, "deliver_to", [int(dest[0]), int(dest[1])])

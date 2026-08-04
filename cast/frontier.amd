@@ -15,6 +15,11 @@ Distant TSN fleet command, keeping a thin watch over the frontier.
 // An authored named passenger (delivery B): a lifeform with a Pickup + Deliver to
 // + Pays. Offered for transport at her pickup station; boards your ship on accept
 // and disembarks (with the fare) on reaching her destination. She has a voice too.
+//
+// `Patience:` makes her WAIT rather than sit on a menu forever - she is spawned on
+// her pickup station and asks, more insistently as her window closes, and leaves if
+// nobody comes. The clock is a station-held quest; the urges below are only its
+// voice, which is why they declare no stakes of their own.
 # [Doctor Sela Voss](sela_voss)
 ---
 Face: female
@@ -22,10 +27,40 @@ Roles: civilian
 Pickup: 0, 0
 Deliver to: -5, 3
 Reward: 500 credits
+Patience: 20m
 Scene: sela_hail
 Color: #6cf
 ---
 A xenobiologist needing passage from the home base to the Verdant worlds.
+
+// The stage count IS the curve: `%` while there is time, `%%` as it runs short,
+// `%%%` at the end. `Escalates: with deadline` reads her Patience clock, so the
+// tempo is set by the number above and nothing here has to agree with it.
+## [Still waiting for passage](sela_waiting)
+---
+Urge
+Every: 4m
+Escalates: with deadline
+---
+% Doctor Voss is on the docking ring, if anyone is bound for the Verdant worlds.
+% Sela Voss here - still looking for passage out to Verdant. I can pay.
+%% Voss again. My window at the Verdant site closes, captain.
+%% I am asking around the ring now. Anyone headed out that way?
+%%% Last call. I need to be on a hull today or not at all.
+
+// Weight 90 outranks the global speech floor - someone leaving for good should not
+// be swallowed because another voice spoke five seconds ago. `self` is her, so no
+// role has to be invented just to let this line point at the person saying it.
+## [Gives up and goes](sela_gives_up)
+---
+Urge
+Whenever: quest waiting_sela_voss failed
+Weight: 90
+Action:
+  - self departs
+---
+% Never mind. I have found other arrangements.
+% Too late, I am afraid. I have taken a berth on a freighter.
 
 // A saboteur passenger (delivery + slice 3): a lifeform with a Sabotage list. Pays
 // suspiciously well; once aboard he damages those ship systems one at a time (crew
