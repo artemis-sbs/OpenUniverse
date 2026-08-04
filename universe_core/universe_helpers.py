@@ -11,7 +11,9 @@ import os
 from sbs_utils import scatter
 from sbs_utils.vec import Vec3
 from sbs_utils.fs import get_mission_dir
-from sbs_utils.procedural.terrain import terrain_spawn_field_keyed
+from sbs_utils.procedural.terrain import (terrain_spawn_field_keyed,
+                                          terrain_sow_begin, terrain_sow_end,
+                                          terrain_sow_reset)
 from sbs_utils.procedural.space_objects import delete_objects_box
 from sbs_utils.procedural.roles import role
 from sbs_utils.procedural.query import to_object_list, to_object
@@ -267,8 +269,16 @@ def universe_generate_system(universe_seed, i, j, terrain_value=2):
     # window of the (key-seeded) field shows, so a cell's asteroid pattern can
     # differ by slot across visits - acceptable (flavor). Slot 0 = origin, so
     # single-cell is unchanged; identity content is key-seeded + co-translated.
+    # SOWED. This is the worst burst in the game: unlike a map, it happens
+    # MID-FLIGHT, every time the players jump, so the hitch lands while they are
+    # actually flying. Sowing spreads it over ~5 seconds, ordered outward from the
+    # cell origin where the players arrive - so their immediate surroundings are
+    # right at once and the rest fills in beyond radar range. The keyed spawner
+    # re-seeds per cell and restores the RNG, so the field is identical either way.
+    terrain_sow_begin(over=5, focus=co)
     terrain_spawn_field_keyed(key, 1000, co.x - r, co.z - r, co.x + r, co.z + r, terrain_value,
                               nebula_chance, asteroid_chance, marker=False)
+    terrain_sow_end()
 
 
 def universe_clear_system():
@@ -277,6 +287,10 @@ def universe_clear_system():
     broad_type 0x1F = terrain (0x0f) + NPC (0x10); PLAYER (0x20) is excluded, so
     the player ships survive the jump while everything else is despawned.
     """
+    # Drop terrain still queued for the system we are LEAVING. Without this, a jump
+    # taken before the sow finished would keep creating the old sector's asteroids
+    # into the new one, after the delete below has already run.
+    terrain_sow_reset()
     delete_objects_box(0, 0, 0, 1_000_000, 1_000_000, 1_000_000, broad_type=0x1F)
 
 
