@@ -27,7 +27,7 @@ def warstate_reset():
     _WARSTATE = {"established": set(), "eliminated": set(), "done": False}
 
 
-def _side_has_hq(side):
+def _admiralty_side_has_hq(side):
     return len(to_object_list(role("admiral_hq") & role(side))) > 0
 
 
@@ -44,7 +44,7 @@ def warstate_tick():
     for s in sides:
         if s in st["eliminated"]:
             continue
-        if _side_has_hq(s):
+        if _admiralty_side_has_hq(s):
             st["established"].add(s)
         elif s in st["established"]:
             st["eliminated"].add(s)

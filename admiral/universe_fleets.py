@@ -8,7 +8,7 @@ CQ's six-admirals pattern transplanted onto the reputation poles.
 
 A fleet = one officer + a small hull roster, commissioned at a Shipyard and
 capped by command points. Orders are a fixed verb set (escort / patrol /
-strike / hold / salvage / withdraw); each order is executed by fleet_tick
+strike / hold / salvage / withdraw); each order is executed by admiralty_fleet_tick
 (called on a cadence from admiral.mast) using the target/target_pos
 primitives - deliberately NOT a brain tree, so slice 3 stays self-contained.
 Every non-hold order burns gas (Fleet gas burn per minute, officer-scaled);
@@ -16,7 +16,7 @@ an empty tank forces hold.
 
 Fleets persist: the live registry mirrors into side inventory (adm_fleets,
 saved by universe_helpers) on every form/order/tick change, and
-fleets_respawn re-instantiates surviving hulls on arrival in a system or
+admiralty_fleets_respawn re-instantiates surviving hulls on arrival in a system or
 when a saved campaign continues (the navy travels with the flag).
 
 Captains are not immortal (slice 4): a destroyed fleet puts its officer MIA
@@ -75,7 +75,7 @@ def _evt(officer_key, text):
 
 # --- Fleet chatter (## Fleet Chatter) --------------------------------------------
 # Fleet event lines are authorable: order acks, gas/salvage/no-target blips, the
-# loss / capture / rescue lines. Each event key owns a pool; fleet_line() picks
+# loss / capture / rescue lines. Each event key owns a pool; admiralty_fleet_line() picks
 # one at random and fills its fields ({ore}/{gas}/{rescuer}/{officer}/{side}).
 # A universe overrides any pool via a `## Fleet Chatter` section (### <key> with
 # the candidate lines as its body); zero authoring -> these defaults stand.
@@ -109,7 +109,7 @@ _FLEET_LINES_DEFAULT = {
 _FLEET_LINES = {k: list(v) for k, v in _FLEET_LINES_DEFAULT.items()}
 
 
-def fleet_chatter_configure(doc):
+def admiralty_fleet_chatter_configure(doc):
     """Merge an authored `## Fleet Chatter` section over the built-in event
     lines (resets to defaults first, so re-selecting a universe never inherits
     the last one's chatter). Each `### <key>` entry's non-blank body lines are
@@ -129,7 +129,7 @@ def fleet_chatter_configure(doc):
             _FLEET_LINES[key] = pool
 
 
-def fleet_line(key, **fields):
+def admiralty_fleet_line(key, **fields):
     """A line for an event key: a random candidate from its pool, formatted with
     the given fields (ore/gas/rescuer/officer/side; any unset -> blank). Falls
     back to the raw line if it references an unknown field, and to the key if a
@@ -341,14 +341,14 @@ def officer_release(side, key):
     _officers_sync(side)
 
 
-def _pick_captor(sides, side):
+def _admiralty_pick_captor(sides, side):
     """The side that claims a lapsed pod: a currently hostile foe side, or
-    None (deep space - the officer is simply lost). _side_is_foe is the
+    None (deep space - the officer is simply lost). _admiralty_side_is_foe is the
     skirmish module's ceasefire-aware check (shared namespace)."""
     if not sides:
         return None
     try:
-        foes = [c.get("key") for c in sides if _side_is_foe(sides, c.get("key"), side)]
+        foes = [c.get("key") for c in sides if _admiralty_side_is_foe(sides, c.get("key"), side)]
     except NameError:
         foes = []
     return random.choice(foes) if foes else None
@@ -421,7 +421,7 @@ def officer_mia_tick(side, dt_seconds, sides=None):
                 st["status"] = "active"
                 st["mia_left"] = 0.0
                 _officers_sync(side)
-                evts.append(_evt(key, fleet_line("rescue", rescuer=rescuer.name)))
+                evts.append(_evt(key, admiralty_fleet_line("rescue", rescuer=rescuer.name)))
                 continue
         st["mia_left"] = float(st.get("mia_left", 0.0)) - float(dt_seconds)
         if st["mia_left"] <= 0:
@@ -429,38 +429,38 @@ def officer_mia_tick(side, dt_seconds, sides=None):
                 delete_object(pod.id)
             o = _OFFICERS.get(key)
             oname = str(o.get("name")) if o is not None else "An officer"
-            captor = _pick_captor(sides, side)
+            captor = _admiralty_pick_captor(sides, side)
             if captor is not None:
                 st["status"] = "captured"
                 st["captor"] = captor
                 _officers_sync(side)
                 cname = str(sides_name(sides, captor) or captor)
-                evts.append(_evt(None, fleet_line("captured", officer=oname, side=cname)))
+                evts.append(_evt(None, admiralty_fleet_line("captured", officer=oname, side=cname)))
             else:
                 st["status"] = "lost"
                 _officers_sync(side)
-                evts.append(_evt(None, fleet_line("lost", officer=oname)))
+                evts.append(_evt(None, admiralty_fleet_line("lost", officer=oname)))
     return evts
 
 
 # --- Fleets ---------------------------------------------------------------------
-def fleet_list():
+def admiralty_fleet_list():
     return list(_FLEETS.values())
 
 
-def fleet_get(key):
+def admiralty_fleet_get(key):
     return _FLEETS.get(key)
 
 
-def fleet_count():
+def admiralty_fleet_count():
     return len(_FLEETS)
 
 
-def fleet_ships(fleet_key):
+def admiralty_fleet_ships(fleet_key):
     return to_object_list(role("adm_" + fleet_key))
 
 
-def fleet_cell(fleet_key):
+def admiralty_fleet_cell(fleet_key):
     """The (i, j) cell a fleet is in. Deploy-only: the fleet's RECORDED cell is
     authoritative (a fleet holds a post whether or not its hulls are currently live);
     fall back to the lead hull's position, then (0, 0)."""
@@ -469,20 +469,20 @@ def fleet_cell(fleet_key):
         c = f.get("cell", None)
         if c is not None:
             return (int(c[0]), int(c[1]))
-    ships = fleet_ships(fleet_key)
+    ships = admiralty_fleet_ships(fleet_key)
     if not ships:
         return (0, 0)
     p = ships[0].pos
     return universe_cell_at_pos(p.x, p.z)
 
 
-def fleet_side(fleet_key):
+def admiralty_fleet_side(fleet_key):
     """The side a fleet belongs to (None if unknown)."""
     f = _FLEETS.get(fleet_key)
     return f.get("side") if f is not None else None
 
 
-def fleet_occ_id(fleet_key):
+def admiralty_fleet_occ_id(fleet_key):
     """A stable synthetic cell-occupant token for a fleet, so a DEPLOYED fleet keeps its
     cell live (holds the system) even with no player/cam there. Derived from the fleet
     key; large enough not to collide with real object ids or 0."""
@@ -492,33 +492,33 @@ def fleet_occ_id(fleet_key):
         return 900000
 
 
-def fleets_of_side(side):
+def admiralty_fleets_of_side(side):
     """Live fleet records for a side - the deploy picker's list."""
     return [f for f in _FLEETS.values()
             if f.get("side") == side and int(f.get("alive", 0)) > 0]
 
 
-def fleet_relocate(fleet_key, i, j):
+def admiralty_fleet_relocate(fleet_key, i, j):
     """Place a fleet's hulls at cell (i, j)'s world origin (spawn them if it has none)
-    and RECORD the fleet's cell. Deploy-only: the recorded cell is where fleets_respawn
+    and RECORD the fleet's cell. Deploy-only: the recorded cell is where admiralty_fleets_respawn
     brings it back, so a deployed fleet stays put instead of following the flag."""
     f = _FLEETS.get(fleet_key)
     if f is None:
         return
     setattr(f, "cell", (int(i), int(j)))
     co = universe_cell_origin(i, j)
-    ships = fleet_ships(fleet_key)
+    ships = admiralty_fleet_ships(fleet_key)
     if ships:
         for n, s in enumerate(ships):
             ang = n * 2.4
             s.pos = Vec3(co.x + 700 * math.cos(ang), 0.0, co.z + 700 * math.sin(ang))
     else:
-        _fleet_spawn_ships(f.get("side"), fleet_key,
+        _admiralty_fleet_spawn_ships(f.get("side"), fleet_key,
                            co.x + 4200.0, co.z + 4200.0, int(f.get("alive", 0)))
-    _fleets_sync(f.get("side"))
+    _admiralty_fleets_sync(f.get("side"))
 
 
-def fleet_of_ship(ship_id):
+def admiralty_fleet_of_ship(ship_id):
     """The fleet key a selected hull belongs to (via its adm_<key> role), or None.
     The overseer's comms route uses this: click a fleet ship on the 2D view, look
     up which fleet it is, offer that fleet's orders."""
@@ -528,13 +528,13 @@ def fleet_of_ship(ship_id):
     return None
 
 
-def fleet_current_order(fleet_key):
+def admiralty_fleet_current_order(fleet_key):
     """A fleet's standing order ('hold' if unknown)."""
     f = _FLEETS.get(fleet_key)
     return f.get("order", "hold") if f is not None else "hold"
 
 
-def fleet_officer_name(fleet_key):
+def admiralty_fleet_officer_name(fleet_key):
     """Display name of the officer commanding a fleet ('' if none)."""
     f = _FLEETS.get(fleet_key)
     if f is None:
@@ -543,11 +543,11 @@ def fleet_officer_name(fleet_key):
     return o.get("name", "") if o else ""
 
 
-def fleet_cost_text():
+def admiralty_fleet_cost_text():
     return ", ".join(str(v) + " " + k for k, v in FLEET_COST.items())
 
 
-def _fleets_sync(side):
+def _admiralty_fleets_sync(side):
     """Mirror the live fleets into side inventory (adm_fleets) - the source of truth the
     universe save persists (universe_helpers side_admiralty). Includes each fleet's
     deployed cell so a restored campaign brings it back to its POST, not the flag."""
@@ -562,7 +562,7 @@ def _fleets_sync(side):
     set_inventory_value(to_side_id(side), "adm_fleets", recs)
 
 
-def _fleet_spawn_ships(side, fkey, x, z, count):
+def _admiralty_fleet_spawn_ships(side, fkey, x, z, count):
     """Spawn the first `count` roster hulls in a loose ring at (x, z)."""
     for idx, (hull, hull_name) in enumerate(FLEET_ROSTER[:count]):
         ang = idx * 2.4
@@ -571,7 +571,7 @@ def _fleet_spawn_ships(side, fkey, x, z, count):
                   name, side + ", adm_fleet, adm_" + fkey, hull, "behav_npcship")
 
 
-def fleet_try_form(side, officer_key, yard_id=None):
+def admiralty_fleet_try_form(side, officer_key, yard_id=None):
     """Validate + pay for a fleet. Returns None on success (hulls spawned at
     the Shipyard, officer assigned) or a short reason string.
 
@@ -596,10 +596,10 @@ def fleet_try_form(side, officer_key, yard_id=None):
     yards = to_object_list(role("admiral_shipyard") & role(side))
     if len(yards) == 0:
         return "Requires a Shipyard."
-    if fleet_count() >= admiralty_command_points(side):
+    if admiralty_fleet_count() >= admiralty_command_points(side):
         return "No command points free."
     if not admiralty_spend(side, FLEET_COST):
-        return "Not enough resources (" + fleet_cost_text() + ")."
+        return "Not enough resources (" + admiralty_fleet_cost_text() + ")."
     fkey = "f" + str(_NEXT_FLEET[0])
     _NEXT_FLEET[0] += 1
     # Spawn at the CLICKED shipyard when we have it, so the fleet's recorded cell
@@ -615,7 +615,7 @@ def fleet_try_form(side, officer_key, yard_id=None):
     # A fleet's post starts at the Shipyard's cell (deploy-only: it stays here until
     # the overseer deploys it via fleet_deploy).
     ycell = universe_cell_at_pos(ypos.x, ypos.z)
-    _fleet_spawn_ships(side, fkey, ypos.x + 1200, ypos.z + 1200, len(FLEET_ROSTER))
+    _admiralty_fleet_spawn_ships(side, fkey, ypos.x + 1200, ypos.z + 1200, len(FLEET_ROSTER))
     _FLEETS[fkey] = MastDataObject({
         "key": fkey, "side": side, "officer": officer_key,
         "order": "hold", "alive": len(FLEET_ROSTER), "gas_starved": False,
@@ -623,18 +623,18 @@ def fleet_try_form(side, officer_key, yard_id=None):
     # Register the fleet as an occupant of its cell (same as a DEPLOYED fleet), so a
     # focus-change - when the overseer cam leaves and would otherwise be the cell's
     # last occupant - no longer clears the cell out from under the new hulls. Without
-    # this the hulls get despawned on the first jump and fleet_tick reads zero hulls as
+    # this the hulls get despawned on the first jump and admiralty_fleet_tick reads zero hulls as
     # "destroyed", deleting the fleet and sending the officer MIA.
-    universe_cell_enter(int(ycell[0]), int(ycell[1]), fleet_occ_id(fkey))
-    _fleets_sync(side)
+    universe_cell_enter(int(ycell[0]), int(ycell[1]), admiralty_fleet_occ_id(fkey))
+    _admiralty_fleets_sync(side)
     # The officer takes the flag: hailable there when they have a voice.
-    flag_ships = fleet_ships(fkey)
+    flag_ships = admiralty_fleet_ships(fkey)
     if flag_ships:
         _officer_cast_host(officer_key, flag_ships[0].id)
     return None
 
 
-def fleets_respawn(side, i, j):
+def admiralty_fleets_respawn(side, i, j):
     """Instantiate a side's fleet hulls that belong to cell (i, j). Deploy-only: a
     fleet respawns in ITS OWN recorded cell, not wherever the flag arrives - so a
     deployed fleet holds its post. A fleet with no recorded cell (freshly restored /
@@ -668,17 +668,17 @@ def fleets_respawn(side, i, j):
             setattr(f, "cell", (i, j))
             fc = (i, j)
         # Only (re)spawn hulls for a fleet whose post is THIS cell and that has none.
-        if int(fc[0]) == i and int(fc[1]) == j and len(fleet_ships(f.get("key"))) == 0:
+        if int(fc[0]) == i and int(fc[1]) == j and len(admiralty_fleet_ships(f.get("key"))) == 0:
             ang = n * 1.3
-            _fleet_spawn_ships(side, f.get("key"),
+            _admiralty_fleet_spawn_ships(side, f.get("key"),
                                fco.x + 4200 * math.cos(ang), fco.z + 4200 * math.sin(ang), alive)
-        rs_ships = fleet_ships(f.get("key"))
+        rs_ships = admiralty_fleet_ships(f.get("key"))
         if rs_ships:
             _officer_cast_host(f.get("officer"), rs_ships[0].id)
-    _fleets_sync(side)
+    _admiralty_fleets_sync(side)
 
 
-def fleet_set_order(fleet_key, order):
+def admiralty_fleet_set_order(fleet_key, order):
     """Set a fleet's order. Returns the officer's acknowledgment line (or an
     empty string if the fleet is gone)."""
     f = _FLEETS.get(fleet_key)
@@ -687,18 +687,18 @@ def fleet_set_order(fleet_key, order):
     setattr(f, "order", order)
     setattr(f, "gas_starved", False)
     setattr(f, "veil_warned", False)
-    _fleets_sync(f.get("side"))
-    return fleet_line("ack_" + order)
+    _admiralty_fleets_sync(f.get("side"))
+    return admiralty_fleet_line("ack_" + order)
 
 
-def _fleet_home_pos(side, i, j):
+def _admiralty_fleet_home_pos(side, i, j):
     """Where withdraw goes: an HQ in the fleet's OWN cell (i, j), else None (a
     fleet can't withdraw to a base in a different system - it just holds)."""
     hqs = objects_in_cell(to_object_list(role("admiral_hq") & role(side)), i, j)
     return hqs[0].pos if hqs else None
 
 
-def fleet_tick(fleet_key, dt_seconds, veiled=False):
+def admiralty_fleet_tick(fleet_key, dt_seconds, veiled=False):
     """One order step for one fleet. Returns an event (officer + line) for the
     console loop to deliver (fleet lost, salvage award, gas empty, veil), or
     None. veiled: the current system lies in an antimatter veil (the whole
@@ -708,24 +708,24 @@ def fleet_tick(fleet_key, dt_seconds, veiled=False):
         return None
     side = f.get("side")
     okey = f.get("officer")
-    ships = fleet_ships(fleet_key)
+    ships = admiralty_fleet_ships(fleet_key)
     if len(ships) == 0:
         # Release the fleet's cell occupancy (a DEPLOYED fleet held its post live);
         # despawn the cell if the fleet was its last occupant. Undeployed fleets never
         # registered, so universe_cell_leave is a harmless no-op there.
         fcell = f.get("cell", None)
-        if fcell is not None and universe_cell_leave(int(fcell[0]), int(fcell[1]), fleet_occ_id(fleet_key)):
+        if fcell is not None and universe_cell_leave(int(fcell[0]), int(fcell[1]), admiralty_fleet_occ_id(fleet_key)):
             standby_cull_clear()
             universe_clear_cell(int(fcell[0]), int(fcell[1]))
         del _FLEETS[fleet_key]
-        _fleets_sync(side)
+        _admiralty_fleets_sync(side)
         # The officer ejects where the fleet died: MIA, pod beacon live -
         # a rescue objective for the bridge crews (officer_mia_tick).
         _officer_mia_begin(side, okey, float(f.get("lx", 0.0)), float(f.get("lz", 0.0)))
-        return _evt(okey, fleet_line("pod_away"))
+        return _evt(okey, admiralty_fleet_line("pod_away"))
     if len(ships) != int(f.get("alive", 0)):
         setattr(f, "alive", len(ships))
-        _fleets_sync(side)
+        _admiralty_fleets_sync(side)
     # Last known position - where the pod drops if the fleet dies - and the
     # bail mechanic: the officer's cast lifeform follows the lead hull, so a
     # dead flag puts them on the next ship, still hailable.
@@ -748,10 +748,10 @@ def fleet_tick(fleet_key, dt_seconds, veiled=False):
     if veiled:
         if order != "hold":
             setattr(f, "order", "hold")
-            _fleets_sync(side)
+            _admiralty_fleets_sync(side)
             if not f.get("veil_warned"):
                 setattr(f, "veil_warned", True)
-                return _evt(okey, fleet_line("veil_warn"))
+                return _evt(okey, admiralty_fleet_line("veil_warn"))
         return None
     if f.get("veil_warned"):
         setattr(f, "veil_warned", False)
@@ -764,17 +764,17 @@ def fleet_tick(fleet_key, dt_seconds, veiled=False):
         need = burn * float(dt_seconds) / 60.0
         if admiralty_pool_get(side, "gas") <= 0:
             setattr(f, "order", "hold")
-            _fleets_sync(side)
+            _admiralty_fleets_sync(side)
             if not f.get("gas_starved"):
                 setattr(f, "gas_starved", True)
-                return _evt(okey, fleet_line("gas_dry"))
+                return _evt(okey, admiralty_fleet_line("gas_dry"))
             return None
         _pool_add_f(side, "gas", -need)
     elif f.get("gas_starved"):
         # Back in supply (or holding): clear the dry-tank flag so the warning
         # can fire again next time the fleet actually runs out.
         setattr(f, "gas_starved", False)
-        _fleets_sync(side)
+        _admiralty_fleets_sync(side)
 
     ids = set(s.id for s in ships)
     lead = ships[0]
@@ -818,14 +818,14 @@ def fleet_tick(fleet_key, dt_seconds, veiled=False):
             target(ids, threat.id, True, 1.0)
         else:
             setattr(f, "order", "hold")
-            _fleets_sync(side)
-            return _evt(okey, fleet_line("strike_clear"))
+            _admiralty_fleets_sync(side)
+            return _evt(okey, admiralty_fleet_line("strike_clear"))
     elif order == "salvage":
         wreck = closest_object(lead, role("universe_derelict"), max_dist=UNIVERSE_CELL_CLEAR_R)
         if wreck is None:
             setattr(f, "order", "hold")
-            _fleets_sync(side)
-            return _evt(okey, fleet_line("salvage_none"))
+            _admiralty_fleets_sync(side)
+            return _evt(okey, admiralty_fleet_line("salvage_none"))
         d2 = (lead.pos.x - wreck.pos.x) ** 2 + (lead.pos.z - wreck.pos.z) ** 2
         if d2 < 1500.0 ** 2:
             mult = officer_bonus(okey, "salvage")
@@ -834,30 +834,30 @@ def fleet_tick(fleet_key, dt_seconds, veiled=False):
             delete_object(wreck.id)
             admiralty_pool_add(side, "ore", ore_v)
             admiralty_pool_add(side, "gas", gas_v)
-            return _evt(okey, fleet_line("salvage_haul", ore=ore_v, gas=gas_v))
+            return _evt(okey, admiralty_fleet_line("salvage_haul", ore=ore_v, gas=gas_v))
         target_pos(ids, wreck.pos.x, wreck.pos.y, wreck.pos.z, 0.9, stop_dist=1000)
     elif order == "withdraw":
-        home = _fleet_home_pos(side, fcell[0], fcell[1])
+        home = _admiralty_fleet_home_pos(side, fcell[0], fcell[1])
         if home is None:
             setattr(f, "order", "hold")
             return None
         d2 = (lead.pos.x - home.x) ** 2 + (lead.pos.z - home.z) ** 2
         if d2 < 3000.0 ** 2:
             setattr(f, "order", "hold")
-            _fleets_sync(side)
-            return _evt(okey, fleet_line("withdraw_home"))
+            _admiralty_fleets_sync(side)
+            return _evt(okey, admiralty_fleet_line("withdraw_home"))
         target_pos(ids, home.x + 1500, home.y, home.z, 1.0, stop_dist=1200)
     # hold: leave the ships where they are.
     return None
 
 
-def fleet_status_text(fleet_key):
+def admiralty_fleet_status_text(fleet_key):
     """One console line: officer, order, hulls alive."""
     f = _FLEETS.get(fleet_key)
     if f is None:
         return ""
     o = _OFFICERS.get(f.get("officer")) or {}
-    n = len(fleet_ships(fleet_key))
+    n = len(admiralty_fleet_ships(fleet_key))
     return (fleet_key.upper() + "  " + str(o.get("name", "?")) + "  -  " +
             f.get("order", "hold") + "  -  " + str(n) + " ships")
 

@@ -40,7 +40,7 @@ def _queue(side):
     return list(get_inventory_value(to_side_id(side), "adm_fab_queue", []) or [])
 
 
-def _set_queue(side, q):
+def _admiralty_set_queue(side, q):
     set_inventory_value(to_side_id(side), "adm_fab_queue", q)
 
 
@@ -54,7 +54,7 @@ def fabricator_enqueue(side, kind, worldlet_id):
     worldlet under construction so the build menu won't offer it again."""
     q = _queue(side)
     q.append({"kind": kind, "worldlet_id": worldlet_id})
-    _set_queue(side, q)
+    _admiralty_set_queue(side, q)
     wobj = to_object(worldlet_id)
     if wobj is not None:
         wobj.set_inventory_value("building_" + kind, True)
@@ -111,7 +111,7 @@ def fabricator_tick(side, dt):
     if wobj is None:
         # Build site gone (a jump cleared the system) - drop it, like a menu build.
         q.pop(0)
-        _set_queue(side, q)
+        _admiralty_set_queue(side, q)
         st["build_left"] = None
         return None
 
@@ -125,7 +125,7 @@ def fabricator_tick(side, dt):
     pdef = admiralty_platform_def(job.get("kind"))
     if pdef is None:
         q.pop(0)
-        _set_queue(side, q)
+        _admiralty_set_queue(side, q)
         return None
     if st["build_left"] is None:
         st["build_left"] = float(pdef.get("build_time", 20))
@@ -133,7 +133,7 @@ def fabricator_tick(side, dt):
     if st["build_left"] <= 0:
         admiralty_build_done(job.get("kind"), side, job.get("worldlet_id"))
         q.pop(0)
-        _set_queue(side, q)
+        _admiralty_set_queue(side, q)
         st["build_left"] = None
         return str(pdef.get("name")) + " construction complete."
     return None

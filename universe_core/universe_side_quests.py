@@ -30,7 +30,7 @@ def universe_parse_side_quests(content):
 
 def universe_jobs_from_doc(doc):
     """The `jobs` section node of a merged universe doc, whose children are the job
-    types (the shape side_work_offers / _side_job_node expect). None when the doc
+    types (the shape universe_side_work_offers / _universe_side_job_node expect). None when the doc
     has no jobs section (a legacy split file) so the caller falls back to a
     standalone side_quests.amd. universe_section is defined in universe_sides.py -
     this cross-file bare call works because all of a mission's .py files now share
@@ -38,7 +38,7 @@ def universe_jobs_from_doc(doc):
     return universe_section(doc, "jobs")
 
 
-def _side_job_node(doc, job_type):
+def _universe_side_job_node(doc, job_type):
     if doc is None:
         return None
     for n in doc.get("children", []):
@@ -47,7 +47,7 @@ def _side_job_node(doc, job_type):
     return None
 
 
-def side_work_offers(agent_id, sides, side_key, doc):
+def universe_side_work_offers(agent_id, sides, side_key, doc):
     """Jobs a side extends to this captain: its quest_pool entries whose tier the
     captain's standing unlocks, with standing-scaled rewards. Returns a list of
     MastDataObject (type/key/side/title/objective/credits/tier).
@@ -66,7 +66,7 @@ def side_work_offers(agent_id, sides, side_key, doc):
     mult = side_reward_mult(standing)
     offers = []
     for job_type in (side.get("quest_pool") or []):
-        node = _side_job_node(doc, job_type)
+        node = _universe_side_job_node(doc, job_type)
         if node is None:
             continue
         data = node.get("data") or {}
@@ -91,7 +91,7 @@ def universe_grant_side_job(agent_id, sides, side_key, job_type, doc):
     the offering side (along the poles it values). Idempotent while active/secret;
     re-acceptable once completed or failed. Returns the quest id, or None."""
     side = sides_get(sides, side_key)
-    node = _side_job_node(doc, job_type)
+    node = _universe_side_job_node(doc, job_type)
     if side is None or node is None:
         return None
     qid = "side_" + str(side_key) + "_" + str(job_type)

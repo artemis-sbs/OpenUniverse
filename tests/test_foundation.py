@@ -22,7 +22,8 @@ _HERE = os.path.dirname(os.path.abspath(__file__))
 # namespace (mimicking the runtime per-lib merge) and reads .amd from universe_core.
 OU_CORE = os.path.join(_HERE, "..", "universe_core")
 ADMIRAL = os.path.join(_HERE, "..", "admiral")
-OU  = OU_CORE   # .amd files (scout_signal, skirmish_arena) live in universe_core
+OU  = os.path.join(_HERE, "..")  # .amd files moved to the mission root in f18845e
+                                 # ("universes are mission content, not engine")
 SBS = os.path.abspath(os.path.join(_HERE, "..", "..", "sbs_utils"))
 sys.path.insert(0, SBS)
 
@@ -140,14 +141,14 @@ check("objects_in_cell(all, B) -> only B", [o.id for o in objects_in_cell(allw, 
 # and their new free-global refs are defined in the merged namespace.)
 print("\nPhase 2e.4 fleet cell:")
 npc_spawn        = NS["npc_spawn"]
-fleet_cell       = NS["fleet_cell"]
+admiralty_fleet_cell       = NS["admiralty_fleet_cell"]
 universe_cell_at_pos = NS["universe_cell_at_pos"]
 
-# A lead hull for fleet 'ftest' parked in cell B; fleet_cell must report B.
+# A lead hull for fleet 'ftest' parked in cell B; admiralty_fleet_cell must report B.
 npc_spawn(ob.x + 500, 0.0, ob.z - 300, "Lead", "tsn, adm_fleet, adm_ftest",
           "tsn_light_cruiser", "behav_npcship")
-check("fleet_cell('ftest') == cell B", fleet_cell("ftest") == CB)
-check("fleet_cell('none') == (0,0) when no ships", fleet_cell("nope") == (0, 0))
+check("admiralty_fleet_cell('ftest') == cell B", admiralty_fleet_cell("ftest") == CB)
+check("admiralty_fleet_cell('none') == (0,0) when no ships", admiralty_fleet_cell("nope") == (0, 0))
 check("universe_cell_at_pos at B origin == B", universe_cell_at_pos(ob.x, ob.z) == CB)
 check("universe_cell_at_pos far away == (0,0) default", universe_cell_at_pos(9_000_000, 9_000_000) == (0, 0))
 

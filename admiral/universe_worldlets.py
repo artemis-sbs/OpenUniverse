@@ -212,9 +212,9 @@ def universe_worldlet_spawn(type_key, x, y, z, radius=None):
     ds.set("icon_scale", 2.5, 0)
     ds.set("radar_color_override", "#ffcf8c", 0)
     pal = wt.get("palette") or {}
-    _set_planet_color(ds, "planet_baseColor", pal.get("base"))
-    _set_planet_color(ds, "planet_emissiveColor", pal.get("emissive"))
-    _set_planet_color(ds, "planet_upperCloudColor", pal.get("clouds"))
+    _admiralty_set_planet_color(ds, "planet_baseColor", pal.get("base"))
+    _admiralty_set_planet_color(ds, "planet_emissiveColor", pal.get("emissive"))
+    _admiralty_set_planet_color(ds, "planet_upperCloudColor", pal.get("clouds"))
     if pal.get("bands") is not None:
         ds.set("planet_bandScale", float(pal.get("bands")), 0)
     else:
@@ -242,7 +242,7 @@ def universe_worldlet_spawn(type_key, x, y, z, radius=None):
     return co
 
 
-def _set_planet_color(ds, prefix, hexstr):
+def _admiralty_set_planet_color(ds, prefix, hexstr):
     """'#8c2f1c' -> planet_*ColorR/G/B floats (0-1). None -> leave engine default."""
     if not hexstr:
         return
@@ -659,7 +659,7 @@ ADM_PLATFORMS = {
     "relay": {"name": "Relay Gate", "cost": {"ore": 400, "gas": 120, "crew": 20},
               "build_time": 60, "art": "starbase_science", "per_worldlet": False},
     # Depot (phase-2): a fleet supply anchor. Fleets within its supply radius
-    # burn no gas (resupplied locally, universe_fleets.fleet_tick) - place them
+    # burn no gas (resupplied locally, universe_fleets.admiralty_fleet_tick) - place them
     # to extend patrol range on the frontier without draining the stockpile.
     "depot": {"name": "Depot", "cost": {"ore": 160, "gas": 40, "crew": 10},
               "build_time": 35, "art": "starbase_industry", "per_worldlet": True},
@@ -700,7 +700,7 @@ def admiralty_platform_at(worldlet_obj, kind):
 
 def admiralty_in_supply(side, x, z):
     """True if (x, z) is within a friendly Depot's supply radius - a fleet there
-    is resupplied locally and burns no gas (universe_fleets.fleet_tick)."""
+    is resupplied locally and burns no gas (universe_fleets.admiralty_fleet_tick)."""
     r2 = DEPOT_SUPPLY_RADIUS * DEPOT_SUPPLY_RADIUS
     for depot in to_object_list(role("admiral_depot") & role(side)):
         dp = depot.pos
@@ -837,12 +837,12 @@ def admiralty_buildable_items(side, worldlet_id, systems=None, here_key=None):
     return out
 
 
-def build_list_title():
+def admiralty_build_list_title():
     gui_row("row-height: 1.2em;padding:6px;background:#1578;")
     gui_text("$text:Build here")
 
 
-def build_list_template(item):
+def admiralty_build_list_template(item):
     gui_row("row-height: 2.2em;")
     gui_text("$text:" + str(item.get("name")) + "   (" + str(item.get("cost")) + ");font:gui-1")
 
@@ -1040,14 +1040,14 @@ def admiralty_cost_text(kind):
 # --- Console GUI helpers (admiral.mast) -------------------------------------------
 def admiralty_ticker_text(side):
     """The resource bar line: 'ORE 240/600   GAS 96/600   CREW 40/600   CMD 1/3'.
-    CMD used = live fleets (fleet_count is a shared-namespace call into
+    CMD used = live fleets (admiralty_fleet_count is a shared-namespace call into
     universe_fleets.py)."""
     p = admiralty_pools(side)
     cmd_max = admiralty_command_points(side)
     parts = []
     for res in ADM_RESOURCES:
         parts.append(res.upper() + " " + str(p[res]) + "/" + str(admiralty_pool_cap(side, res)))
-    return "   ".join(parts) + "   CMD " + str(fleet_count()) + "/" + str(cmd_max)
+    return "   ".join(parts) + "   CMD " + str(admiralty_fleet_count()) + "/" + str(cmd_max)
 
 
 def admiralty_debug_pace_text(side):

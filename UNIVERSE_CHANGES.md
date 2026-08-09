@@ -736,7 +736,7 @@ tuning knobs together**.
 
 - `universe_reputation.py`: `REP_POLES` (7 axes / 14 poles) as a module constant;
   `REP_MIN/MAX`; tier thresholds (`>=20/>=50` in `side_offer_tier` AND the foe gate
-  in `side_work_offers`); reward curve (`side_reward_mult`); `CEASEFIRE_FREE_AT=30`
+  in `universe_side_work_offers`); reward curve (`side_reward_mult`); `CEASEFIRE_FREE_AT=30`
   + per-point cost in `side_ceasefire_cost`; and the **alliance threshold is a bare
   literal `60`** in the `universe.mast` station comms route (not even a constant).
 - Nuance: `_axis_sign` already defaults an unknown pole to `(pole, +1)`, so a new
@@ -803,7 +803,7 @@ reputation:
      globals persist process-wide, so re-selecting a universe must not leak prior
      config), then rebuild `_REP_POLES` from `axes:` and apply any tuning overrides.
    - `_axis_sign`, `side_offer_tier`, `side_reward_mult`, `side_ceasefire_cost`,
-     and `side_work_offers`' foe gate read the globals instead of literals.
+     and `universe_side_work_offers`' foe gate read the globals instead of literals.
    - New getter `side_alliance_standing()` (so the comms route stops hardcoding 60).
 2. **`universe.mast`**
    - Load block: after `UNIVERSE_DOC` is parsed, call

@@ -83,7 +83,7 @@ active, so no worldlets spawn without it), so an entire set of files is `admiral
 **The addon boundary = these cross-references, all already gated by
 `admiralty_active()`** (which Phase 1's `Mode.admiral` folds into):
 - `universe.mast` schedules the four admiralty loops + seeds pools *(gated, line 165)*,
-  runs `fleets_respawn` at startup *(gated, 214)*, and restores platforms/fleets on
+  runs `admiralty_fleets_respawn` at startup *(gated, 214)*, and restores platforms/fleets on
   arrival *(gated, 1036)*;
 - `admiral.mast`'s `@console/admiral` is gated (`... and admiralty_active()`), and its
   comms routes only fire for the admiral cam, which only spawns from that console;

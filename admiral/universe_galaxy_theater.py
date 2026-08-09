@@ -107,16 +107,16 @@ _REL_HOSTILE = "#ff4444"
 def galaxy_theater_marker_color(sides, i, j, side, owner, kind_color):
     """A system marker's radar colour by DIPLOMACY, not just kind. A system YOUR side
     controls (has built a structure in) reads friendly green; one owned by a side HOSTILE to
-    your side (ceasefire-aware, _side_is_foe) reads red; one owned by a NEUTRAL side takes
+    your side (ceasefire-aware, _admiralty_side_is_foe) reads red; one owned by a NEUTRAL side takes
     that side's own house colour (sides_color); an unowned + uncontrolled system keeps its
     kind colour. So enemy territory - including a foe side's HOME, whose kind is 'station' -
-    stops reading as a neutral cyan base. admiralty_side_controls_cell / _side_is_foe /
+    stops reading as a neutral cyan base. admiralty_side_controls_cell / _admiralty_side_is_foe /
     sides_color are sibling free globals."""
     if admiralty_side_controls_cell(side, i, j):
         return _REL_FRIENDLY
     if owner is None:
         return kind_color
-    if _side_is_foe(sides, owner, side):
+    if _admiralty_side_is_foe(sides, owner, side):
         return _REL_HOSTILE
     return sides_color(sides, owner)
 
@@ -155,12 +155,12 @@ def _unit_label(s, cell):
     return base
 
 
-def _fleet_label(fkey):
+def _admiralty_fleet_label(fkey):
     """A fleet icon's label: commanding officer + standing order, e.g. 'Harkin (patrol)'
-    (falls back to the fleet key when no officer name resolves). fleet_officer_name /
-    fleet_current_order are sibling free globals (universe_fleets.py)."""
-    name = fleet_officer_name(fkey) or ("Fleet " + str(fkey).upper())
-    return name + " (" + fleet_current_order(fkey) + ")"
+    (falls back to the fleet key when no officer name resolves). admiralty_fleet_officer_name /
+    admiralty_fleet_current_order are sibling free globals (universe_fleets.py)."""
+    name = admiralty_fleet_officer_name(fkey) or ("Fleet " + str(fkey).upper())
+    return name + " (" + admiralty_fleet_current_order(fkey) + ")"
 
 
 def galaxy_theater_cam_for(client_id):
@@ -290,8 +290,8 @@ def galaxy_theater_sync_fleets(cam_id, ci, cj, side, win=GALAXY_UNIT_WIN):
     + standing order, in navy gold with the heavier battle-cruiser shape so a fleet reads
     distinctly from a lone player fighter icon. A fleet icon whose fleet stood down or left
     the window is removed. Keyed by the STABLE fleet key stored on the icon (not an object
-    id) so hulls respawning under the fleet never orphan its marker. fleets_of_side /
-    fleet_cell are sibling free globals (universe_fleets.py)."""
+    id) so hulls respawning under the fleet never orphan its marker. admiralty_fleets_of_side /
+    admiralty_fleet_cell are sibling free globals (universe_fleets.py)."""
     rz = get_inventory_value(cam_id, "board_rz", GALAXY_THEATER.z)
     origin = to_object(cam_id)   # scan new icons for the cam so its 2D view can SELECT them
     existing = {}
@@ -301,9 +301,9 @@ def galaxy_theater_sync_fleets(cam_id, ci, cj, side, win=GALAXY_UNIT_WIN):
     cell_slot = {}   # (fdi, fdj) -> how many fleet icons already placed there (fan-out slot)
     if side is not None:
         # Stable key order so a fleet keeps its fan slot across reconciles (no jitter).
-        for f in sorted(fleets_of_side(side), key=lambda x: str(x.get("key"))):
+        for f in sorted(admiralty_fleets_of_side(side), key=lambda x: str(x.get("key"))):
             fkey = f.get("key")
-            fc = fleet_cell(fkey)
+            fc = admiralty_fleet_cell(fkey)
             fdi = fc[0] - ci
             fdj = fc[1] - cj
             icon = existing.get(fkey)
@@ -311,7 +311,7 @@ def galaxy_theater_sync_fleets(cam_id, ci, cj, side, win=GALAXY_UNIT_WIN):
                 continue          # out of the board window -> not kept -> removed below
             # Officer + order, plus the fleet's CURRENT system coords (so an icon out past
             # the dense grid still reads which system it's holding).
-            flabel = _fleet_label(fkey) + " (" + str(fc[0]) + "," + str(fc[1]) + ")"
+            flabel = _admiralty_fleet_label(fkey) + " (" + str(fc[0]) + "," + str(fc[1]) + ")"
             slot = cell_slot.get((fdi, fdj), 0)
             cell_slot[(fdi, fdj)] = slot + 1
             fdx, fdz = _fan_xz(slot)
@@ -404,7 +404,7 @@ def galaxy_theater_roster_items(side):
     ship and per fleet, each carrying its system (i, j) so selecting a row can FOCUS the
     overseer there (theater_jump_here). This is window-INDEPENDENT: it lists forces even
     when they sit OFF the board window (the icon layer only reaches the radar edge). Sorted
-    by system then kind then name. object_cell / fleets_of_side / fleet_cell are sibling
+    by system then kind then name. object_cell / admiralty_fleets_of_side / admiralty_fleet_cell are sibling
     free globals (universe_helpers / universe_fleets)."""
     rows = []
     for s in to_object_list(role("__player__") & role(side)):
@@ -413,13 +413,13 @@ def galaxy_theater_roster_items(side):
             "kind": "ship", "i": int(c[0]), "j": int(c[1]), "name": s.name,
             "label": s.name + "  -  (" + str(int(c[0])) + "," + str(int(c[1])) + ")",
             "color": "#dfe"}))
-    for f in fleets_of_side(side):
-        c = fleet_cell(f.get("key"))
+    for f in admiralty_fleets_of_side(side):
+        c = admiralty_fleet_cell(f.get("key"))
         n = int(f.get("alive", 0))
         rows.append(MastDataObject({
             "kind": "fleet", "i": int(c[0]), "j": int(c[1]),
-            "name": _fleet_label(f.get("key")),
-            "label": _fleet_label(f.get("key")) + "  x" + str(n) + "  -  ("
+            "name": _admiralty_fleet_label(f.get("key")),
+            "label": _admiralty_fleet_label(f.get("key")) + "  x" + str(n) + "  -  ("
                      + str(int(c[0])) + "," + str(int(c[1])) + ")",
             "color": "#ffd24a"}))
     rows.sort(key=lambda r: (r.get("i"), r.get("j"), r.get("kind"), r.get("name")))
@@ -443,13 +443,13 @@ def galaxy_theater_roster_item_template(item):
 def galaxy_theater_roster_sig(side):
     """A cheap change-signature for the roster, so an `on change` can rebuild the listbox
     only when it actually changes - a unit moves system, a fleet forms / stands down, or a
-    fleet's order or hull count changes. fleet_current_order is a sibling free global."""
+    fleet's order or hull count changes. admiralty_fleet_current_order is a sibling free global."""
     parts = []
     for s in to_object_list(role("__player__") & role(side)):
         c = object_cell(s.id)
         parts.append(s.name + ":" + str(c[0]) + "," + str(c[1]))
-    for f in fleets_of_side(side):
-        c = fleet_cell(f.get("key"))
+    for f in admiralty_fleets_of_side(side):
+        c = admiralty_fleet_cell(f.get("key"))
         parts.append(str(f.get("key")) + ":" + str(c[0]) + "," + str(c[1]) + ":"
-                     + fleet_current_order(f.get("key")) + ":" + str(int(f.get("alive", 0))))
+                     + admiralty_fleet_current_order(f.get("key")) + ":" + str(int(f.get("alive", 0))))
     return "|".join(sorted(parts))

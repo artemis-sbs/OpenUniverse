@@ -21,8 +21,8 @@
     gt_client = get_inventory_value(COMMS_ORIGIN_ID, "cam_client", 0)
     # One "Send <captain> here" per live fleet of this overseer's side (handler label +
     # data dict - the safe in-loop comms-button pattern, not an inline block).
-    for fdf in fleets_of_side(COMMS_ORIGIN.side):
-        fd_name = fleet_officer_name(fdf.get("key"))
+    for fdf in admiralty_fleets_of_side(COMMS_ORIGIN.side):
+        fd_name = admiralty_fleet_officer_name(fdf.get("key"))
         fd_key = fdf.get("key")
         + "Send {fd_name} here" fleet_deploy_pick {"DF_KEY": fd_key, "DF_I": fd_i, "DF_J": fd_j}
     # One "Send <ship> here" per player ship of this side - the overseer directs strategic
@@ -52,29 +52,29 @@
 //comms if has_roles(COMMS_ORIGIN_ID, "galaxy_theater_cam") and has_roles(COMMS_SELECTED_ID, "galaxy_fleet")
     gtf_key = get_inventory_value(COMMS_SELECTED_ID, "fleet_key", None)
     yield success if gtf_key is None
-    gtf_cell = fleet_cell(gtf_key)
+    gtf_cell = admiralty_fleet_cell(gtf_key)
     gtf_i = gtf_cell[0]
     gtf_j = gtf_cell[1]
     gtf_client = get_inventory_value(COMMS_ORIGIN_ID, "cam_client", 0)
-    gtf_ord = fleet_current_order(gtf_key)
+    gtf_ord = admiralty_fleet_current_order(gtf_key)
     if gtf_ord != "escort":
         + "Escort the flagship":
-            comms_receive(fleet_set_order(get_inventory_value(COMMS_SELECTED_ID, "fleet_key", None), "escort"), "Order acknowledged", color="white", title_color="cyan")
+            comms_receive(admiralty_fleet_set_order(get_inventory_value(COMMS_SELECTED_ID, "fleet_key", None), "escort"), "Order acknowledged", color="white", title_color="cyan")
     if gtf_ord != "patrol":
         + "Patrol the system":
-            comms_receive(fleet_set_order(get_inventory_value(COMMS_SELECTED_ID, "fleet_key", None), "patrol"), "Order acknowledged", color="white", title_color="cyan")
+            comms_receive(admiralty_fleet_set_order(get_inventory_value(COMMS_SELECTED_ID, "fleet_key", None), "patrol"), "Order acknowledged", color="white", title_color="cyan")
     if gtf_ord != "strike":
         + "Strike hostiles":
-            comms_receive(fleet_set_order(get_inventory_value(COMMS_SELECTED_ID, "fleet_key", None), "strike"), "Order acknowledged", color="white", title_color="cyan")
+            comms_receive(admiralty_fleet_set_order(get_inventory_value(COMMS_SELECTED_ID, "fleet_key", None), "strike"), "Order acknowledged", color="white", title_color="cyan")
     if gtf_ord != "hold":
         + "Hold position":
-            comms_receive(fleet_set_order(get_inventory_value(COMMS_SELECTED_ID, "fleet_key", None), "hold"), "Order acknowledged", color="white", title_color="cyan")
+            comms_receive(admiralty_fleet_set_order(get_inventory_value(COMMS_SELECTED_ID, "fleet_key", None), "hold"), "Order acknowledged", color="white", title_color="cyan")
     if gtf_ord != "salvage":
         + "Salvage wrecks":
-            comms_receive(fleet_set_order(get_inventory_value(COMMS_SELECTED_ID, "fleet_key", None), "salvage"), "Order acknowledged", color="white", title_color="cyan")
+            comms_receive(admiralty_fleet_set_order(get_inventory_value(COMMS_SELECTED_ID, "fleet_key", None), "salvage"), "Order acknowledged", color="white", title_color="cyan")
     if gtf_ord != "withdraw":
         + "Withdraw to base":
-            comms_receive(fleet_set_order(get_inventory_value(COMMS_SELECTED_ID, "fleet_key", None), "withdraw"), "Order acknowledged", color="white", title_color="cyan")
+            comms_receive(admiralty_fleet_set_order(get_inventory_value(COMMS_SELECTED_ID, "fleet_key", None), "withdraw"), "Order acknowledged", color="white", title_color="cyan")
     + "Focus on this system" theater_jump_here {"JMP_I": gtf_i, "JMP_J": gtf_j, "JH_CLIENT": gtf_client}
 
 

@@ -16,7 +16,7 @@ alert reaches the crews as an Admiralty info card.
 
 Shared-namespace notes: universe_system_kind from universe_helpers.py;
 universe_system_side / sides_get from universe_sides.py; admiralty_* from
-universe_worldlets.py; fleet_count from universe_fleets.py.
+universe_worldlets.py; admiralty_fleet_count from universe_fleets.py.
 """
 import math
 import random
@@ -34,7 +34,7 @@ def skirmish_reset():
     _SKIRMISH = {}
 
 
-def _side_is_foe(sides, key, side):
+def _admiralty_side_is_foe(sides, key, side):
     """Authored a foe AND still hostile: a negotiated ceasefire (diplomacy
     economy) lifts the pressure. Falls back to the authored disposition when
     the side agents don't exist (early start, headless tests)."""
@@ -60,7 +60,7 @@ def skirmish_pressure(sides, seed, i, j, danger="Quiet", side=None):
             ci, cj = int(i) + di, int(j) + dj
             kind = universe_system_kind(seed, ci, cj, danger)
             owner = universe_system_side(sides, seed, ci, cj, kind)[0]
-            if owner is not None and _side_is_foe(sides, owner, side):
+            if owner is not None and _admiralty_side_is_foe(sides, owner, side):
                 pressure += 2 if (di == 0 and dj == 0) else 1
                 if owner not in foes:
                     foes.append(owner)
@@ -87,7 +87,7 @@ def skirmish_tick(side, sides, seed, i, j, danger, dt_seconds):
         # Economy peace until the first fleet forms (decision: border defense
         # is `patrol` first - raids arrive once the answer to them exists). The
         # navy is counted side-wide - any fleet means this frontier can be raided.
-        if fleet_count() <= 0:
+        if admiralty_fleet_count() <= 0:
             return None
         st["armed"] = True
     # Target platforms IN cell (i, j) - the same cell the pressure is computed for

@@ -20,6 +20,7 @@ from sbs_utils.procedural.roles import role
 from sbs_utils.procedural.query import to_object, to_object_list
 from sbs_utils.procedural.quest import quest_add, QuestState
 from sbs_utils.mast.mast_node import MastDataObject
+from sbs_utils.procedural.amd_lifeforms import lifeform_speaker
 
 def universe_parse_lifeforms(doc):
     """Cast records from the `## Lifeforms` section (empty if none)."""
@@ -79,16 +80,6 @@ def universe_spawn_lifeform(record, host_id):
     set_inventory_value(agent, "scene", record.get("scene"))
     set_inventory_value(agent, "lf_key", record.get("key"))
     return agent
-
-
-def lifeform_speaker(lifeforms, key):
-    """A dialogue voice record (key/name/color/leans) for a cast lifeform, so a
-    scene's `Speaker: <lifeform key>` resolves to that character's card. None if the
-    key is not a lifeform. Cast NPCs carry no reputation, so leans is empty."""
-    lf = lifeform_get(lifeforms, key)
-    if lf is None:
-        return None
-    return MastDataObject({"key": lf.key, "name": lf.name, "color": lf.get("color") or "#0cf", "leans": {}})
 
 
 # --- Passenger delivery (slice 2) --------------------------------------------

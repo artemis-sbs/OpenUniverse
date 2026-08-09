@@ -618,7 +618,7 @@ pattern settled: every repeating list is a scrollable gui_list_box + a
 context/detail panel acting on the selection.
 
 **Consolidation pass** (committed 2ae8540, 2026-07-02) - officer chatter rides
-info-panel cards with cached faces; fleets persist (adm_fleets + fleets_respawn on
+info-panel cards with cached faces; fleets persist (adm_fleets + admiralty_fleets_respawn on
 every arrival - the navy travels with the flag); per-system worldlet depletion +
 platforms snapshot into the sectors delta and re-apply on arrival; baseline save at
 map start; pool seeding retried until the side agent exists.
@@ -652,7 +652,7 @@ pick and {ore}/{gas}/{rescuer}/{officer}/{side} fields; a `## Fleet Chatter` AMD
 section overrides any pool; zero authoring keeps the defaults.
 
 **NPC veil avoidance** (d8ca036, 2026-07-02) - the navy will not operate inside an
-antimatter veil; fleet_tick forces any active fleet to hold and warns once. Same
+antimatter veil; admiralty_fleet_tick forces any active fleet to hold and warns once. Same
 commit fixed a QuestState-in-MAST-eval engine error (compare quest state against
 the int 0).
 
@@ -678,7 +678,7 @@ galaxy map + nav panel treat a cell as known if visited OR sensed OR Full Chart
 mark.
 
 **Officer veterancy** (2026-07-02) - an officer on an active order accrues service
-each fleet_tick; every VETERAN_STEP is a level (capped) that adds VETERAN_BUMP to
+each admiralty_fleet_tick; every VETERAN_STEP is a level (capped) that adds VETERAN_BUMP to
 the Values they were built for and ONLY those. Persists and survives MIA/capture in
 place, so a lost veteran stings.
 

@@ -22,7 +22,7 @@ from sbs_utils.procedural.sides import to_side_id
 from sbs_utils.procedural.query import get_side
 
 
-def dialogue_scenes(doc):
+def universe_dialogue_scenes(doc):
     """key -> scene node for the universe's `## Dialogue` section (empty if none)."""
     return _dlg_scenes(universe_section(doc, "dialogue"))
 

@@ -80,8 +80,8 @@ def dialogue_speaker(sides, captains, lifeforms, key):
     the dialogue driver for the card AND as the reputation context. Checks, in order:
     a captain (his personal-rep key, his side's color), a cast lifeform (a comms NPC,
     no rep), an Academy officer (the Admiral's navy - personal rep via their Values),
-    then a side. None if unknown. lifeform_speaker comes from universe_lifeforms.py,
-    officer_speaker from universe_fleets.py (shared namespace)."""
+    then a side. None if unknown. lifeform_speaker is the library's (amd_lifeforms, imported by
+    universe_lifeforms.py), officer_speaker from universe_fleets.py (shared namespace)."""
     if key is None:
         return None
     cap = captain_get(captains, key)

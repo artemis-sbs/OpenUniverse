@@ -153,7 +153,7 @@ default shared WAYPOINTS_ENABLED = False
     shared UNIVERSE_GOALS = universe_section(UNIVERSE_DOC, "goals")
     # Dialogue scenes (the `dialogue` section): key -> scene node, driven by the
     # //comms/dialogue route when a player hails a side station.
-    shared UNIVERSE_DIALOGUE = dialogue_scenes(UNIVERSE_DOC)
+    shared UNIVERSE_DIALOGUE = universe_dialogue_scenes(UNIVERSE_DOC)
     # Named NPC captains (the `captains` section): people with a personal reputation
     # who can be hailed where they roam and turn rival per their `Rival when:` guard.
     shared UNIVERSE_CAPTAINS = universe_parse_captains(UNIVERSE_DOC)
@@ -187,7 +187,7 @@ default shared WAYPOINTS_ENABLED = False
         admiralty_configure(universe_admiralty_cfg(UNIVERSE_DOC))
         research_configure(universe_parse_research(UNIVERSE_DOC))
         officers_configure(universe_parse_officers(UNIVERSE_DOC))
-        fleet_chatter_configure(UNIVERSE_DOC)
+        admiralty_fleet_chatter_configure(UNIVERSE_DOC)
     for _side in UNIVERSE_SIDES:
         # A foe side is hostile to every player side (the live roster), not just a
         # hardcoded "tsn" - so foes stay foes no matter which sides are playing.
@@ -292,7 +292,7 @@ default shared WAYPOINTS_ENABLED = False
     # it, so bring the saved navy back now. Idempotent: no-op on a New Game.
     if admiralty_active():
         for _side in universe_player_sides():
-            fleets_respawn(_side, universe_i, universe_j)
+            admiralty_fleets_respawn(_side, universe_i, universe_j)
     # Baseline save so the campaign (players, credits, admiralty pools) is
     # durable even if the crew never jumps this session.
     universe_save_players()
@@ -602,7 +602,7 @@ default shared WAYPOINTS_ENABLED = False
     # Side work: if this station belongs to a side that will deal with you, offer
     # jobs from its pool (gated + reward-scaled by your standing). One button per
     # offer; the data dict captures which job for the accept handler.
-    for offer in side_work_offers(ship_id, UNIVERSE_SIDES, get_side(COMMS_SELECTED_ID), UNIVERSE_SIDE_QUESTS):
+    for offer in universe_side_work_offers(ship_id, UNIVERSE_SIDES, get_side(COMMS_SELECTED_ID), UNIVERSE_SIDE_QUESTS):
         job_label = f"{offer.title}  ({offer.credits} cr)"
         + "{job_label}" universe_accept_side_job {"job_side": offer.side, "job_type": offer.type}
     # Diplomacy: a captain can shift side-wide relations with this side. A
@@ -1242,7 +1242,7 @@ default shared WAYPOINTS_ENABLED = False
         # saves fall back to the primary side); fleets come back for every side.
         admiralty_restore_platforms_all(universe_system_value(universe_systems, ei, ej, "admiral_platforms", None), ei, ej)
         for _side in universe_player_sides():
-            fleets_respawn(_side, ei, ej)
+            admiralty_fleets_respawn(_side, ei, ej)
 
     # Auto-waypoint (opt-in): chart a NAMED location so the player can jump back to it
     # from the Quests tab later - the only "way home / way back" when there's no galaxy

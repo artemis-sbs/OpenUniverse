@@ -311,7 +311,7 @@ def universe_reposition_players():
 _ACTIVE_SAVE = "default_1"
 
 
-def _save_slug(text):
+def _universe_save_slug(text):
     """A filename-safe slug: lowercased, each run of non-alphanumerics collapsed to one _."""
     out = []
     prev_us = False
@@ -333,7 +333,7 @@ def universe_set_active_save(universe, slot=1):
         slot = int(float(slot))
     except (TypeError, ValueError):
         pass
-    _ACTIVE_SAVE = _save_slug(universe) + "_" + _save_slug(slot)
+    _ACTIVE_SAVE = _universe_save_slug(universe) + "_" + _universe_save_slug(slot)
 
 
 def universe_save_path():
@@ -520,7 +520,7 @@ def universe_load_players(restore=True):
                     set_inventory_value(sid, "adm_" + r, int(v))
                 set_inventory_value(sid, "adm_research", list(adm.get("research") or []))
                 # Fleets rebuild from this on the first enter_system
-                # (universe_fleets.fleets_respawn); officer fates ride along.
+                # (universe_fleets.admiralty_fleets_respawn); officer fates ride along.
                 set_inventory_value(sid, "adm_fleets", list(adm.get("fleets") or []))
                 set_inventory_value(sid, "adm_officers", dict(adm.get("officers") or {}))
                 set_inventory_value(sid, "market_subsidy", float(adm.get("subsidy") or 0.0))

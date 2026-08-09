@@ -64,7 +64,7 @@ default shared ADM_LAST_MSG = ""
 
 
 # The navy's heartbeat: every few seconds each fleet executes its order
-# (universe_fleets.fleet_tick - movement/targeting/gas/salvage). Officer
+# (universe_fleets.admiralty_fleet_tick - movement/targeting/gas/salvage). Officer
 # events (fleet lost, salvage hauls, dry tanks) reach the crews as info-panel
 # cards in the officer's face and name - chatter never rides the waterfall.
 === admiralty_fleet_loop
@@ -73,10 +73,10 @@ default shared ADM_LAST_MSG = ""
     ->END if not UNIVERSE_ACTIVE
     # Veil is per-cell: ask each fleet's OWN cell whether it's veiled (a fleet in a
     # clear system must not freeze because the shared-global cell happens to be veiled).
-    for _fl in fleet_list():
-        _flc = fleet_cell(_fl.key)
+    for _fl in admiralty_fleet_list():
+        _flc = admiralty_fleet_cell(_fl.key)
         _fl_veiled = region_is_veiled(UNIVERSE_REGIONS, _flc[0], _flc[1])
-        fleet_evt = fleet_tick(_fl.key, 3, _fl_veiled)
+        fleet_evt = admiralty_fleet_tick(_fl.key, 3, _fl_veiled)
         if fleet_evt is not None:
             officer_card(fleet_evt.officer, fleet_evt.text)
     # MIA captains (slice 4): pod rescues, captures, lapsed beacons - per side.
@@ -549,18 +549,18 @@ default shared ADM_LAST_MSG = ""
 # becomes an OCCUPANT of the destination cell (holding its system live so it can clear/
 # hold ground the overseer isn't parked in), its hulls relocate there (spawned if it
 # had none), and it leaves the source cell (despawned if the fleet was its last
-# occupant). fleet_relocate records the fleet's cell so fleets_respawn brings it back to
+# occupant). admiralty_fleet_relocate records the fleet's cell so admiralty_fleets_respawn brings it back to
 # THIS post, not the flag. Scheduled from the galaxy-theater "Send fleet here" popup.
 === fleet_deploy_to
     default DEPLOY_FLEET = None
     default ti = universe_i
     default tj = universe_j
     ->END if DEPLOY_FLEET is None
-    fd_src = fleet_cell(DEPLOY_FLEET)
+    fd_src = admiralty_fleet_cell(DEPLOY_FLEET)
     ->END if ti == fd_src[0] and tj == fd_src[1]
-    fd_occ = fleet_occ_id(DEPLOY_FLEET)
+    fd_occ = admiralty_fleet_occ_id(DEPLOY_FLEET)
     fd_new = universe_cell_enter(ti, tj, fd_occ)
-    fleet_relocate(DEPLOY_FLEET, ti, tj)
+    admiralty_fleet_relocate(DEPLOY_FLEET, ti, tj)
     if fd_new:
         await task_schedule(universe_enter_system, {"ei": ti, "ej": tj})
     if universe_cell_leave(fd_src[0], fd_src[1], fd_occ):
@@ -580,32 +580,32 @@ default shared ADM_LAST_MSG = ""
 
 
 //comms if has_roles(COMMS_ORIGIN_ID, "admiral") and has_roles(COMMS_SELECTED_ID, "adm_fleet")
-    adm_fkey = fleet_of_ship(COMMS_SELECTED_ID)
+    adm_fkey = admiralty_fleet_of_ship(COMMS_SELECTED_ID)
     yield success if adm_fkey is None
-    adm_ord = fleet_current_order(adm_fkey)
+    adm_ord = admiralty_fleet_current_order(adm_fkey)
     if adm_ord != "escort":
         + "Escort the flagship":
-            adm_ack = fleet_set_order(fleet_of_ship(COMMS_SELECTED_ID), "escort")
+            adm_ack = admiralty_fleet_set_order(admiralty_fleet_of_ship(COMMS_SELECTED_ID), "escort")
             comms_receive(adm_ack, "Order acknowledged", color="white", title_color="cyan")
     if adm_ord != "patrol":
         + "Patrol the system":
-            adm_ack = fleet_set_order(fleet_of_ship(COMMS_SELECTED_ID), "patrol")
+            adm_ack = admiralty_fleet_set_order(admiralty_fleet_of_ship(COMMS_SELECTED_ID), "patrol")
             comms_receive(adm_ack, "Order acknowledged", color="white", title_color="cyan")
     if adm_ord != "strike":
         + "Strike hostiles":
-            adm_ack = fleet_set_order(fleet_of_ship(COMMS_SELECTED_ID), "strike")
+            adm_ack = admiralty_fleet_set_order(admiralty_fleet_of_ship(COMMS_SELECTED_ID), "strike")
             comms_receive(adm_ack, "Order acknowledged", color="white", title_color="cyan")
     if adm_ord != "hold":
         + "Hold position":
-            adm_ack = fleet_set_order(fleet_of_ship(COMMS_SELECTED_ID), "hold")
+            adm_ack = admiralty_fleet_set_order(admiralty_fleet_of_ship(COMMS_SELECTED_ID), "hold")
             comms_receive(adm_ack, "Order acknowledged", color="white", title_color="cyan")
     if adm_ord != "salvage":
         + "Salvage wrecks":
-            adm_ack = fleet_set_order(fleet_of_ship(COMMS_SELECTED_ID), "salvage")
+            adm_ack = admiralty_fleet_set_order(admiralty_fleet_of_ship(COMMS_SELECTED_ID), "salvage")
             comms_receive(adm_ack, "Order acknowledged", color="white", title_color="cyan")
     if adm_ord != "withdraw":
         + "Withdraw to base":
-            adm_ack = fleet_set_order(fleet_of_ship(COMMS_SELECTED_ID), "withdraw")
+            adm_ack = admiralty_fleet_set_order(admiralty_fleet_of_ship(COMMS_SELECTED_ID), "withdraw")
             comms_receive(adm_ack, "Order acknowledged", color="white", title_color="cyan")
 
 
@@ -707,7 +707,7 @@ default shared ADM_LAST_MSG = ""
 # dict at build time (never read at click time); handlers report via info card
 # instead of jumping to the tab console.
 
-# Shipyard: commission a fleet under an available officer (fleet_try_form validates
+# Shipyard: commission a fleet under an available officer (admiralty_fleet_try_form validates
 # Academy/Shipyard/command-points/cost; we only list officers with no fleet yet).
 //enable/comms if has_roles(COMMS_ORIGIN_ID, "admiral") and has_roles(COMMS_SELECTED_ID, "admiral_shipyard")
 
@@ -723,9 +723,9 @@ default shared ADM_LAST_MSG = ""
     default OFFICER_PICK = None
     default ADM_ACT_SIDE = universe_primary_side()
     default ADM_YARD_ID = None
-    fail = fleet_try_form(ADM_ACT_SIDE, OFFICER_PICK, ADM_YARD_ID)
+    fail = admiralty_fleet_try_form(ADM_ACT_SIDE, OFFICER_PICK, ADM_YARD_ID)
     if fail is None:
-        officer_card(OFFICER_PICK, fleet_line("formed"))
+        officer_card(OFFICER_PICK, admiralty_fleet_line("formed"))
         adm_ocmr = officer_def(OFFICER_PICK)
         adm_ocmr_name = adm_ocmr.name if adm_ocmr is not None else "An officer"
         ADM_LAST_MSG = adm_ocmr_name + " has taken command of a new fleet at the shipyard."
