@@ -14,7 +14,7 @@ See UNIVERSE_CHANGES.md (Epic F). The `## Dialogue` section of universe.amd auth
 from sbs_utils.procedural.amd_dialogue import (  # noqa: F401  (re-exported into the OU namespace)
     dialogue_parse, dialogue_get, dialogue_guard_ok, dialogue_pick_line,
     dialogue_choices, dialogue_apply, dialogue_entry_for, _dlg_norm,
-    dialogue_scenes as _dlg_scenes,
+    dialogue_register_scenes,
     dialogue_set_metric_resolver, dialogue_register_outcome)
 from sbs_utils.procedural.reputation import reputation_get, reputation_adjust, reputation_standing
 from sbs_utils.procedural.inventory import get_inventory_value, set_inventory_value
@@ -23,8 +23,13 @@ from sbs_utils.procedural.query import get_side
 
 
 def universe_dialogue_scenes(doc):
-    """key -> scene node for the universe's `## Dialogue` section (empty if none)."""
-    return _dlg_scenes(universe_section(doc, "dialogue"))
+    """key -> scene node for the universe's `## Dialogue` section (empty if none).
+
+    Also REGISTERS them, so a scene can be found by key alone - which is what lets
+    `hail_offer(scene=...)` and a declarative `Action: <who> hails <scene>` work with
+    no dict to hand them. The dict is still returned, so every caller is unchanged.
+    """
+    return dialogue_register_scenes(universe_section(doc, "dialogue"))
 
 
 def dialogue_side_entry(scenes, side_key):
