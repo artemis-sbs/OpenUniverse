@@ -6,3 +6,6 @@ media/
 # Shared universe save lives in missions/common_data, not here
 WRITERS_GUIDE.pdf
 mkdocs/site/
+# Rendered documents from `sbs docs` - build output, not source. An embedded
+# edition can run to several MB because it inlines the face atlases.
+__docs__/
