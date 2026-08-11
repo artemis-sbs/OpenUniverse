@@ -4,7 +4,7 @@
 
 | Fact | Value |
 |---|---|
-| Speaker | frontier_command |
+| Speaker | `frontier_command` |
 | When | comms |
 
 > *One of:*
@@ -19,7 +19,7 @@
 
 | Fact | Value |
 |---|---|
-| Speaker | frontier_command |
+| Speaker | `frontier_command` |
 
 > *One of:*
 >
@@ -32,7 +32,7 @@
 
 | Fact | Value |
 |---|---|
-| Speaker | frontier_command |
+| Speaker | `frontier_command` |
 
 > Frontier Command out. Stay sharp, captain.
 
@@ -40,7 +40,7 @@
 
 | Fact | Value |
 |---|---|
-| Speaker | sela_voss |
+| Speaker | `sela_voss` |
 | When | comms |
 
 > *One of:*
@@ -55,7 +55,7 @@
 
 | Fact | Value |
 |---|---|
-| Speaker | sela_voss |
+| Speaker | `sela_voss` |
 
 > I'll be in the observation lounge if you need me.
 
@@ -63,7 +63,7 @@
 
 | Fact | Value |
 |---|---|
-| Speaker | courier |
+| Speaker | `courier` |
 | When | comms |
 
 > *One of:*
@@ -78,7 +78,7 @@
 
 | Fact | Value |
 |---|---|
-| Speaker | courier |
+| Speaker | `courier` |
 
 > You don't know what you've just stopped, captain. They'll send another.
 
@@ -86,6 +86,6 @@
 
 | Fact | Value |
 |---|---|
-| Speaker | courier |
+| Speaker | `courier` |
 
 > Smart. Mind your own business and we'll get along fine.

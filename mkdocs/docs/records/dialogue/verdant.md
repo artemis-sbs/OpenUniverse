@@ -4,7 +4,7 @@
 
 | Fact | Value |
 |---|---|
-| Speaker | verdant |
+| Speaker | `verdant` |
 | When | comms |
 
 > *One of:*
@@ -20,7 +20,7 @@
 
 | Fact | Value |
 |---|---|
-| Speaker | verdant |
+| Speaker | `verdant` |
 
 > Kindness costs nothing and buys much out here. Safe travels, captain.
 
@@ -28,7 +28,7 @@
 
 | Fact | Value |
 |---|---|
-| Speaker | verdant |
+| Speaker | `verdant` |
 
 > Check the board - we always need honest hands, and the pay is fair.
 
@@ -36,6 +36,6 @@
 
 | Fact | Value |
 |---|---|
-| Speaker | verdant |
+| Speaker | `verdant` |
 
 > Fair winds, captain.

@@ -4,9 +4,9 @@
 
 | Fact | Value |
 |---|---|
-| Tier | 1 |
-| Goal | destroy 4 enemies |
+| Done when | destroy 4 enemies |
 | Reward | 300 credits |
+| Tier | 1 |
 
 Raiders have been probing our space. Sweep the system and drive them off.
 
@@ -14,9 +14,9 @@ Raiders have been probing our space. Sweep the system and drive them off.
 
 | Fact | Value |
 |---|---|
-| Tier | 1 |
-| Goal | destroy 3 enemies |
+| Done when | destroy 3 enemies |
 | Reward | 280 credits |
+| Tier | 1 |
 
 There is a price on raider hulls. Collect three and the bounty is yours.
 
@@ -24,9 +24,9 @@ There is a price on raider hulls. Collect three and the bounty is yours.
 
 | Fact | Value |
 |---|---|
-| Tier | 1 |
-| Goal | recover 3 provisions |
+| Done when | recover 3 provisions |
 | Reward | 260 credits |
+| Tier | 1 |
 
 Our stores are thin. Gather provision crates adrift in the system and bring them in.
 
@@ -34,9 +34,9 @@ Our stores are thin. Gather provision crates adrift in the system and bring them
 
 | Fact | Value |
 |---|---|
-| Tier | 1 |
-| Goal | scan 2 derelicts |
+| Done when | scan 2 derelicts |
 | Reward | 300 credits |
+| Tier | 1 |
 
 We need eyes on the wrecks out here. Scan the derelicts and report what you find.
 
@@ -44,9 +44,9 @@ We need eyes on the wrecks out here. Scan the derelicts and report what you find
 
 | Fact | Value |
 |---|---|
-| Tier | 1 |
-| Goal | recover 2 tech |
+| Done when | recover 2 tech |
 | Reward | 340 credits |
+| Tier | 1 |
 
 There is working tech in the debris if you know where to look. Bring it back and we will make it worth your while.
 
@@ -54,9 +54,9 @@ There is working tech in the debris if you know where to look. Bring it back and
 
 | Fact | Value |
 |---|---|
-| Tier | 1 |
-| Goal | dock station |
+| Done when | dock station |
 | Reward | 260 credits |
+| Tier | 1 |
 
 See our cargo safely to port. Dock at a station and the contract is fulfilled.
 
@@ -64,9 +64,9 @@ See our cargo safely to port. Dock at a station and the contract is fulfilled.
 
 | Fact | Value |
 |---|---|
-| Tier | 2 |
-| Goal | recover 2 contraband |
+| Done when | recover 2 contraband |
 | Reward | 480 credits |
+| Tier | 2 |
 
 Quiet cargo, quiet questions. Recover the caches and keep this between us.
 
@@ -74,9 +74,9 @@ Quiet cargo, quiet questions. Recover the caches and keep this between us.
 
 | Fact | Value |
 |---|---|
-| Tier | 2 |
-| Goal | destroy 5 enemies |
+| Done when | destroy 5 enemies |
 | Reward | 500 credits |
+| Tier | 2 |
 
 Hit them before they hit us. Five hulls, and do not be gentle about it.
 
@@ -84,9 +84,9 @@ Hit them before they hit us. Five hulls, and do not be gentle about it.
 
 | Fact | Value |
 |---|---|
-| Tier | 2 |
-| Goal | recover 3 tech |
+| Done when | recover 3 tech |
 | Reward | 520 credits |
+| Tier | 2 |
 
 Something we want is scattered in the drift. Retrieve three components - discreetly.
 
@@ -94,9 +94,9 @@ Something we want is scattered in the drift. Retrieve three components - discree
 
 | Fact | Value |
 |---|---|
-| Tier | 2 |
-| Goal | scan 1 derelict |
+| Done when | scan 1 derelict |
 | Reward | 460 credits |
+| Tier | 2 |
 
 A ship went dark out here. Find the wreck, recover what survives, and bring it home.
 
@@ -104,9 +104,9 @@ A ship went dark out here. Find the wreck, recover what survives, and bring it h
 
 | Fact | Value |
 |---|---|
-| Tier | 3 |
-| Goal | destroy 8 enemies |
+| Done when | destroy 8 enemies |
 | Reward | 760 credits |
+| Tier | 3 |
 
 We are done waiting. Take the fight to them - eight hulls, and break their nerve.
 
@@ -114,8 +114,8 @@ We are done waiting. Take the fight to them - eight hulls, and break their nerve
 
 | Fact | Value |
 |---|---|
-| Tier | 3 |
-| Goal | scan 3 derelicts |
+| Done when | scan 3 derelicts |
 | Reward | 720 credits |
+| Tier | 3 |
 
 The signs are out there for those who would read them. Scan the wrecks. Tell no one what you see.

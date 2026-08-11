@@ -22,10 +22,10 @@ The resource bodies both admirals fight over - build Extractors on them, refine 
 
 | Fact | Value |
 |---|---|
+| Palette | base #8c2f1c, emissive #48180c, clouds #776655 |
 | Also | economy |
 | Yields | ore 8 |
 | Reserve | 4000 |
-| Palette | base #8c2f1c, emissive #48180c, clouds #776655 |
 
 A cracked, mineral-rich ember of a world. Miners love it; nobody else does.
 
@@ -33,10 +33,10 @@ A cracked, mineral-rich ember of a world. Miners love it; nobody else does.
 
 | Fact | Value |
 |---|---|
+| Palette | base #2c4a8c, clouds #b8c4e0, bands 3.7 |
 | Also | economy |
 | Yields | gas 10 |
 | Reserve | 6000 |
-| Palette | base #2c4a8c, clouds #b8c4e0, bands 3.7 |
 
 A banded gas giant, its high winds rich in fuel-grade volatiles.
 
@@ -44,10 +44,10 @@ A banded gas giant, its high winds rich in fuel-grade volatiles.
 
 | Fact | Value |
 |---|---|
+| Palette | base #2f6e3a, clouds #ffffff |
 | Also | economy |
 | Yields | crew 2, ore 2, gas 2 |
 | Reserve | unlimited |
-| Palette | base #2f6e3a, clouds #ffffff |
 
 A small settled world. People, modest industry, and somewhere to hold.
 
@@ -69,8 +69,8 @@ The battlefield's terrain: each region claims a square of systems with its own S
 |---|---|
 | Center | 0, 0 |
 | Radius | 3 |
-| Skybox | sky-neb2-rvb |
 | Color | `#cc6633` |
+| Skybox | sky-neb2-rvb |
 | Enemy mix | 25% |
 | Mine chance | 60% |
 
@@ -82,9 +82,9 @@ The dead space between two capitals, where the Accord broke. Neither admiral hol
 |---|---|
 | Center | 0, 6 |
 | Radius | 1 |
+| Color | `#aa33ff` |
 | Kind | antimatter |
 | Skybox | sky-neb2-rvb |
-| Color | `#aa33ff` |
 
 A wound left by a scuttled antimatter core - a curtain of raw shear that cooks a hull from the inside within minutes. It splits the northern approach in two: the admiral who routes around it flanks; the one who forgets it is there loses a fleet to the dark, not to the enemy.
 
@@ -96,9 +96,9 @@ Example Academy roster for testing the Admiral navy: named fleet captains any ad
 
 | Fact | Value |
 |---|---|
+| Face | male |
 | Title | the Quartermaster |
 | Values | by-the-book 40, honest 30, kind 10 |
-| Face | male |
 
 Ran the academy logistics course for a decade and the lanes know it. Fleets under Vale come home fueled, patched, and on schedule.
 
@@ -106,9 +106,9 @@ Ran the academy logistics course for a decade and the lanes know it. Fleets unde
 
 | Fact | Value |
 |---|---|
+| Face | female |
 | Title | Old Thunder |
 | Values | fearsome 40, violent 20, generous 10 |
-| Face | female |
 
 Leads from the front and shoots first. Kade's fleets hit harder and scare weaker prey off the board before a shot lands.
 
@@ -116,9 +116,9 @@ Leads from the front and shoots first. Kade's fleets hit harder and scare weaker
 
 | Fact | Value |
 |---|---|
+| Face | female |
 | Title | the Magpie |
 | Values | resourceful 40, intellectual 20, selfish 10 |
-| Face | female |
 
 Never met a wreck she could not strip or a sensor shadow she could not slip through. Ashwell's fleets salvage more and die less.
 
@@ -126,9 +126,9 @@ Never met a wreck she could not strip or a sensor shadow she could not slip thro
 
 | Fact | Value |
 |---|---|
+| Face | male |
 | Title | the Blade |
 | Values | fearsome 30, by-the-book 20, honest 10 |
-| Face | male |
 
 Precise and relentless. Serval keeps a disciplined line that holds under fire.
 
@@ -136,9 +136,9 @@ Precise and relentless. Serval keeps a disciplined line that holds under fire.
 
 | Fact | Value |
 |---|---|
+| Face | female |
 | Title | the Fox |
 | Values | resourceful 30, intellectual 30, generous 10 |
-| Face | female |
 
 Reads a battle two moves ahead and wastes neither a shot nor a ton of ore.
 
@@ -146,8 +146,8 @@ Reads a battle two moves ahead and wastes neither a shot nor a ton of ore.
 
 | Fact | Value |
 |---|---|
+| Face | male |
 | Title | the Anvil |
 | Values | by-the-book 30, generous 20, kind 20 |
-| Face | male |
 
 Steady under pressure and never leaves a wingman behind. Orlan's fleets hold together long past when they should have broken.

@@ -4,7 +4,7 @@
 
 | Fact | Value |
 |---|---|
-| Speaker | ashfang |
+| Speaker | `ashfang` |
 | When | comms |
 
 > *One of:*
@@ -20,7 +20,7 @@
 
 | Fact | Value |
 |---|---|
-| Speaker | ashfang |
+| Speaker | `ashfang` |
 
 > Hah. Maybe you're smarter than you look. Leave the crates and go.
 
@@ -30,7 +30,7 @@
 
 | Fact | Value |
 |---|---|
-| Speaker | ashfang |
+| Speaker | `ashfang` |
 
 > Bold. We respect bold... right up until we don't.
 
@@ -41,7 +41,7 @@
 
 | Fact | Value |
 |---|---|
-| Speaker | ashfang |
+| Speaker | `ashfang` |
 
 > Smart. Run along, little ship.
 
@@ -49,7 +49,7 @@
 
 | Fact | Value |
 |---|---|
-| Speaker | ashfang |
+| Speaker | `ashfang` |
 
 > We're done here. For now.
 
@@ -57,7 +57,7 @@
 
 | Fact | Value |
 |---|---|
-| Speaker | vex |
+| Speaker | `vex` |
 | When | comms |
 
 > *One of:*
@@ -74,6 +74,6 @@
 
 | Fact | Value |
 |---|---|
-| Speaker | vex |
+| Speaker | `vex` |
 
 > We'll cross paths again, captain. Count on it.

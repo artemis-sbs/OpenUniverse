@@ -16,10 +16,10 @@ A ribbon of frontier stars beyond the last patrol line. Freight moves by lantern
 | Character | trader |
 | Disposition | neutral |
 | Home | -4, 2 |
-| Values | honest 40, generous 30, peaceful 20 |
 | Offers | escort, bounty |
 | Flies | Arvonian |
-| Jump charge | lantern_charge |
+| Jump charge | [Lantern spool-up](#the-silver-reach-effects-lantern-charge) |
+| Values | honest 40, generous 30, peaceful 20 |
 
 Convoy families who keep the freight lanes lit. Fair dealers with long memories for a kept promise - and longer ones for a broken cargo contract.
 
@@ -31,10 +31,10 @@ Convoy families who keep the freight lanes lit. Fair dealers with long memories 
 | Character | pirate |
 | Disposition | foe |
 | Home | 5, -4 |
-| Values | violent 40, fearsome 30, selfish 20 |
 | Offers | smuggle, bounty |
 | Flies | Torgoth |
-| Jump charge | veil_charge |
+| Jump charge | [Veil snatch](#the-silver-reach-effects-veil-charge) |
+| Values | violent 40, fearsome 30, selfish 20 |
 
 Corsairs of the outer dark. They take what the light forgets, and they respect exactly one thing: a captain more dangerous than they are.
 
@@ -44,9 +44,9 @@ Corsairs of the outer dark. They take what the light forgets, and they respect e
 
 | Fact | Value |
 |---|---|
-| Tier | 1 |
-| Goal | dock station |
+| Done when | dock station |
 | Reward | 260 credits |
+| Tier | 1 |
 
 A lantern convoy needs a shepherd through the dark miles. See it safe to port and the Combine settles up.
 
@@ -54,9 +54,9 @@ A lantern convoy needs a shepherd through the dark miles. See it safe to port an
 
 | Fact | Value |
 |---|---|
-| Tier | 1 |
-| Goal | destroy 3 enemies |
+| Done when | destroy 3 enemies |
 | Reward | 300 credits |
+| Tier | 1 |
 
 The Veil has been working the lanes again. There is a standing price on their hulls - three will do for a start.
 
@@ -64,9 +64,9 @@ The Veil has been working the lanes again. There is a standing price on their hu
 
 | Fact | Value |
 |---|---|
-| Tier | 2 |
-| Goal | recover 2 contraband |
+| Done when | recover 2 contraband |
 | Reward | 480 credits |
+| Tier | 2 |
 
 Sealed crates, no manifest, no questions. Bring them in quietly and be paid the same way.
 
@@ -76,10 +76,10 @@ Sealed crates, no manifest, no questions. Bring them in quietly and be paid the 
 
 | Fact | Value |
 |---|---|
-| Scope | shared |
-| State | active |
+| At start | active |
 | Done when | reach -4, 2 |
-| Then | reveal dimming_2 |
+| Then | `reveal` [The Dimming: Ash on the Manifest](#the-silver-reach-narrative-dimming-2) |
+| Scope | shared |
 
 Three Combine convoys have gone dark in a month, and the Combine is quietly asking for outside help. Their harbormaster waits at the home lanterns at (-4, 2).
 
@@ -87,10 +87,10 @@ Three Combine convoys have gone dark in a month, and the Combine is quietly aski
 
 | Fact | Value |
 |---|---|
-| Scope | shared |
-| State | secret |
+| At start | secret |
 | Done when | scan 2 derelicts |
-| Then | reveal dimming_3 |
+| Then | `reveal` [The Dimming: The Long Answer](#the-silver-reach-narrative-dimming-3) |
+| Scope | shared |
 | Reward | 200 credits |
 
 The lost convoys did not vanish - something left the wrecks adrift off the lanes. Find them and read what is left in the hulls.
@@ -99,9 +99,9 @@ The lost convoys did not vanish - something left the wrecks adrift off the lanes
 
 | Fact | Value |
 |---|---|
-| Scope | shared |
-| State | secret |
+| At start | secret |
 | Done when | destroy 5 veil |
+| Scope | shared |
 | Reward | 600 credits |
 | Standing | lantern honest 15, lantern generous 10 |
 
@@ -113,9 +113,9 @@ The manifests all point one way: the Red Veil is bleeding the lanes dry. The Com
 
 | Fact | Value |
 |---|---|
-| Scope | shared |
-| State | active |
+| At start | active |
 | Done when | destroy 15 veil |
+| Scope | shared |
 | Win | true |
 | Citation | The Red Veil is broken and the lanterns burn the length of the Reach. The convoy families will tell this captain's story for a generation. |
 
@@ -159,9 +159,9 @@ Corsair drives bite before they let go. A red bloom stands off the hull and clos
 |---|---|
 | Center | 5, -4 |
 | Radius | 3 |
+| Color | `#cc2244` |
 | Skybox | sky-neb2-rvb |
 | Music | Artemis2 |
-| Color | `#cc2244` |
 | Enemy mix | 40% |
 | Station mix | 5% |
 | Mine chance | 75% |
@@ -174,8 +174,8 @@ Veil country. Red skies, salted lanes, and no honest ports for miles.
 |---|---|
 | Center | -4, 2 |
 | Radius | 3 |
-| Skybox | sky-delight |
 | Color | `#ffcc44` |
+| Skybox | sky-delight |
 | Enemy mix | 0% |
 | Station mix | 30% |
 
@@ -187,8 +187,8 @@ The Combine's home lanes - calm, bright, and busy. The safest miles in the Reach
 
 | Fact | Value |
 |---|---|
-| At | 1, -2 |
 | Kind | derelict |
+| At | 1, -2 |
 
 A colony ship a century adrift, lanterns long cold. Every spacer in the Reach has a story about what still walks her corridors.
 
@@ -196,10 +196,10 @@ A colony ship a century adrift, lanterns long cold. Every spacer in the Reach ha
 
 | Fact | Value |
 |---|---|
-| At | -4, 2 |
 | Kind | station |
 | Side | lantern |
 | Art | starbase_science |
+| At | -4, 2 |
 
 The Combine's great beacon at the heart of the home lanes - half port, half promise.
 
@@ -209,11 +209,11 @@ The Combine's great beacon at the heart of the home lanes - half port, half prom
 
 | Fact | Value |
 |---|---|
-| Side | veil |
 | Title | the Lanternless |
-| Values | fearsome 40, violent 30, resourceful 20 |
+| Side | [The Red Veil](#the-silver-reach-sides-veil) |
 | Flies | Torgoth |
 | Roams | 5, -4 |
+| Values | fearsome 40, violent 30, resourceful 20 |
 | Rival when | standing \< -20 |
 
 The Veil's sharpest knife, said to have cut her own name out of the Combine's convoy rolls. She keeps accounts, and she always collects.
@@ -226,8 +226,8 @@ The Veil's sharpest knife, said to have cut her own name out of the Combine's co
 |---|---|
 | Face | terran |
 | Roles | lantern |
-| Scene | quill_hail |
 | Color | `#ffcc44` |
+| Scene | [Quill Hail](#the-silver-reach-dialogue-quill-hail) |
 
 The Combine's unflappable harbormaster - the voice that has talked a thousand freighters through the dark, and does not intend to lose yours.
 
@@ -237,11 +237,11 @@ The Combine's unflappable harbormaster - the voice that has talked a thousand fr
 |---|---|
 | Face | male |
 | Roles | civilian |
+| Color | `#6cf` |
+| Scene | [Calen Hail](#the-silver-reach-dialogue-calen-hail) |
 | Pickup | -4, 2 |
 | Deliver to | 5, -4 |
 | Reward | 500 credits |
-| Scene | calen_hail |
-| Color | `#6cf` |
 
 A quiet pilgrim paying convoy rates for passage into Veil country, of all places. He does not say why, and he pays in advance.
 
@@ -251,7 +251,7 @@ A quiet pilgrim paying convoy rates for passage into Veil country, of all places
 
 | Fact | Value |
 |---|---|
-| Speaker | veil |
+| Speaker | [The Red Veil](#the-silver-reach-sides-veil) |
 | When | comms |
 
 > *One of:*
@@ -267,7 +267,7 @@ A quiet pilgrim paying convoy rates for passage into Veil country, of all places
 
 | Fact | Value |
 |---|---|
-| Speaker | veil |
+| Speaker | [The Red Veil](#the-silver-reach-sides-veil) |
 
 > Smart. The Reach teaches quick or it buries slow. Leave the crates.
 
@@ -277,7 +277,7 @@ A quiet pilgrim paying convoy rates for passage into Veil country, of all places
 
 | Fact | Value |
 |---|---|
-| Speaker | veil |
+| Speaker | [The Red Veil](#the-silver-reach-sides-veil) |
 
 > Big words for a convoy dog. Say them again with your guns lit.
 
@@ -288,7 +288,7 @@ A quiet pilgrim paying convoy rates for passage into Veil country, of all places
 
 | Fact | Value |
 |---|---|
-| Speaker | veil |
+| Speaker | [The Red Veil](#the-silver-reach-sides-veil) |
 
 > Fly on, then. The dark is patient.
 
@@ -296,7 +296,7 @@ A quiet pilgrim paying convoy rates for passage into Veil country, of all places
 
 | Fact | Value |
 |---|---|
-| Speaker | mara |
+| Speaker | [Mara Dusk](#the-silver-reach-captains-mara) |
 | When | comms |
 
 > *One of:*
@@ -313,7 +313,7 @@ A quiet pilgrim paying convoy rates for passage into Veil country, of all places
 
 | Fact | Value |
 |---|---|
-| Speaker | mara |
+| Speaker | [Mara Dusk](#the-silver-reach-captains-mara) |
 
 > We will meet again, captain. The dark keeps all appointments.
 
@@ -321,7 +321,7 @@ A quiet pilgrim paying convoy rates for passage into Veil country, of all places
 
 | Fact | Value |
 |---|---|
-| Speaker | quill |
+| Speaker | [Harbormaster Quill](#the-silver-reach-lifeforms-quill) |
 | When | comms |
 
 > *One of:*
@@ -336,7 +336,7 @@ A quiet pilgrim paying convoy rates for passage into Veil country, of all places
 
 | Fact | Value |
 |---|---|
-| Speaker | quill |
+| Speaker | [Harbormaster Quill](#the-silver-reach-lifeforms-quill) |
 
 > *One of:*
 >
@@ -349,7 +349,7 @@ A quiet pilgrim paying convoy rates for passage into Veil country, of all places
 
 | Fact | Value |
 |---|---|
-| Speaker | quill |
+| Speaker | [Harbormaster Quill](#the-silver-reach-lifeforms-quill) |
 
 > Lighthouse out. Keep your running lights on, captain.
 
@@ -357,7 +357,7 @@ A quiet pilgrim paying convoy rates for passage into Veil country, of all places
 
 | Fact | Value |
 |---|---|
-| Speaker | calen |
+| Speaker | [Brother Calen](#the-silver-reach-lifeforms-calen) |
 | When | comms |
 
 > *One of:*
@@ -372,7 +372,7 @@ A quiet pilgrim paying convoy rates for passage into Veil country, of all places
 
 | Fact | Value |
 |---|---|
-| Speaker | calen |
+| Speaker | [Brother Calen](#the-silver-reach-lifeforms-calen) |
 
 > A grave, captain. I go to tend a grave. The rest is between me and the dark.
 
@@ -382,6 +382,6 @@ A quiet pilgrim paying convoy rates for passage into Veil country, of all places
 
 | Fact | Value |
 |---|---|
-| Speaker | calen |
+| Speaker | [Brother Calen](#the-silver-reach-lifeforms-calen) |
 
 > Peace to your bridge, captain. I will be no bother.

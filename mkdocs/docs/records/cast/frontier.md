@@ -6,8 +6,8 @@
 |---|---|
 | Face | terran |
 | Roles | tsn, command |
-| Scene | frontier_hail |
 | Color | `#4cf` |
+| Scene | `frontier_hail` |
 
 Distant TSN fleet command, keeping a thin watch over the frontier.
 
@@ -17,12 +17,12 @@ Distant TSN fleet command, keeping a thin watch over the frontier.
 |---|---|
 | Face | female |
 | Roles | civilian |
+| Color | `#6cf` |
+| Scene | `sela_hail` |
 | Pickup | 0, 0 |
 | Deliver to | -5, 3 |
 | Reward | 500 credits |
 | Patience | 20m |
-| Scene | sela_hail |
-| Color | `#6cf` |
 
 A xenobiologist needing passage from the home base to the Verdant worlds.
 
@@ -60,11 +60,11 @@ A xenobiologist needing passage from the home base to the Verdant worlds.
 |---|---|
 | Face | male |
 | Roles | civilian |
+| Color | `#f84` |
+| Scene | `courier_hail` |
 | Pickup | 6, 4 |
 | Deliver to | 0, 0 |
 | Reward | 600 credits |
 | Sabotage | sensors, weapons, engines |
-| Scene | courier_hail |
-| Color | `#f84` |
 
 A twitchy courier with a heavy sealed case, paying well for fast, quiet passage off the Iron Concord home. Too well.

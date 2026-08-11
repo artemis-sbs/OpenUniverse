@@ -4,7 +4,7 @@
 
 | Fact | Value |
 |---|---|
-| Speaker | vale |
+| Speaker | `vale` |
 
 > *One of:*
 >
@@ -18,7 +18,7 @@
 
 | Fact | Value |
 |---|---|
-| Speaker | vale |
+| Speaker | `vale` |
 
 > *One of:*
 >
@@ -31,7 +31,7 @@
 
 | Fact | Value |
 |---|---|
-| Speaker | vale |
+| Speaker | `vale` |
 
 > Logged. Vale out.
 
@@ -39,7 +39,7 @@
 
 | Fact | Value |
 |---|---|
-| Speaker | kade |
+| Speaker | `kade` |
 
 > *One of:*
 >
@@ -53,7 +53,7 @@
 
 | Fact | Value |
 |---|---|
-| Speaker | kade |
+| Speaker | `kade` |
 
 > *One of:*
 >
@@ -66,7 +66,7 @@
 
 | Fact | Value |
 |---|---|
-| Speaker | kade |
+| Speaker | `kade` |
 
 > Kade out. Try to leave some for us.
 
@@ -74,7 +74,7 @@
 
 | Fact | Value |
 |---|---|
-| Speaker | ashwell |
+| Speaker | `ashwell` |
 
 > *One of:*
 >
@@ -88,7 +88,7 @@
 
 | Fact | Value |
 |---|---|
-| Speaker | ashwell |
+| Speaker | `ashwell` |
 
 > *One of:*
 >
@@ -101,6 +101,6 @@
 
 | Fact | Value |
 |---|---|
-| Speaker | ashwell |
+| Speaker | `ashwell` |
 
 > Ashwell out. If you find a wreck, save it for me.

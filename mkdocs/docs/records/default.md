@@ -21,9 +21,9 @@ Flies = the race composition of a side's ships: a single race (Torgoth), an even
 | Character | military |
 | Disposition | neutral |
 | Home | 6, 4 |
-| Values | by-the-book 40, fearsome 30, honest 20 |
 | Offers | patrol, escort, strike |
 | Flies | 60% Kralien, 40% Arvonian |
+| Values | by-the-book 40, fearsome 30, honest 20 |
 
 Disciplined and territorial. Respects strength and straight dealing; honor a deal and the Concord remembers - break one and they remember longer.
 
@@ -35,9 +35,9 @@ Disciplined and territorial. Respects strength and straight dealing; honor a dea
 | Character | trader |
 | Disposition | neutral |
 | Home | -5, 3 |
-| Values | peaceful 40, generous 30, kind 20 |
 | Offers | supply, escort, survey |
 | Flies | Arvonian |
+| Values | peaceful 40, generous 30, kind 20 |
 
 Green-world traders and farmers. Quick to deal, slow to fight; pay them in kindness and they pay you back in goods.
 
@@ -49,9 +49,9 @@ Green-world traders and farmers. Quick to deal, slow to fight; pay them in kindn
 | Character | settler |
 | Disposition | neutral |
 | Home | -7, -7 |
-| Values | resourceful 40, honest 30, kind 10 |
 | Offers | salvage, rescue, supply |
 | Flies | Kralien, Torgoth, Arvonian, Ximni |
+| Values | resourceful 40, honest 30, kind 10 |
 
 Independent settlers scratching a living from the drift. Self-reliant and plain- spoken; they value a captain who gets things done.
 
@@ -63,9 +63,9 @@ Independent settlers scratching a living from the drift. Self-reliant and plain-
 | Character | mercenary |
 | Disposition | neutral |
 | Home | 5, -3 |
-| Values | resourceful 30, selfish 30, fearsome 20 |
 | Offers | bounty, escort, smuggle |
 | Flies | 40% Ximni, 30% Torgoth, 30% Kralien |
+| Values | resourceful 30, selfish 30, fearsome 20 |
 
 Brokers of muscle and cargo - loyal to the contract, not the cause. Coin and a fearsome reputation open their doors.
 
@@ -77,9 +77,9 @@ Brokers of muscle and cargo - loyal to the contract, not the cause. Coin and a f
 | Character | pirate |
 | Disposition | foe |
 | Home | 8, -5 |
-| Values | violent 40, cruel 30, cowardly 20 |
 | Offers | raid, smuggle, bounty |
 | Flies | Torgoth |
+| Values | violent 40, cruel 30, cowardly 20 |
 
 Opportunist pirates who prey on the lanes. They respect violence and despise the weak; only the dangerous bargain with them.
 
@@ -91,9 +91,9 @@ Opportunist pirates who prey on the lanes. They respect violence and despise the
 | Character | cult |
 | Disposition | foe |
 | Home | -4, 6 |
-| Values | intellectual 40, liar 30, selfish 20 |
 | Offers | retrieve, escort, mystery |
 | Flies | Ximni |
+| Values | intellectual 40, liar 30, selfish 20 |
 
 A secretive cult chasing forbidden knowledge in the deep dark. Honeyed words hide sharp intent; trust them at your peril.
 
@@ -113,10 +113,10 @@ Shared story arcs - game-wide reveal chains spanning systems. Each heading is on
 
 | Fact | Value |
 |---|---|
-| Scope | shared |
-| State | active |
+| At start | active |
 | Done when | reach 6, 4 |
-| Then | reveal truce_2 |
+| Then | `reveal` [The Long Truce: Proof of Resolve](#default-narrative-truce-2) |
+| Scope | shared |
 
 A coded hail from Iron Concord HQ at system (6, 4). Travel there to hear them out.
 
@@ -124,10 +124,10 @@ A coded hail from Iron Concord HQ at system (6, 4). Travel there to hear them ou
 
 | Fact | Value |
 |---|---|
-| Scope | shared |
-| State | secret |
+| At start | secret |
 | Done when | destroy 3 ashfang |
-| Then | reveal truce_3 |
+| Then | `reveal` [The Long Truce: The Accord](#default-narrative-truce-3) |
+| Scope | shared |
 | Reward | 100 credits |
 
 The Concord wants a broker for a ceasefire with the Ashfang Raiders. Thin the raiders - destroy three - to show the Concord you can hold the line.
@@ -136,9 +136,9 @@ The Concord wants a broker for a ceasefire with the Ashfang Raiders. Thin the ra
 
 | Fact | Value |
 |---|---|
-| Scope | shared |
-| State | secret |
+| At start | secret |
 | Done when | dock station |
+| Scope | shared |
 | Reward | 800 credits |
 | Standing | iron honest 20, iron fearsome 10 |
 
@@ -152,9 +152,9 @@ The campaign's win/lose conditions - the long game on top of the sandbox. A goal
 
 | Fact | Value |
 |---|---|
-| Scope | shared |
-| State | active |
+| At start | active |
 | Done when | destroy 20 ashfang |
+| Scope | shared |
 | Win | true |
 | Citation | The Ashfang raiders are broken and the lanes run clear. The frontier remembers the captain who freed it. |
 
@@ -170,9 +170,9 @@ Named areas of the galaxy with their own identity. A region is a Center + Radius
 |---|---|
 | Center | 8, -5 |
 | Radius | 4 |
+| Color | `#ee3333` |
 | Skybox | sky-neb2-rvb |
 | Music | Artemis2 |
-| Color | `#ee3333` |
 | Enemy mix | 45% |
 | Station mix | 5% |
 | Mine chance | 80% |
@@ -185,8 +185,8 @@ Ashfang raider country - red skies and worse intentions. A warzone: enemy system
 |---|---|
 | Center | -5, 3 |
 | Radius | 4 |
-| Skybox | sky-delight |
 | Color | `#44cc88` |
+| Skybox | sky-delight |
 | Enemy mix | 0% |
 | Station mix | 30% |
 
@@ -211,8 +211,8 @@ Named, hand-placed stations and wrecks pinned to a system (like side homes) - th
 
 | Fact | Value |
 |---|---|
-| At | -4, 6 |
 | Kind | derelict |
+| At | -4, 6 |
 
 A vast Hollow Choir wreck adrift in the deep dark, said to hold forbidden charts.
 
@@ -220,10 +220,10 @@ A vast Hollow Choir wreck adrift in the deep dark, said to hold forbidden charts
 
 | Fact | Value |
 |---|---|
-| At | 3, 3 |
 | Kind | station |
 | Side | tsn |
 | Art | starbase_science |
+| At | 3, 3 |
 
 An old TSN research post, still broadcasting on a forgotten frequency.
 
@@ -345,10 +345,10 @@ The Academy roster - named fleet captains for the player side (the Admiral conso
 
 | Fact | Value |
 |---|---|
+| Face | male |
+| Scene | `off_vale_hail` |
 | Title | the Quartermaster |
 | Values | by-the-book 40, honest 30, kind 10 |
-| Face | male |
-| Scene | off_vale_hail |
 
 Ran the academy's logistics course for a decade and the lanes know it. Fleets under Vale come home fueled, patched, and on schedule.
 
@@ -356,10 +356,10 @@ Ran the academy's logistics course for a decade and the lanes know it. Fleets un
 
 | Fact | Value |
 |---|---|
+| Face | female |
+| Scene | `off_kade_hail` |
 | Title | Old Thunder |
 | Values | fearsome 40, violent 20, generous 10 |
-| Face | female |
-| Scene | off_kade_hail |
 
 Leads from the front and shoots first. Kade's fleets hit harder and scare easier prey off the board before a shot is fired.
 
@@ -367,10 +367,10 @@ Leads from the front and shoots first. Kade's fleets hit harder and scare easier
 
 | Fact | Value |
 |---|---|
+| Face | female |
+| Scene | `off_ashwell_hail` |
 | Title | the Magpie |
 | Values | resourceful 40, intellectual 20, selfish 10 |
-| Face | female |
-| Scene | off_ashwell_hail |
 
 Never met a wreck she could not strip or a sensor shadow she could not slip through. Ashwell's fleets salvage more and die less.
 
@@ -398,11 +398,11 @@ The Admiralty's tech ladder (researched at a Shipyard). Each milestone names its
 
 | Fact | Value |
 |---|---|
-| Also | economy |
 | Branch | engineering |
+| Unlocks | storage 500 |
+| Also | economy |
 | Costs | ore 120, gas 40 |
 | Time | 40 |
-| Unlocks | storage 500 |
 
 Bigger tanks and deeper bunkers. The stockpiles can hold more before the quartermasters start turning shipments away.
 
@@ -410,12 +410,12 @@ Bigger tanks and deeper bunkers. The stockpiles can hold more before the quarter
 
 | Fact | Value |
 |---|---|
-| Also | economy |
 | Branch | engineering |
+| Unlocks | extraction 25% |
+| Requires | [Expanded Silos](#default-research-eng-silos) |
+| Also | economy |
 | Costs | ore 180, gas 90 |
 | Time | 60 |
-| Requires | eng_silos |
-| Unlocks | extraction 25% |
 
 Better drills, hotter crackers. Every extractor in the fleet's employ works a quarter again as fast.
 
@@ -423,12 +423,12 @@ Better drills, hotter crackers. Every extractor in the fleet's employ works a qu
 
 | Fact | Value |
 |---|---|
-| Also | economy |
 | Branch | engineering |
+| Unlocks | requisition tauron_focuser, requisition haplix_overcharger |
+| Requires | [Refined Extraction](#default-research-eng-refining) |
+| Also | economy |
 | Costs | ore 250, gas 120, crew 10 |
 | Time | 80 |
-| Requires | eng_refining |
-| Unlocks | requisition tauron_focuser, requisition haplix_overcharger |
 
 Weapons-grade componentry enters the catalog: the yards can now requisition serious hardware for the bridge crews.
 
