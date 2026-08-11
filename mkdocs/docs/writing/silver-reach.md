@@ -10,13 +10,16 @@ Note the additions over the walkthrough pages: every character with a
 `Scene:` has that scene written in `## Dialogue`, and Mara Dusk has a hail of
 her own - one that reads her *personal* standing with the player.
 
-```
-// The Silver Reach - a small example universe for the Open Universe.
-// Two sides, honest work, a three-chapter story, a war to win, and a
-// pirate captain who holds a grudge.
+<!-- amd:begin excerpt silver_reach.amd -->
+```amd
+// The Silver Reach - the worked example universe from the writer's walkthrough
+// (mkdocs/docs/writing/, or WRITERS_GUIDE.pdf). Two sides, honest work, a
+// three-chapter story, a war to win, and a pirate captain who holds a grudge.
+// Copy this file to start your own universe - register it in universes.mast.
 
 # [The Silver Reach](the_silver_reach)
 ---
+Universe
 Display: The Silver Reach
 ---
 A ribbon of frontier stars beyond the last patrol line. Freight moves by
@@ -34,6 +37,7 @@ Home: -4, 2
 Values: honest 40, generous 30, peaceful 20
 Offers: escort, bounty
 Flies: Arvonian
+Jump Charge: lantern_charge
 ---
 Convoy families who keep the freight lanes lit. Fair dealers with long
 memories for a kept promise - and longer ones for a broken cargo contract.
@@ -47,6 +51,7 @@ Home: 5, -4
 Values: violent 40, fearsome 30, selfish 20
 Offers: smuggle, bounty
 Flies: Torgoth
+Jump Charge: veil_charge
 ---
 Corsairs of the outer dark. They take what the light forgets, and they
 respect exactly one thing: a captain more dangerous than they are.
@@ -57,7 +62,7 @@ respect exactly one thing: a captain more dangerous than they are.
 ---
 Tier: 1
 Goal: dock station
-Pays: 260 credits
+Reward: 260 credits
 ---
 A lantern convoy needs a shepherd through the dark miles. See it safe to
 port and the Combine settles up.
@@ -65,8 +70,8 @@ port and the Combine settles up.
 ### [Veil Bounty](bounty)
 ---
 Tier: 1
-Goal: destroy 3 raiders
-Pays: 300 credits
+Goal: destroy 3 enemies
+Reward: 300 credits
 ---
 The Veil has been working the lanes again. There is a standing price on
 their hulls - three will do for a start.
@@ -75,7 +80,7 @@ their hulls - three will do for a start.
 ---
 Tier: 2
 Goal: recover 2 contraband
-Pays: 480 credits
+Reward: 480 credits
 ---
 Sealed crates, no manifest, no questions. Bring them in quietly and be
 paid the same way.
@@ -86,7 +91,7 @@ paid the same way.
 ---
 Scope: shared
 State: active
-When: reach -4, 2
+Done when: reach -4, 2
 Then: reveal dimming_2
 ---
 Three Combine convoys have gone dark in a month, and the Combine is
@@ -97,9 +102,9 @@ lanterns at (-4, 2).
 ---
 Scope: shared
 State: secret
-When: scan 2 derelicts
+Done when: scan 2 derelicts
 Then: reveal dimming_3
-Pays: 200 credits
+Reward: 200 credits
 ---
 The lost convoys did not vanish - something left the wrecks adrift off
 the lanes. Find them and read what is left in the hulls.
@@ -108,9 +113,9 @@ the lanes. Find them and read what is left in the hulls.
 ---
 Scope: shared
 State: secret
-When: destroy 5 veil
-Pays: 600 credits
-Earns: lantern honest 15, lantern generous 10
+Done when: destroy 5 veil
+Reward: 600 credits
+Standing: lantern honest 15, lantern generous 10
 ---
 The manifests all point one way: the Red Veil is bleeding the lanes dry.
 The Combine will not say the word "war" - but they will pay well for
@@ -122,12 +127,54 @@ captains who end this quietly.
 ---
 Scope: shared
 State: active
-When: destroy 15 veil
+Done when: destroy 15 veil
 Win: true
 Citation: The Red Veil is broken and the lanterns burn the length of the Reach. The convoy families will tell this captain's story for a generation.
 ---
 End the Veil's grip on the Reach for good - fifteen of their hulls, however
 long it takes - and win the lanes their peace.
+
+## [Effects](effects)
+
+// How a ship LOOKS winding up to jump. The engine's hyper-warp tunnel is drawn on
+// the jumping crew's own screens; this happens on the hull, in shared space, so
+// everyone in the system sees a ship spool up before it goes.
+//
+// `Look:` names a built-in preset as the base; the rest override it. `A -> B` is a
+// ramp over `Grows over:`. A side points at one of these with `Jump Charge:`, and a
+// side that names none still winds up - its Character: picks a look and its own
+// Color: tints it.
+//
+// The kind line is the bare word `Effect`. NOT `Kind: effect` - `Kind:` means a
+// landmark to the schema, and the record would be typed as one.
+
+### [Lantern spool-up](lantern_charge)
+---
+Effect
+Look: charge
+Color: #ffcc44, white
+Size: 0.6 -> 2.0
+Count: 10 -> 80
+Speed: 0.5 -> 3.0
+Grows over: 3.5 seconds
+On: hull
+---
+Convoy drives take their time and make no secret of it - lantern-gold light
+running the plating until the whole hull is lit, then gone.
+
+### [Veil snatch](veil_charge)
+---
+Effect
+Look: charge
+Color: #cc2244, white
+Offset: 0, 0, 400 -> 0, 0, 0
+Size: 12 -> 2
+Count: 20 -> 120
+Grows over: 3 seconds
+On: hull
+---
+Corsair drives bite before they let go. A red bloom stands off the hull and
+closes onto it, and the ship is simply not there any more.
 
 ## [Regions](regions)
 
@@ -147,8 +194,8 @@ Veil country. Red skies, salted lanes, and no honest ports for miles.
 ### [The Lantern Lanes](lantern_lanes)
 ---
 Center: -4, 2
-Skybox: sky-delight
 Radius: 3
+Skybox: sky-delight
 Color: #ffcc44
 Enemy mix: 0%
 Station mix: 30%
@@ -208,8 +255,9 @@ Face: male
 Roles: civilian
 Pickup: -4, 2
 Deliver to: 5, -4
-Pays: 500 credits
+Reward: 500 credits
 Scene: calen_hail
+Color: #6cf
 ---
 A quiet pilgrim paying convoy rates for passage into Veil country, of all
 places. He does not say why, and he pays in advance.
@@ -291,7 +339,7 @@ When: comms
 ---
 Speaker: quill
 ---
-% The Combine posts work at every lantern port. Fly honest and it pays
+% The Combine posts work at every lantern port. Fly honest and it pays.
 % Convoys need shepherds and the Veil needs thinning. Take your pick.
 
 - [Understood](quill_done)
@@ -329,3 +377,4 @@ Speaker: calen
 ---
 % Peace to your bridge, captain. I will be no bother.
 ```
+<!-- amd:end -->

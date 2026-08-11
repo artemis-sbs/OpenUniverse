@@ -184,7 +184,9 @@ def _declare_universe_vocabulary():
     # offered it to authors who had nothing to read it.
     amd_register_fields("quest", {
         "standing": field(text(hint="iron honest 20, iron fearsome 10"),
-                          key="rep", aka=("earns",)),
+                          key="rep", aka=("earns",),
+                          doc="Reputation moved on completion - `side pole delta`, "
+                              "comma-separated."),
     }, domain="OpenUniverse")
 
     # A side IS A SIDE - universe_sides.py has said so since the beginning ("spawned

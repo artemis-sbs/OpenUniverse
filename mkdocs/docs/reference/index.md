@@ -44,14 +44,17 @@ The built-in trait pairs: `honest`/`liar`, `fearsome`/`cowardly`,
 
 ## `## Jobs`
 
-| Fact | Meaning |
-|---|---|
-| `Tier:` | `1` (anyone) / `2` (good standing) / `3` (proven friends). |
-| `Goal:` | English objective; the verb picks the trigger (below). |
-| `Pays:` | Reward, e.g. `300 credits` (scaled up by standing). |
-| `Earns:` | Reputation on completion: `side pole delta`, comma-separated. |
+<!-- amd:begin fields quest --only tier,objective,done when,reward,standing -->
+| Field | Meaning | Also |
+|---|---|---|
+| `Objective:` | The sentence the player reads in the quest log. |  |
+| `Done when:` | The COMPLETION trigger - what has to happen for this quest to be done. | `Goal:` |
+| `Reward:` | What COMPLETING it gives - credits, an item key, or a reputation clause. | `Pays:` |
+| `Tier:` | Optional ordering for the quest log. |  |
+| `Standing:` | Reputation moved on completion - `side pole delta`, comma-separated. | `Earns:` |
+<!-- amd:end -->
 
-**Goal / When triggers** - the leading verb decides:
+**Trigger phrases** - the leading verb decides:
 
 | Phrase | Tracks |
 |---|---|
@@ -66,16 +69,23 @@ Built-in goods for `recover`: `provisions`, `ore`, `gas`, `tech`,
 
 ## `## Narrative` and `## Goals`
 
-| Fact | Meaning |
-|---|---|
-| `Scope: shared` | The whole crew shares this step. Write it on every beat. |
-| `State:` | `active` (live at launch) or `secret` (waits for a reveal). |
-| `When:` | The trigger (same verb phrases as `Goal:`). |
-| `Then: reveal <key>` | Completing this step activates that one. |
-| `Then: signal <name>` | Completing this step fires a named signal. |
-| `Pays:` / `Earns:` | Credits / reputation on completion. |
-| `Win: true` / `Lose: true` | *(Goals only)* ends the campaign. |
-| `Citation:` | *(Goals only)* the end-card text. |
+<!-- amd:begin fields quest --only scope,at start,done when,starts when,then,reward,standing,win,lose,citation -->
+| Field | Meaning | Also |
+|---|---|---|
+| `At start:` | What condition this record is in when the mission BEGINS. `posting` is listed like an available job but shows no Accept button - something else has to offer it. | `State:` |
+| `Done when:` | The COMPLETION trigger - what has to happen for this quest to be done. | `Goal:` |
+| `Starts when:` | When it ARMS - `at once`, `accepted` (the player takes it off the board), `revealed` (another quest reveals it). Not what completes it; that is `Done when:`. | `When:` |
+| `Then:` | Follow-up on COMPLETION - `reveal <quest>` to unlock another, or `signal <name>`. Those two verbs only; anything else is read as a reveal target. |  |
+| `Scope:` | Who holds it - `shared` is one quest for the whole game, `ship` gives every player ship its own copy. |  |
+| `Reward:` | What COMPLETING it gives - credits, an item key, or a reputation clause. | `Pays:` |
+| `Win:` | Completing this WINS the mission. |  |
+| `Lose:` | Completing this LOSES the mission. |  |
+| `Citation:` | The commendation read out on the end screen. |  |
+| `Standing:` | Reputation moved on completion - `side pole delta`, comma-separated. | `Earns:` |
+<!-- amd:end -->
+
+`Win:` / `Lose:` and `Citation:` are meaningful on a **goal**; the rest apply to any
+beat.
 
 ## `## Regions`
 
