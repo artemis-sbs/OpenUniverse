@@ -30,6 +30,10 @@ default shared UNIVERSE_SELECT = "Default"
 # Which save slot (per universe). Continue loads it; New Game overwrites it. So each
 # universe can hold several independent campaigns.
 default shared SAVE_SLOT = 1
+# How long a ship's drives visibly wind up before the hyper-warp tunnel opens. The
+# wind-up is on the HULL, so it is the only part of a jump anyone outside the jumping
+# ship can see. Set it to 0 to restore the old behavior exactly (a hard cut).
+default shared UNIVERSE_WARP_CHARGE_SECONDS = 3.5
 default shared universe_diplomacy = {}
 # Active dialogue scene + speaker side (set when a player hails; see the dialogue
 # routes near the station comms).
@@ -172,6 +176,11 @@ default shared WAYPOINTS_ENABLED = False
     # Landmarks (the `landmarks` section): named hand-placed stations/wrecks pinned
     # to a system, spawned on arrival (universe_enter_system).
     shared UNIVERSE_LANDMARKS = universe_parse_landmarks(UNIVERSE_DOC)
+    # Effects (the `effects` section): named particle looks a side points at with
+    # `Jump Charge:`. Optional - a universe that declares none still charges up,
+    # because a look name falls back to the built-in table (coil / arc / preburn /
+    # implode / pulse) before it falls back to the default.
+    amd_effects(universe_section(UNIVERSE_DOC, "effects"))
     # Goods (the `goods` section): the authored loot pool the POI deck scatters.
     goods_configure(universe_parse_goods(UNIVERSE_DOC))
     # Mission Mode gate (CORE): resolves mission_mode() from the ## Scenario / ## Admiralty
@@ -298,6 +307,7 @@ default shared WAYPOINTS_ENABLED = False
     universe_save_players()
     task_schedule(universe_chatter_loop)
     task_schedule(universe_cull_loop)
+    task_schedule(universe_smolder_loop)
     ->END
 
 
@@ -418,6 +428,7 @@ default shared WAYPOINTS_ENABLED = False
 
 # Ambient chatter: occasional side lines while in their space (flavor only).
 === universe_chatter_loop
+    beacon_id = 0
 --- loop
     await delay_sim(45)
     ->END if not UNIVERSE_ACTIVE
@@ -433,7 +444,47 @@ default shared WAYPOINTS_ENABLED = False
         near_der = closest(loop_players[0], role("universe_derelict"), 7000)
         if near_der is not None:
             universe_info_card("Sensors flag a derelict nearby - science could scan it.", title="Sensors")
+        # ...and light the ONE wreck being hinted, so "there is something out here"
+        # is on the viewscreen and not only in a card. The old beacon comes off
+        # first, so however many wrecks a system holds this mechanic can never own
+        # more than a single emitter. `ember` is 6 particles - deliberately faint;
+        # it marks a wreck, it does not set it on fire.
+        if beacon_id != 0:
+            if near_der is None or near_der.id != beacon_id:
+                particle_effect_clear(beacon_id, "beacon")
+                beacon_id = 0
+        if near_der is not None and beacon_id != near_der.id:
+            particle_effect(near_der.id, "ember", slot="beacon")
+            beacon_id = near_der.id
     jump loop
+
+
+# A damaged player ship SMOLDERS.
+#
+# The engine draws the explosion and the beam hit; what it has no opinion about is
+# the state a ship is left IN afterward, so a hull at 20% looks exactly like a fresh
+# one. This is that gap and only that gap.
+#
+# Players only. It is a handful of hulls, so the cost is bounded by the roster rather
+# than by how big the fight is - which is what keeps a 40-ship brawl from turning
+# into a smoke bank. Slot replacement makes the whole loop idempotent: re-issuing
+# the same slot swaps the emitter instead of adding one, so there is no "have I
+# already done this ship" bookkeeping to get wrong.
+=== universe_smolder_loop
+--- smolder
+    await delay_sim(5)
+    ->END if not UNIVERSE_ACTIVE
+    for sm_obj in to_object_list(role("__player__")):
+        sm_pct = viewscreen_hull_percent(sm_obj.id)
+        if sm_pct is None:
+            sm_pct = 100
+        if sm_pct <= 15:
+            particle_effect(sm_obj.id, "ember", slot="damage")
+        elif sm_pct <= 35:
+            particle_effect(sm_obj.id, "smolder", slot="damage")
+        else:
+            particle_effect_clear(sm_obj.id, "damage")
+    jump smolder
 
 
 # Persist items + shared side credits whenever they change (universe only).
@@ -1341,6 +1392,27 @@ default shared WAYPOINTS_ENABLED = False
     src = ship_cell(warp_ship)
     ->END if ti == src[0] and tj == src[1]
 
+    # Wind-up, on the HULL, BEFORE the tunnel screen.
+    #
+    # The hyper-warp screen is per-client, so it only ever existed for the jumping
+    # crew - from outside, a ship simply vanished. This happens in shared space:
+    # everyone in the system watches a ship spool up for a few seconds before it
+    # goes. That is a real signal, not decoration - a pirate can see a trader
+    # winding up and has a window to act on it. Do NOT "optimize" it into a
+    # client-scoped effect.
+    #
+    # It sits entirely before the screen and before universe_enter_system below,
+    # whose duration is unknown (it generates a whole system when the destination
+    # is new). Keeping it here is what makes its length predictable.
+    #
+    # The look comes from the side (`Jump Charge:`, else its Character:, else coil)
+    # and is tinted with the side's own Color:, so factions differ with nothing
+    # authored. Setting UNIVERSE_WARP_CHARGE_SECONDS to 0 restores the old hard cut.
+    if UNIVERSE_WARP_CHARGE_SECONDS > 0:
+        particle_charge_start(warp_ship, universe_charge_look(UNIVERSE_SIDES, warp_ship), UNIVERSE_WARP_CHARGE_SECONDS, universe_charge_color(UNIVERSE_SIDES, warp_ship))
+        await delay_sim(UNIVERSE_WARP_CHARGE_SECONDS)
+        particle_charge_stop(warp_ship)
+
     # Hyperspace screen on for THIS ship's consoles only.
     for c in to_object_list(linked_to(warp_ship, "consoles")):
         cobj = to_object(c)
@@ -1385,3 +1457,4 @@ default shared WAYPOINTS_ENABLED = False
         cid = cobj.client_id if cobj is not None else c
         sbs.super_hyper_warp_mode(cid, "", 0)
     ->END
+

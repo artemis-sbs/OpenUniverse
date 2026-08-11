@@ -198,6 +198,11 @@ def _sides_from_nodes(nodes):
             # Optional comms-card identity (info panel): a face string + an icon.
             "face": data.get("face"),
             "icon": data.get("icon"),
+            # How this side's drives LOOK winding up for a jump - an ## Effects
+            # record, or a built-in charge look. None falls back through the
+            # archetype to `coil` (universe_charge_look), so a side that says
+            # nothing still charges up in its own Color:.
+            "jump_charge": data.get("jump_charge"),
         }))
     return sides
 
@@ -363,3 +368,84 @@ def sides_for_system(sides, seed, i, j):
         return None
     roll = scatter.cell_roll(seed, 13, int(i), int(j), 7)
     return foes[int(roll * len(foes)) % len(foes)]
+
+
+# --- how a side's drives LOOK winding up for a jump --------------------------
+#
+# The engine's hyper-warp screen is per-client: only the jumping ship's own crew
+# sees the tunnel. A charge-up on the HULL is the other half - it happens in shared
+# space, so everyone in the system watches a ship spool up before it goes. That is
+# the point of doing it this way rather than as another client-side screen.
+
+# Which built-in look a side's Character: implies, when it names none of its own.
+# Every side has a Character:, so this alone gives an unauthored universe a
+# different wind-up per faction.
+_CHARACTER_CHARGE = {
+    "military": "coil",
+    "trader": "preburn",
+    "pirate": "arc",
+    "scientist": "implode",
+    "mercenary": "arc",
+    "settler": "preburn",
+}
+
+DEFAULT_CHARGE_LOOK = "coil"
+
+
+def universe_charge_look(sides, ship_id):
+    """Which charge look this ship's drives use. NEVER returns empty.
+
+    In order:
+      1. the ship's own ``charge`` inventory value - a prefab or a quest pinned one;
+      2. its side's ``Jump Charge:``;
+      3. a default for its side's ``Character:``;
+      4. ``coil``.
+
+    A silent nothing is indistinguishable from a bug, so an NPC with no side record
+    at all still winds up - it just does it in the default look.
+    """
+    from sbs_utils.procedural.inventory import get_inventory_value
+    obj = to_object(ship_id)
+    if obj is None:
+        return DEFAULT_CHARGE_LOOK
+
+    own = get_inventory_value(ship_id, "charge", None)
+    if own:
+        return str(own)
+
+    side = getattr(obj, "side", None)
+    rec = sides_get(sides, side) if side else None
+    if rec is not None:
+        declared = rec.get("jump_charge", None)
+        if declared:
+            return str(declared)
+        arch = rec.get("archetype", None)
+        if arch and arch in _CHARACTER_CHARGE:
+            return _CHARACTER_CHARGE[arch]
+    return DEFAULT_CHARGE_LOOK
+
+
+def universe_charge_color(sides, ship_id):
+    """The tint for a ship's charge-up: its side's own color, or None.
+
+    This is the free half - every side already has a color, so factions look
+    different from each other on day one with nothing authored.
+
+    Two registries, because a side can come from either. The universe's `## Sides`
+    section holds the NPC FACTIONS; the PLAYER sides are created at server start
+    (create_sides) and live in the engine-side registry instead. Asking only the
+    first handed every player ship - the most-watched wind-up in the game - the
+    "#888888" not-found gray.
+
+    Returns None rather than a gray when neither knows, so the charge driver falls
+    back to its own blue-white. A dead color is worse than no color.
+    """
+    obj = to_object(ship_id)
+    side = getattr(obj, "side", None) if obj is not None else None
+    if not side:
+        return None
+    rec = sides_get(sides, side)
+    if rec is not None and rec.get("color", None):
+        return rec.color
+    from sbs_utils.procedural.sides import side_get_side_color
+    return side_get_side_color(side, None)

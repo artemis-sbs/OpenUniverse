@@ -121,6 +121,8 @@ def _ou_facts(data, label, value):
         data["quest_pool"] = amd_list(value)
     elif label == "flies":
         data["makeup"] = amd_makeup(value)
+    elif label == "jump charge":
+        data["jump_charge"] = str(value).strip()
     elif label in ("file", "files"):
         data.setdefault("file", []).extend(amd_list(value))
     elif label in ("standing", "earns"):
@@ -197,6 +199,11 @@ def _declare_universe_vocabulary():
         # `Values:` comes from the shared `reputation` trait, which every side has.
         "offers": csv(hint="patrol, escort, strike"),
         "flies": makeup(hint="60% Kralien, 40% Arvonian"),
+        # How this side's drives LOOK winding up for a jump. Names an `## Effects`
+        # record, or one of the built-in charge looks (coil / arc / preburn /
+        # implode / pulse). Omit it and the side still charges up - the archetype
+        # picks a look and the side's own `Color:` tints it.
+        "jump charge": ref("node", hint="an ## Effects record, or: coil, arc, preburn"),
     }, domain="universe")
 
     # A captain is a CHARACTER - a named person who flies for a side and is hailable.

@@ -500,6 +500,12 @@ default shared ADM_LAST_MSG = ""
     # client id directly. Doubles as a load-level screen while the dest cell spawns.
     # The cambot art is invisible (no ship in the warp screen), so use a real hull.
     ahull = "tsn_light_cruiser"
+    # NO hull charge-up here, deliberately. The overseer rides a detached cambot
+    # spawned with `invisible` art - it has no mesh, and the wind-up emits from the
+    # hull surface, so it would come out of nothing. (The player jump does charge up:
+    # universe_jump_to.) If this ever wants a wind-up, charge the overseer's HQ or
+    # flagship instead - a real hull, already in frame in the theater view, and it
+    # reads as the fleet moving rather than the camera moving.
     if jump_client != 0:
         sbs.super_hyper_warp_mode(jump_client, ahull, 1)
 

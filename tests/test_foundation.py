@@ -352,5 +352,72 @@ check("`signal Eliminated Orion` normalizes case+spaces",
 check("existing `scan 1 derelict` still aliases to universe_derelict",
       amd_trigger("scan 1 derelict", _aliases) == ("on_scan", {"role": "universe_derelict", "count": 1}))
 
+
+# --- the jump wind-up: which look a side's drives use ----------------------------
+print("\nJump wind-up (universe_charge_look):")
+from sbs_utils.procedural import particles as _P
+from sbs_utils.procedural import amd_effects as _E
+from sbs_utils.procedural.amd_doc import amd_document, amd_section
+from sbs_utils.procedural.inventory import set_inventory_value
+
+_sr_text = open(os.path.join(OU, "silver_reach.amd"), "r", encoding="utf-8").read()
+_sr = amd_document(_sr_text)
+_sr_sides = NS["universe_sides_from_doc"](_sr)
+_E.amd_effects(amd_section(_sr, "effects"))
+
+check("silver_reach declares both looks",
+      _E.effect_amd_names() == ["lantern_charge", "veil_charge"])
+check("a look name resolves, and says which layer it came from",
+      _E.effect_amd_look("lantern_charge") == "amd"      # authored
+      and _E.effect_amd_look("smoke") == "preset"        # the attachable table
+      and _E.effect_amd_look("coil") == "charge"         # a built-in build-up
+      and _E.effect_amd_look("no_such_look") is None)
+
+_lan = NS["sides_get"](_sr_sides, "lantern")
+_vei = NS["sides_get"](_sr_sides, "veil")
+check("`Jump Charge:` reached the side record",
+      _lan.get("jump_charge", None) == "lantern_charge"
+      and _vei.get("jump_charge", None) == "veil_charge")
+
+# A ship on each side, plus one on a side that declares nothing at all.
+_ships = {}
+for _key, _side in (("lantern", "lantern"), ("veil", "veil"), ("stray", "nobody")):
+    _o = NS["to_object"](NS["npc_spawn"](0, 0, 0, _key, _side, "tsn_light_cruiser", "behav_npcship"))
+    _o.side = _side
+    _ships[_key] = _o
+
+_look = NS["universe_charge_look"]
+_color = NS["universe_charge_color"]
+check("a side's own `Jump Charge:` wins",
+      _look(_sr_sides, _ships["lantern"].id) == "lantern_charge")
+check("...per side, not globally",
+      _look(_sr_sides, _ships["veil"].id) == "veil_charge")
+# The Combine is a trader and the Veil a pirate, so DROPPING Jump Charge: must still
+# tell them apart - that is the free half, and it is what an unauthored universe gets.
+_lan_no = NS["MastDataObject"]({"key": "lantern", "archetype": "trader", "color": "#ffcc44",
+                                "jump_charge": None, "diplomacy": "neutral"})
+_vei_no = NS["MastDataObject"]({"key": "veil", "archetype": "pirate", "color": "#cc2244",
+                                "jump_charge": None, "diplomacy": "foe"})
+_bare = [_lan_no, _vei_no]
+check("with no Jump Charge:, Character: still separates them",
+      _look(_bare, _ships["lantern"].id) == "preburn"
+      and _look(_bare, _ships["veil"].id) == "arc")
+check("a side with no record at all still winds up",
+      _look(_sr_sides, _ships["stray"].id) == "coil")
+check("the tint is the side's own Color:",
+      _color(_sr_sides, _ships["lantern"].id) == "#ffcc44"
+      and _color(_sr_sides, _ships["veil"].id) == "#cc2244")
+
+# A prefab or quest can pin a look on one hull, over its side's.
+set_inventory_value(_ships["lantern"].id, "charge", "implode")
+check("a per-ship `charge` overrides the side",
+      _look(_sr_sides, _ships["lantern"].id) == "implode")
+
+# And every look a side can name has to actually resolve, or the jump goes silent.
+_all_looks = ["lantern_charge", "veil_charge", "coil", "arc", "preburn", "implode", "pulse"]
+check("every nameable look resolves",
+      all(_E.effect_amd_look(k) is not None or k in _P.particle_charge_looks()
+          for k in _all_looks))
+
 print("\n" + ("ALL PASS" if not fails else f"{len(fails)} FAILED: {fails}"))
 sys.exit(1 if fails else 0)

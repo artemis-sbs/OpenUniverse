@@ -23,6 +23,7 @@ Home: -4, 2
 Values: honest 40, generous 30, peaceful 20
 Offers: escort, bounty
 Flies: Arvonian
+Jump Charge: lantern_charge
 ---
 Convoy families who keep the freight lanes lit. Fair dealers with long
 memories for a kept promise - and longer ones for a broken cargo contract.
@@ -36,6 +37,7 @@ Home: 5, -4
 Values: violent 40, fearsome 30, selfish 20
 Offers: smuggle, bounty
 Flies: Torgoth
+Jump Charge: veil_charge
 ---
 Corsairs of the outer dark. They take what the light forgets, and they
 respect exactly one thing: a captain more dangerous than they are.
@@ -117,6 +119,48 @@ Citation: The Red Veil is broken and the lanterns burn the length of the Reach. 
 ---
 End the Veil's grip on the Reach for good - fifteen of their hulls, however
 long it takes - and win the lanes their peace.
+
+## [Effects](effects)
+
+// How a ship LOOKS winding up to jump. The engine's hyper-warp tunnel is drawn on
+// the jumping crew's own screens; this happens on the hull, in shared space, so
+// everyone in the system sees a ship spool up before it goes.
+//
+// `Look:` names a built-in preset as the base; the rest override it. `A -> B` is a
+// ramp over `Grows over:`. A side points at one of these with `Jump Charge:`, and a
+// side that names none still winds up - its Character: picks a look and its own
+// Color: tints it.
+//
+// The kind line is the bare word `Effect`. NOT `Kind: effect` - `Kind:` means a
+// landmark to the schema, and the record would be typed as one.
+
+### [Lantern spool-up](lantern_charge)
+---
+Effect
+Look: charge
+Color: #ffcc44, white
+Size: 0.6 -> 2.0
+Count: 10 -> 80
+Speed: 0.5 -> 3.0
+Grows over: 3.5 seconds
+On: hull
+---
+Convoy drives take their time and make no secret of it - lantern-gold light
+running the plating until the whole hull is lit, then gone.
+
+### [Veil snatch](veil_charge)
+---
+Effect
+Look: charge
+Color: #cc2244, white
+Offset: 0, 0, 400 -> 0, 0, 0
+Size: 12 -> 2
+Count: 20 -> 120
+Grows over: 3 seconds
+On: hull
+---
+Corsair drives bite before they let go. A red bloom stands off the hull and
+closes onto it, and the ship is simply not there any more.
 
 ## [Regions](regions)
 
