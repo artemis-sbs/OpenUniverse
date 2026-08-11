@@ -1,0 +1,61 @@
+# Lore
+
+## Welcome, Captain {#intro}
+
+You command a ship on an open frontier - a galaxy you explore one jump at a time, the same seed always regenerating the same stars.
+
+### The Frontier {#intro-the-frontier}
+
+Engage the jump drive on the Navigation console to travel between systems. Each is a pure function of the universe seed: revisit one and it is unchanged. Sides hold territory, traders run lanes, raiders prowl the dark.
+
+### How the galaxy sees you {#intro-how-the-galaxy-sees-you}
+
+The galaxy reacts to who you are, not to a scripted hero. Every side keeps a read on your conduct across seven spectrums - honest/liar, fearsome/cowardly, and so on. Do a side's work and it warms to you; cross it and it remembers.
+
+## The Sides {#sides}
+
+Six powers divide the frontier. Two are foes by default; the rest are negotiable.
+
+### Iron Concord {#sides-iron-concord}
+
+Disciplined and territorial military. Respects strength and straight dealing - honor a deal and the Concord remembers, break one and they remember longer.
+
+### Verdant Pact {#sides-verdant-pact}
+
+Green-world traders and farmers. Quick to deal, slow to fight; pay them in kindness and they pay you back in goods.
+
+### Free Holders {#sides-free-holders}
+
+Independent settlers scratching a living from the drift. Self-reliant and plain- spoken; they value a captain who gets things done.
+
+### Mercury Guild {#sides-mercury-guild}
+
+Brokers of muscle and cargo - loyal to the contract, not the cause. Coin and a fearsome reputation open their doors.
+
+### Ashfang Raiders {#sides-ashfang-raiders}
+
+Opportunist pirates who prey on the lanes. They respect violence and despise the weak; only the dangerous bargain with them. Captain Vex Karr, the Ash-Captain, runs the Ashfang home in the Ashen Reach and collects grudges like trophies.
+
+### Hollow Choir {#sides-hollow-choir}
+
+A secretive cult chasing forbidden knowledge in the deep dark. Honeyed words hide sharp intent; trust them at your peril.
+
+## Reputation & Diplomacy {#reputation}
+
+Reputation is per-captain - it follows you across ships. Diplomacy is side-wide - whether your fleets are at war. They interact: earn a foe side's respect and you can buy a ceasefire, or in time an alliance.
+
+### Standing {#reputation-standing}
+
+A side's standing with you is your reputation weighted by what that side values. High standing unlocks better jobs and cheaper ceasefires; low standing with a side's captains can turn them into personal rivals.
+
+## The Regions {#regions}
+
+The frontier is not uniform. Named regions carry their own character - and their own dangers.
+
+### The Ashen Reach {#regions-the-ashen-reach}
+
+Ashfang raider country off the system (8, -5). A warzone: enemy systems crowd the lanes and mines lace the dark. Red skies, worse intentions.
+
+### The Verdant Belt {#regions-the-verdant-belt}
+
+The Verdant Pact's trade lanes around (-5, 3). A haven: no raiders, ports everywhere. Calm, open, prosperous.
