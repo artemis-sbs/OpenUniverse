@@ -1,6 +1,6 @@
 # Verdant
 
-## Verdant Welcome {#verdant-hail}
+## Verdant Welcome {: #verdant-hail}
 
 | Fact | Value |
 |---|---|
@@ -16,7 +16,7 @@
 - **Ask about honest work** -> [Honest Work](#verdant-work)
 - **Move along** -> [Farewell](#verdant-bye)
 
-## A Warm Word {#verdant-warm}
+## A Warm Word {: #verdant-warm}
 
 | Fact | Value |
 |---|---|
@@ -24,7 +24,7 @@
 
 > Kindness costs nothing and buys much out here. Safe travels, captain.
 
-## Honest Work {#verdant-work}
+## Honest Work {: #verdant-work}
 
 | Fact | Value |
 |---|---|
@@ -32,7 +32,7 @@
 
 > Check the board - we always need honest hands, and the pay is fair.
 
-## Farewell {#verdant-bye}
+## Farewell {: #verdant-bye}
 
 | Fact | Value |
 |---|---|

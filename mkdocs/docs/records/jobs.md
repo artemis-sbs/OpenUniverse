@@ -1,6 +1,6 @@
 # Jobs
 
-## Patrol Sweep {#patrol}
+## Patrol Sweep {: #patrol}
 
 | Fact | Value |
 |---|---|
@@ -10,7 +10,7 @@
 
 Raiders have been probing our space. Sweep the system and drive them off.
 
-## Standing Bounty {#bounty}
+## Standing Bounty {: #bounty}
 
 | Fact | Value |
 |---|---|
@@ -20,7 +20,7 @@ Raiders have been probing our space. Sweep the system and drive them off.
 
 There is a price on raider hulls. Collect three and the bounty is yours.
 
-## Supply Run {#supply}
+## Supply Run {: #supply}
 
 | Fact | Value |
 |---|---|
@@ -30,7 +30,7 @@ There is a price on raider hulls. Collect three and the bounty is yours.
 
 Our stores are thin. Gather provision crates adrift in the system and bring them in.
 
-## Survey Contract {#survey}
+## Survey Contract {: #survey}
 
 | Fact | Value |
 |---|---|
@@ -40,7 +40,7 @@ Our stores are thin. Gather provision crates adrift in the system and bring them
 
 We need eyes on the wrecks out here. Scan the derelicts and report what you find.
 
-## Salvage Sweep {#salvage}
+## Salvage Sweep {: #salvage}
 
 | Fact | Value |
 |---|---|
@@ -50,7 +50,7 @@ We need eyes on the wrecks out here. Scan the derelicts and report what you find
 
 There is working tech in the debris if you know where to look. Bring it back and we will make it worth your while.
 
-## Convoy Escort {#escort}
+## Convoy Escort {: #escort}
 
 | Fact | Value |
 |---|---|
@@ -60,7 +60,7 @@ There is working tech in the debris if you know where to look. Bring it back and
 
 See our cargo safely to port. Dock at a station and the contract is fulfilled.
 
-## Run the Lanes {#smuggle}
+## Run the Lanes {: #smuggle}
 
 | Fact | Value |
 |---|---|
@@ -70,7 +70,7 @@ See our cargo safely to port. Dock at a station and the contract is fulfilled.
 
 Quiet cargo, quiet questions. Recover the caches and keep this between us.
 
-## Raid the Lanes {#raid}
+## Raid the Lanes {: #raid}
 
 | Fact | Value |
 |---|---|
@@ -80,7 +80,7 @@ Quiet cargo, quiet questions. Recover the caches and keep this between us.
 
 Hit them before they hit us. Five hulls, and do not be gentle about it.
 
-## Retrieve the Cache {#retrieve}
+## Retrieve the Cache {: #retrieve}
 
 | Fact | Value |
 |---|---|
@@ -90,7 +90,7 @@ Hit them before they hit us. Five hulls, and do not be gentle about it.
 
 Something we want is scattered in the drift. Retrieve three components - discreetly.
 
-## Search and Rescue {#rescue}
+## Search and Rescue {: #rescue}
 
 | Fact | Value |
 |---|---|
@@ -100,7 +100,7 @@ Something we want is scattered in the drift. Retrieve three components - discree
 
 A ship went dark out here. Find the wreck, recover what survives, and bring it home.
 
-## Strike Package {#strike}
+## Strike Package {: #strike}
 
 | Fact | Value |
 |---|---|
@@ -110,7 +110,7 @@ A ship went dark out here. Find the wreck, recover what survives, and bring it h
 
 We are done waiting. Take the fight to them - eight hulls, and break their nerve.
 
-## Chase the Whisper {#mystery}
+## Chase the Whisper {: #mystery}
 
 | Fact | Value |
 |---|---|

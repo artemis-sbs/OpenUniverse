@@ -1,6 +1,6 @@
 # Officers
 
-## Vale on the Flag Bridge {#off-vale-hail}
+## Vale on the Flag Bridge {: #off-vale-hail}
 
 | Fact | Value |
 |---|---|
@@ -14,7 +14,7 @@
 - **How is the fleet holding up?** -> [The Fleet's Condition](#off-vale-fleet)
 - **Just checking in** -> [Vale Out](#off-vale-out)
 
-## The Fleet's Condition {#off-vale-fleet}
+## The Fleet's Condition {: #off-vale-fleet}
 
 | Fact | Value |
 |---|---|
@@ -27,7 +27,7 @@
 
 - **Good hunting, Commodore** -> [Vale Out](#off-vale-out)
 
-## Vale Out {#off-vale-out}
+## Vale Out {: #off-vale-out}
 
 | Fact | Value |
 |---|---|
@@ -35,7 +35,7 @@
 
 > Logged. Vale out.
 
-## Kade on the Flag Bridge {#off-kade-hail}
+## Kade on the Flag Bridge {: #off-kade-hail}
 
 | Fact | Value |
 |---|---|
@@ -49,7 +49,7 @@
 - **Anything on your scope?** -> [Kade's Scope](#off-kade-scope)
 - **Carry on, Captain** -> [Kade Out](#off-kade-out)
 
-## Kade's Scope {#off-kade-scope}
+## Kade's Scope {: #off-kade-scope}
 
 | Fact | Value |
 |---|---|
@@ -62,7 +62,7 @@
 
 - **Stay sharp** -> [Kade Out](#off-kade-out)
 
-## Kade Out {#off-kade-out}
+## Kade Out {: #off-kade-out}
 
 | Fact | Value |
 |---|---|
@@ -70,7 +70,7 @@
 
 > Kade out. Try to leave some for us.
 
-## Ashwell on the Flag Bridge {#off-ashwell-hail}
+## Ashwell on the Flag Bridge {: #off-ashwell-hail}
 
 | Fact | Value |
 |---|---|
@@ -84,7 +84,7 @@
 - **Found anything good?** -> [The Magpie's Haul](#off-ashwell-salvage)
 - **As you were** -> [Ashwell Out](#off-ashwell-out)
 
-## The Magpie's Haul {#off-ashwell-salvage}
+## The Magpie's Haul {: #off-ashwell-salvage}
 
 | Fact | Value |
 |---|---|
@@ -97,7 +97,7 @@
 
 - **Keep the fleet in one piece** -> [Ashwell Out](#off-ashwell-out)
 
-## Ashwell Out {#off-ashwell-out}
+## Ashwell Out {: #off-ashwell-out}
 
 | Fact | Value |
 |---|---|

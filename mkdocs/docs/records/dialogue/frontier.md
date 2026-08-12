@@ -1,6 +1,6 @@
 # Frontier
 
-## Frontier Command {#frontier-hail}
+## Frontier Command {: #frontier-hail}
 
 | Fact | Value |
 |---|---|
@@ -15,7 +15,7 @@
 - **Report in** -> [Out](#frontier-done)
 - **Request guidance** -> [Guidance](#frontier-advice)
 
-## Guidance {#frontier-advice}
+## Guidance {: #frontier-advice}
 
 | Fact | Value |
 |---|---|
@@ -28,7 +28,7 @@
 
 - **Understood** -> [Out](#frontier-done)
 
-## Out {#frontier-done}
+## Out {: #frontier-done}
 
 | Fact | Value |
 |---|---|
@@ -36,7 +36,7 @@
 
 > Frontier Command out. Stay sharp, captain.
 
-## Doctor Sela Voss {#sela-hail}
+## Doctor Sela Voss {: #sela-hail}
 
 | Fact | Value |
 |---|---|
@@ -51,7 +51,7 @@
 - **Reassure her** -> [Settled In](#sela-done)
 - **Say nothing** -> [Settled In](#sela-done)
 
-## Settled In {#sela-done}
+## Settled In {: #sela-done}
 
 | Fact | Value |
 |---|---|
@@ -59,7 +59,7 @@
 
 > I'll be in the observation lounge if you need me.
 
-## A Nervous Courier {#courier-hail}
+## A Nervous Courier {: #courier-hail}
 
 | Fact | Value |
 |---|---|
@@ -74,7 +74,7 @@
 - **Let it go** -> [Move Along](#courier-done)
 - **Detain him** -> [Caught](#courier-caught) *(signal detain_saboteur)*
 
-## Caught {#courier-caught}
+## Caught {: #courier-caught}
 
 | Fact | Value |
 |---|---|
@@ -82,7 +82,7 @@
 
 > You don't know what you've just stopped, captain. They'll send another.
 
-## Move Along {#courier-done}
+## Move Along {: #courier-done}
 
 | Fact | Value |
 |---|---|

@@ -1,4 +1,4 @@
-# Vex Karr {#vex}
+# Vex Karr {: #vex}
 
 | Fact | Value |
 |---|---|

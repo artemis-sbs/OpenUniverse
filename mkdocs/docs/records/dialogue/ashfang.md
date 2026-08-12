@@ -1,6 +1,6 @@
 # Ashfang
 
-## Ashfang Hail {#ashfang-hail}
+## Ashfang Hail {: #ashfang-hail}
 
 | Fact | Value |
 |---|---|
@@ -16,7 +16,7 @@
 - **Threaten them** -> [Standoff](#ashfang-standoff) *(if fearsome \> 20)*
 - **Offer a cut of your cargo** -> [The Deal](#ashfang-deal) *(if credits \>= 200)*
 
-## The Deal {#ashfang-deal}
+## The Deal {: #ashfang-deal}
 
 | Fact | Value |
 |---|---|
@@ -26,7 +26,7 @@
 
 - **Hand it over** -> [Done](#ashfang-done) *(costs 200 credits)* *(earns ashfang selfish 5)* *(signal ashfang_paid)*
 
-## Standoff {#ashfang-standoff}
+## Standoff {: #ashfang-standoff}
 
 | Fact | Value |
 |---|---|
@@ -37,7 +37,7 @@
 - **Hold your ground** -> [Done](#ashfang-done) *(earns ashfang fearsome 10)*
 - **Think better of it** -> [Back Off](#ashfang-backoff) *(earns ashfang cowardly 5)*
 
-## Back Off {#ashfang-backoff}
+## Back Off {: #ashfang-backoff}
 
 | Fact | Value |
 |---|---|
@@ -45,7 +45,7 @@
 
 > Smart. Run along, little ship.
 
-## Done {#ashfang-done}
+## Done {: #ashfang-done}
 
 | Fact | Value |
 |---|---|
@@ -53,7 +53,7 @@
 
 > We're done here. For now.
 
-## Vex Karr {#vex-hail}
+## Vex Karr {: #vex-hail}
 
 | Fact | Value |
 |---|---|
@@ -70,7 +70,7 @@
 - **Grovel** -> [Parting](#vex-parting) *(earns vex cowardly 10)*
 - **Say nothing** -> [Parting](#vex-parting)
 
-## Parting {#vex-parting}
+## Parting {: #vex-parting}
 
 | Fact | Value |
 |---|---|

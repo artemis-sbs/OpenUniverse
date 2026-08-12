@@ -1,6 +1,6 @@
 # Frontier
 
-## Frontier Command {#frontier-command}
+## Frontier Command {: #frontier-command}
 
 | Fact | Value |
 |---|---|
@@ -11,7 +11,7 @@
 
 Distant TSN fleet command, keeping a thin watch over the frontier.
 
-## Doctor Sela Voss {#sela-voss}
+## Doctor Sela Voss {: #sela-voss}
 
 | Fact | Value |
 |---|---|
@@ -26,7 +26,7 @@ Distant TSN fleet command, keeping a thin watch over the frontier.
 
 A xenobiologist needing passage from the home base to the Verdant worlds.
 
-### Still waiting for passage {#sela-voss-sela-waiting}
+### Still waiting for passage {: #sela-voss-sela-waiting}
 
 | Fact | Value |
 |---|---|
@@ -41,7 +41,7 @@ A xenobiologist needing passage from the home base to the Verdant worlds.
 > - % I am asking around the ring now. Anyone headed out that way?
 > - %% Last call. I need to be on a hull today or not at all.
 
-### Gives up and goes {#sela-voss-sela-gives-up}
+### Gives up and goes {: #sela-voss-sela-gives-up}
 
 | Fact | Value |
 |---|---|
@@ -54,7 +54,7 @@ A xenobiologist needing passage from the home base to the Verdant worlds.
 > - Never mind. I have found other arrangements.
 > - Too late, I am afraid. I have taken a berth on a freighter.
 
-## A Nervous Courier {#courier}
+## A Nervous Courier {: #courier}
 
 | Fact | Value |
 |---|---|
