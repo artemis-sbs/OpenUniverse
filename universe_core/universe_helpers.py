@@ -909,3 +909,56 @@ def universe_map_cell_text(seed, i, j, danger, systems, reveal):
     if not universe_cell_known(systems, i, j, reveal):
         return "?"
     return _KIND_ABBR.get(universe_system_kind(seed, i, j, danger), ".")
+
+
+def universe_save_report(mode):
+    """One line describing the load that just happened: which file, which mode,
+    and what came back out of it.
+
+    Written because none of that is observable from inside the game. A `Continue`
+    that found no file, a slot other than the one you picked, and a save that
+    loaded perfectly all look the same from the bridge - you are left inferring it
+    from quest state, which is exactly the thing you were trying to check. It also
+    survives an engine session, where there is no console to ask.
+    """
+    path = universe_save_path()
+    where = os.path.basename(path)
+    if str(mode) != "Continue":
+        return _save_report_say(f"{mode}: ignoring any save; will overwrite {where}")
+    if not os.path.isfile(path):
+        return _save_report_say(f"Continue: NO SAVE at {where} - starting fresh (it will be created)")
+    data = universe_load() or {}
+    if not data:
+        return _save_report_say(f"Continue: {where} could not be read - starting fresh")
+
+    def _count(tree, want):
+        n = 0
+        for rec in (tree or {}).values():
+            if rec.get("state") == want:
+                n += 1
+            n += _count(rec.get("children"), want)
+        return n
+
+    shared = data.get("shared_quests") or {}
+    return _save_report_say(
+        f"Continue: loaded {where} - seed {data.get('universe_seed')}, "
+        f"system {data.get('current_system')}, "
+        f"{len(data.get('systems') or {})} known systems, "
+        f"{_count(shared, 1)} active / {_count(shared, 99)} complete quest steps")
+
+
+def _save_report_say(message):
+    """Put the line in debug.log and hand it back.
+
+    debug.log because it is the one channel that survives an ENGINE session and is
+    not the failure channel: mast.runtime.log is swept by the conformance harness,
+    which treats ANY content there as a failed run, and an unnamed log() has no file
+    handler at all, so it goes nowhere a person can read. (In MAST scope the name
+    DEBUG resolves to an int, so this has to happen in Python, not in the .mast.)
+    """
+    try:
+        from sbs_utils.mast.mast import DEBUG
+        DEBUG(message)
+    except Exception:                                   # noqa: BLE001
+        pass
+    return message

@@ -318,6 +318,15 @@ default shared UNIVERSE_START_CELL = None
     # Continue restores the saved campaign; a New Game initializes fresh and
     # must NOT inherit the old save's credits/items/admiralty (restore=False).
     universe_load_players(START_MODE == "Continue")
+    # SAY WHICH SAVE, AND WHAT CAME BACK. Everything about a load is invisible from
+    # inside the game: "Continue" with a missing file, a slot you did not mean, and a
+    # save that loaded perfectly all look identical from the bridge. One line names the
+    # file, the mode, and how much came back, so "did it load my save?" is answerable
+    # from the log instead of by inspecting quest state and guessing.
+    # Unnamed log() on purpose: a NAMED logger never reaches mast.runtime.log, and this
+    # line only earns its keep if it lands where a person already looks. (Not DEBUG() -
+    # in MAST scope that name resolves to an int, so calling it is a runtime error.)
+    log(universe_save_report(START_MODE))
     # The load just restored adm_fleets (a Continue) - enter_system ran before
     # it, so bring the saved navy back now. Idempotent: no-op on a New Game.
     if admiralty_active():
