@@ -46,6 +46,15 @@ def _ou_metric(name, agent_id, side):
         return get_inventory_value(to_side_id(get_side(agent_id)), "credits", 0)
     if name in ("standing", "rep", "reputation"):
         return reputation_standing(agent_id, side)
+    # `if carrying clue_manifest >= 1` - what is in the hold. The items addon stores a
+    # collected item on the SHIP under its own key, so this is a direct read.
+    #
+    # It earns its own word because the fallthrough below is a REPUTATION read, and an
+    # unknown name there answers 0 rather than failing: without this, a guard asking about
+    # cargo would quietly be a guard asking about a reputation pole nobody has, and it
+    # would simply never open. A wrong answer that looks like a considered one.
+    if name.startswith("carrying ") or name.startswith("have "):
+        return get_inventory_value(agent_id, name.split(" ", 1)[1].strip(), 0)
     return reputation_get(agent_id, (side.get("key") if side else None), _dlg_norm(name))
 
 
