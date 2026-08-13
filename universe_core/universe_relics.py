@@ -59,7 +59,19 @@ _UNIVERSE_RELIC_FILES = set()
 # needs no script throttle governor - nothing per-tick, nothing for the helm to fight.
 UNIVERSE_RELIC_NEBULA_DENSITY = 0.6
 UNIVERSE_RELIC_NEBULA_SCALE = 0.35
-UNIVERSE_RELIC_NEBULA_CAP = 12000
+
+# How big ONE nebula object may be. `terrain_set_nebula_object_size` documents anything
+# above ~3000 as needing the projection-depth shader fix, so a relic sized to the whole
+# structure (the Voice would ask for 9947) is asking for a size nobody has tested. The
+# relic still gets ONE cloud - `radius` covers the ruin - but it is BUILT from objects of
+# a size the renderer is known to be happy with.
+UNIVERSE_RELIC_NEBULA_OBJECT = 2500
+
+# Bisect switches. A relic on a Continue builds several hundred objects into a cell that
+# already has its own terrain, and when an engine falls over there is no way to tell which
+# half did it by reading code. Turn one off, run, repeat.
+UNIVERSE_RELIC_DRESS = True        # the wall props
+UNIVERSE_RELIC_ATMOSPHERE = True   # the nebula (and the warp cap that comes with it)
 
 # Props per relic. ~0.08 ms each in the engine, so this is ~50 ms of build - paid once per
 # arrival, inside the jump tunnel where the crew is already waiting.
@@ -209,8 +221,10 @@ def universe_relic_build(key, fname, x, y, z, ei, ej, name=None):
         log(f"relic '{key}' built no volume", "universe", "warning")
         return None
     live[key] = {"volume": rec.get("volume") or key, "mouth": None}
-    universe_relic_dress(key)
-    universe_relic_atmosphere(key)
+    if UNIVERSE_RELIC_DRESS:
+        universe_relic_dress(key)
+    if UNIVERSE_RELIC_ATMOSPHERE:
+        universe_relic_atmosphere(key)
     # Containment from the AUTHORED fields - a mission repeating the numbers here would
     # only create a second place for them to disagree.
     relic_contain(rec)
@@ -304,18 +318,27 @@ def universe_relic_atmosphere(key):
     if len(role(atmos)):
         return len(role(atmos))
     (cx, cy, cz), radius = vol.bound()
-    span = min(radius, UNIVERSE_RELIC_NEBULA_CAP * 0.5)
-    # A GLOBAL: it changes nebula sizing for all terrain in the mission. Set here rather
-    # than left alone because a relic-sized nebula is the whole mechanism, but a universe
-    # cell also grows procedural nebulae - so this is the one knob that can visibly bleed
-    # between the two, and it is worth knowing that before it surprises somebody.
-    terrain_set_nebula_object_size(int(min(radius * 2.0, UNIVERSE_RELIC_NEBULA_CAP)))
+    # The CLOUD covers the ruin: the relic's own bounding radius, which is what makes the
+    # engine cap warp everywhere inside the structure. That is a different number from how
+    # big each nebula OBJECT is, and conflating the two is what asked the renderer for a
+    # single 9947-unit object.
+    span = radius
+    # A GLOBAL, and it is RESTORED. It changes the size of every nebula object spawned
+    # after it, so leaving it set meant this ruin quietly resized the clouds of every
+    # system the crew visited afterwards - a relic reaching out of its own cell and into
+    # the rest of the galaxy. Set it, spawn, put it back.
+    import sbs_utils.procedural.terrain as _terrain
+    _was = getattr(_terrain, "NEB_SIZE_LARGE", 1500)
+    terrain_set_nebula_object_size(UNIVERSE_RELIC_NEBULA_OBJECT)
     made = 0
-    neb = terrain_spawn_nebula_sphere(
-        cx, cy, cz, radius=int(span),
-        density_scale=UNIVERSE_RELIC_NEBULA_SCALE,
-        density=UNIVERSE_RELIC_NEBULA_DENSITY, height=int(span),
-        cluster_color=color, marker=False)
+    try:
+        neb = terrain_spawn_nebula_sphere(
+            cx, cy, cz, radius=int(span),
+            density_scale=UNIVERSE_RELIC_NEBULA_SCALE,
+            density=UNIVERSE_RELIC_NEBULA_DENSITY, height=int(span),
+            cluster_color=color, marker=False)
+    finally:
+        terrain_set_nebula_object_size(_was)
     for n in (neb or []):
         # terrain_* hands back SpawnData; the agent is .py_object.
         agent = getattr(n, "py_object", None)
