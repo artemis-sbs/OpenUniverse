@@ -67,12 +67,15 @@ UNIVERSE_RELIC_PROPS = 600
 
 # A NAVPOINT at the mouth, on top of the sensor contact.
 #
-# TEMPORARY, and deliberately one line to turn off. The design says the crew FINDS the
-# ruin - a contact on the radar and a bearing to fly - and a labelled dot on the map that
-# helm can steer to gives that away. But while the interiors are being authored, every
-# pass costs a search before it costs a test, and that trade is the wrong way round.
+# KEPT (user call, after flying it): the map names the WAY IN and nothing else. That is
+# the right place to draw the line - a ruin 30,000u out that the crew cannot steer to is
+# a chore rather than a discovery, while the inside stays unmapped, which is where the
+# finding actually belongs.
 #
-# Turn it off when the ruins are done being built and the finding becomes the point.
+# The interior carries no map furniture at all: the measuring posts behind
+# `Starts when: reach <role>` are invisible and unselectable, so the radar does not draw
+# a floor plan of the rooms, the caches and the triggers before the crew has flown any
+# of it.
 UNIVERSE_RELIC_NAVPOINT = True
 
 
