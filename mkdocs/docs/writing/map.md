@@ -80,4 +80,59 @@ half promise.
 `Kind:` is `station` or `derelict`; a station can name a `Side:` (a side key)
 and an `Art:` (its model). `At:` pins it to a system.
 
+Landmarks can also carry `Guards:` (a fleet that contests them, once) and
+`Terrain:` (a nebula or asteroid envelope, so the place sits in cover whatever
+the cell rolled).
+
+## A landmark you fly INTO
+
+A landmark carrying `Relic:` is not a prop. It is an interior - chambers,
+passages, boxes, subtracted masses, named places and authored contents - built
+when the crew arrives and torn down with the cell.
+
+```
+### [Torgoth Megastation](giants_house)
+---
+At: 2, -1
+Kind: derelict
+Relic: voice
+Relic file: relics/voice.amd
+Cutscene: arrive_voice
+---
+```
+
+| field | means |
+|---|---|
+| `Relic:` | the relic key in that file - this ruin has an inside |
+| `Relic file:` | the `.amd` holding it. Defaults to `<key>.amd` |
+| `Cutscene:` | played ONCE, the first time anyone arrives in this system |
+
+The ruin itself is authored in its own file, as a `## Relics` section - see the
+library's [relic guide](https://artemis-sbs.github.io/sbs_utils/build/relics/)
+for the geometry. A relic file is **self-contained**: its `## Items`, its
+`## Cutscenes` and its dialogue scenes are registered when it loads, so the whole
+ruin - the space, what is in it, and what is said in it - opens as one document.
+
+Three things happen for free when a landmark becomes a relic:
+
+- **The way in is on the map.** A selectable contact and a navpoint at the point
+  carrying `Roles: entrance`. Nothing else in the interior is marked.
+- **The inside draws itself as you fly it.** Every point carrying `Roles:` is a
+  dark measuring post until a ship reaches it, and then it lights up and stays
+  lit. The radar fills in behind the crew rather than handing them a floor plan.
+- **The relic brings its own atmosphere**, sized to the structure, so the
+  landmark's own `Terrain:` is skipped - two nebulae over one ruin would fight,
+  and the relic's is the one that has to be right, because it is what caps warp
+  inside.
+
+`universe_in_relic(ship)` answers "are they in the ruin right now", which is how
+a mission leaves a crew alone while they are inside one.
+
+## Saying where they are
+
+Every arrival shows a title card naming the system - the landmark, else a side's
+home, else the region, else the coordinates. Nothing named a cell out loud
+before; the galaxy map header does, and most story missions never enable that
+console.
+
 **Next: [Captains and the cast](people.md)** - give the galaxy faces.
