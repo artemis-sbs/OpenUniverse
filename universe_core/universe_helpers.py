@@ -198,6 +198,21 @@ def universe_cell_live(i, j):
     return (int(i), int(j)) in _cell_occupants
 
 
+def universe_cells_reset():
+    """Forget every live cell and its world slot. Called when a universe starts.
+
+    The engine forks a fresh process per mission, so module state cannot survive a
+    restart THERE - but the dev runner reuses one interpreter, and the /debug page
+    restarts a mission in place. In both, a cell that was live when the last run ended
+    is still live at the start of the next one, so `universe_cell_enter` answers "already
+    occupied" and the system is never generated: an empty cell where a whole star system
+    should be, on the second run and every run after.
+    """
+    _cell_occupants.clear()
+    _cell_slot_of.clear()
+    _cell_slot_used.clear()
+
+
 def universe_live_cells():
     """The (i, j) of every currently instantiated cell. The economy tick snapshots
     each live cell's worldlets/platforms to its OWN sector delta, instead of dumping
@@ -728,6 +743,33 @@ def universe_system_name(i, j):
     """Deprecated: procedural names removed - sides name their home systems.
     Kept (returns '') so existing callers don't break."""
     return ""
+
+
+def universe_system_title(landmarks, regions, i, j, owner_name=None):
+    """What to CALL this system, and a line under it. Returns `(title, subtitle)`.
+
+    A crew that jumps eight times in an hour has no idea where it is: nothing in the
+    galaxy names a cell out loud. The map header does, but it belongs to a console most
+    story missions never enable.
+
+    The order is most specific first, because that is the order a person would answer in:
+    the thing you came here to see, then who owns the place, then the stretch of space it
+    is in, then the coordinates - which are always true and never interesting.
+    """
+    lms = universe_landmarks_in_system(landmarks or [], i, j)
+    coords = f"({int(i)}, {int(j)})"
+    if lms:
+        lm = lms[0]
+        sub = (lm.get("desc") or "").strip().split(chr(10))[0]
+        return (lm.get("name") or coords, sub or coords)
+    if owner_name:
+        return (str(owner_name), coords)
+    reg = region_for_system(regions or [], i, j) if regions else None
+    if reg is not None and reg.get("name"):
+        return (reg.get("name"), coords)
+    if int(i) == 0 and int(j) == 0:
+        return ("Home Port", coords)
+    return ("Uncharted " + coords, "")
 
 
 # --- Generation knobs (author-exposed; see the universe.amd `generation:` block) --

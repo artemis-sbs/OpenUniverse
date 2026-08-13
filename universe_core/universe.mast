@@ -66,6 +66,13 @@ default shared QUEST_ENGAGE_CONSOLES = "helm"
 # Quests tab. Off by default (galaxy-map missions don't need it); story missions opt in.
 default shared WAYPOINTS_ENABLED = False
 
+# Where a NEW game starts, when it should not be home. An AUTHORING hook: a set-piece four
+# jumps out is unplayable to iterate on if every pass costs four jumps to reach, and the
+# answer is not a debug console, it is a map that starts you there. A map sets it before
+# jumping into universe_map_begin; `Continue` ignores it, because a saved game already
+# knows where it was.
+default shared UNIVERSE_START_CELL = None
+
 
 # The player-side agents. LM's server start fires signal_emit("create_sides")
 # BEFORE player ships spawn and before any map runs; the route that answers it
@@ -119,6 +126,13 @@ default shared WAYPOINTS_ENABLED = False
 # story.mast; StormsBeacon's `@map/stormsbeacon` lives in its story.mast. Both jump here.
 === universe_map_begin
     UNIVERSE_ACTIVE = True
+    # A NEW WORLD. Both of these are module-level registries that outlive a mission in the
+    # dev runner and the /debug in-process restart (the engine forks per mission, so it
+    # never sees this). Left alone, the second run reads its cells as already occupied and
+    # its relics as already built - so the star system is never generated and the ruin is
+    # never there, on every run after the first.
+    universe_cells_reset()
+    universe_relics_clear()
     # Point the save store at THIS universe's slot before any load/save, so each universe
     # (and each mission that loads the engine) has its own saves and can hold several.
     universe_set_active_save(UNIVERSE_SELECT, SAVE_SLOT)
@@ -242,6 +256,13 @@ default shared WAYPOINTS_ENABLED = False
         shared universe_seed = seed_value if seed_value != 0 else random.randrange(1, 2_000_000_000)
         shared universe_i = 0
         shared universe_j = 0
+        # A new game starts at home unless the MAP says otherwise. `UNIVERSE_START_CELL`
+        # exists for authoring: a set-piece four jumps out is unplayable to test if every
+        # pass costs four jumps to reach, and the fix is not a debug console, it is a map
+        # that starts you there. Set it before jumping into universe_map_begin.
+        if UNIVERSE_START_CELL is not None:
+            shared universe_i = UNIVERSE_START_CELL[0]
+            shared universe_j = UNIVERSE_START_CELL[1]
         shared universe_systems = {}
         shared universe_diplomacy = {}
     universe_save(universe_seed, universe_i, universe_j, universe_systems)
@@ -1252,7 +1273,15 @@ default shared WAYPOINTS_ENABLED = False
     for lm in universe_landmarks_in_system(UNIVERSE_LANDMARKS, ei, ej):
         lmpos = universe_landmark_pos(key, lm)
         lmpos = (lmpos[0] + co.x, lmpos[1] + co.y, lmpos[2] + co.z)
-        if lm.kind == "derelict":
+        # A landmark carrying `Relic:` is not a prop but a place you fly INTO. It is
+        # tested BEFORE the kind ladder so a ruin can keep `Kind: derelict` - the kind
+        # still decides how it reads on the map and what a `scan derelict` objective
+        # matches, while `Relic:` decides whether there is anything inside it.
+        _lm_relic = universe_landmark_relic(lm)
+        if _lm_relic is not None:
+            universe_relic_build(_lm_relic[0], _lm_relic[1], lmpos[0], lmpos[1], lmpos[2], ei, ej, lm.name)
+            task_schedule(universe_watch_relic_cell, {"ei": ei, "ej": ej})
+        elif lm.kind == "derelict":
             terrain_spawn(lmpos[0], lmpos[1], lmpos[2], lm.name, "wreck, universe_derelict, landmark", universe_landmark_art(lm), "behav_wreck")
         elif lm.kind == "worldlet":
             # A hand-placed worldlet (Type: names the ## Worldlets entry).
@@ -1263,7 +1292,13 @@ default shared WAYPOINTS_ENABLED = False
         # itself in cover (a nebula pocket / asteroid field), guaranteeing the ruin
         # sits in terrain regardless of the cell's rolled kind. Regenerated each visit
         # (like the landmark itself) - no persistence needed.
+        # A RELIC brings its own atmosphere (`Atmosphere:` in its .amd, sized to the
+        # structure), so a second envelope here would be two nebulae fighting over the
+        # same space - and the relic's is the one that has to be right, because it is
+        # what caps warp inside the ruin.
         lm_terrain = universe_landmark_terrain(lm)
+        if _lm_relic is not None:
+            lm_terrain = None
         if lm_terrain is not None:
             if lm_terrain["kind"] == "nebula":
                 _neb_col = lm_terrain["color"] or "blue"
@@ -1307,8 +1342,69 @@ default shared WAYPOINTS_ENABLED = False
             if universe_add_waypoint(universe_shared_id(), ei, ej, _wp_name):
                 universe_info_card("Location charted: " + _wp_name + ". Jump back anytime from the Quests tab (Engage).", "Navigation", "#8cf")
 
+    # Say where we are - every arrival, not just the first. Scheduled rather than shown
+    # here because the arriving ship is not IN this cell yet: universe_jump_to generates
+    # the destination and moves the ship afterwards, so an announce at this point has no
+    # audience to resolve.
+    task_schedule(universe_arrival_card, {"ei": ei, "ej": ej})
+
     # Tell the quest driver we've arrived (completes on_reach cargo runs).
     signal_emit("universe_arrived", {"ARRIVE_I": ei, "ARRIVE_J": ej})
+    ->END
+
+
+=== universe_arrival_card
+    # The title card, and the first-visit cutscene.
+    #
+    # TWO different lifetimes on purpose: the card fires on EVERY arrival, because
+    # "which system is this" is a question a crew asks on the fifth visit as readily as
+    # the first; the cutscene fires ONCE per system, because a set-piece you have seen
+    # is a delay you resent. The flag is persisted the same way guards_cleared is.
+    default ei = universe_i
+    default ej = universe_j
+    # One tick, so the ship has landed and its consoles resolve.
+    await delay_sim(1)
+    ->END if not universe_cell_live(ei, ej)
+    _ac_ships = objects_in_cell(to_object_list(role("__player__")), ei, ej)
+    ->END if len(_ac_ships) == 0
+    _ac_owner = None
+    _ac_title = universe_system_title(UNIVERSE_LANDMARKS, UNIVERSE_REGIONS, ei, ej, _ac_owner)
+    for _ac_ship in _ac_ships:
+        # `chapter` is a hero card AND a filed info-panel card - an overlay auto-dismisses
+        # and keeps no history, so on its own it would answer the question once and then
+        # take the answer away again.
+        announce(_ac_title[1], title=_ac_title[0], level="chapter", to=_ac_ship.id, seconds=6)
+    _ac_cut = universe_landmark_cutscene_for(UNIVERSE_LANDMARKS, ei, ej)
+    ->END if _ac_cut is None
+    ->END if universe_system_flag(universe_systems, ei, ej, "cutscene_played")
+    universe_systems = universe_set_system_flag(universe_systems, ei, ej, "cutscene_played")
+    universe_save(universe_seed, ei, ej, universe_systems)
+    task_schedule(universe_arrival_cutscene, {"ei": ei, "ej": ej, "cut": _ac_cut})
+    ->END
+
+
+=== universe_arrival_cutscene
+    # Play a landmark's first-visit cutscene.
+    #
+    # WAIT FOR A CONSOLE. A cutscene with no audience resolves instantly reporting zero
+    # shots - no error, no log - so playing it the moment a cell is built means the one
+    # time it was ever going to run, it ran to nobody. Waiting is cheap; the flag is
+    # already spent either way, which is deliberate: a set-piece that retries on every
+    # arrival because nobody was looking is worse than one that is missed.
+    default cut = None
+    default ei = universe_i
+    default ej = universe_j
+    ->END if cut is None
+    _cs_wait = 0
+--- cutscene_wait_console
+    ->END if not universe_cell_live(ei, ej)
+    _cs_to = universe_arrival_consoles(ei, ej)
+    if len(_cs_to) == 0:
+        _cs_wait += 1
+        ->END if _cs_wait > 20
+        await delay_sim(1)
+        jump cutscene_wait_console
+    _cs_done = await cutscene_amd(cut, to=_cs_to)
     ->END
 
 
@@ -1353,6 +1449,26 @@ default shared WAYPOINTS_ENABLED = False
         universe_save(universe_seed, ei, ej, universe_systems)
         ->END
     jump wait
+
+
+=== universe_watch_relic_cell
+    # Release a cell's relics when the cell dies.
+    #
+    # PER RELIC, never volume_clear(): by the time a departure is processed the NEXT cell
+    # is already built, so clearing every volume would take the ruin the crew just flew
+    # into. The library keeps its registries mission-wide and knows nothing about cells -
+    # this loop is the part that does.
+    #
+    # The objects are not deleted here. universe_clear_cell deletes everything in the
+    # cell's box, which is what the props, the nebula and the contact are.
+    default ei = universe_i
+    default ej = universe_j
+--- relic_cell_wait
+    await delay_sim(5)
+    if not universe_cell_live(ei, ej):
+        universe_relic_release_cell(ei, ej)
+        ->END
+    jump relic_cell_wait
 
 
 === universe_watch_guards_cleared

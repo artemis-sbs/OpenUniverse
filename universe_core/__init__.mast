@@ -22,6 +22,7 @@ import universe_captains.py
 import universe_lifeforms.py
 import universe_regions.py
 import universe_landmarks.py
+import universe_relics.py
 import universe_goods.py
 import universe_systems.py
 import universe_codex.mast

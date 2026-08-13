@@ -37,6 +37,20 @@ def universe_parse_landmarks(doc):
                 # Guarantees the ruin sits in cover regardless of the cell's rolled
                 # kind; spawned on arrival by universe.mast.
                 "terrain": data.get("terrain"),
+                # Relic: this landmark is not a prop but an INTERIOR - a flyable ruin
+                # authored as an `## Relics` section. The key names the relic; the file
+                # is read mission-relative (universe_read_content), so a consumer keeps
+                # its relics in its own repo. Built on arrival, released with the cell.
+                "relic": data.get("relic"),
+                # UNDERSCORED: the fence parser turns `Relic file:` into `relic_file`,
+                # the same way `Scrape band:` becomes `scrape_band`. Reading the spaced
+                # form gets None and the loader falls back to `<key>.amd`, which is a
+                # missing-file error against a name the author never wrote.
+                "relic_file": data.get("relic_file"),
+                # Cutscene: played ONCE per system, the first time anyone arrives here
+                # (the flag is persisted, like guards_cleared). The name is a cutscene
+                # bed the mission has loaded with amd_cutscenes.
+                "cutscene": data.get("cutscene"),
             }))
     return out
 
@@ -103,6 +117,35 @@ def universe_landmark_pos(syskey, lm):
     ang = r.uniform(0, 2 * math.pi)
     dist = r.uniform(8000, 30000)
     return [math.cos(ang) * dist, r.uniform(-300.0, 300.0), math.sin(ang) * dist]
+
+
+def universe_landmark_relic(lm):
+    """A landmark's interior, as `(key, file)`, or None when it is just a prop.
+
+    The file defaults to `<key>.amd` beside the mission's other content, because an
+    author who names one relic per file should not have to say so twice.
+    """
+    key = lm.get("relic")
+    if not key:
+        return None
+    key = str(key).strip()
+    if not key:
+        return None
+    fname = lm.get("relic_file")
+    return (key, str(fname).strip() if fname else key + ".amd")
+
+
+def universe_landmark_cutscene_for(landmarks, i, j):
+    """The cutscene a system plays on its FIRST visit, or None.
+
+    First landmark that authors one wins. A cell with two set-pieces is an authoring
+    mistake rather than a feature - they would fight over the same console.
+    """
+    for lm in universe_landmarks_in_system(landmarks or [], i, j):
+        cut = lm.get("cutscene")
+        if cut and str(cut).strip():
+            return str(cut).strip()
+    return None
 
 
 def universe_landmark_art(lm):

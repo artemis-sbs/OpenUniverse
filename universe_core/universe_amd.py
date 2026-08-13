@@ -267,6 +267,10 @@ def _declare_universe_vocabulary():
 
     amd_register_fields("landmark", {
         "terrain": csv(), "guards": csv(hint="what defends it"),
+        # A landmark can be an INTERIOR rather than a prop - see universe_relics.py.
+        "relic": text(hint="a relic key - this ruin is flyable inside"),
+        "relic file": text(hint="the .amd holding it (default <key>.amd)"),
+        "cutscene": text(hint="played once, the first time anyone arrives here"),
     }, domain="universe")
 
     # Sections the universe names its own way.

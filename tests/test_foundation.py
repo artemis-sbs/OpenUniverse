@@ -419,5 +419,147 @@ check("every nameable look resolves",
       all(_E.effect_amd_look(k) is not None or k in _P.particle_charge_looks()
           for k in _all_looks))
 
+
+# --- relic interiors in a cell -------------------------------------------------
+# A landmark carrying `Relic:` is not a prop but a place you fly INTO. These cover the
+# parts that are pure: what the landmark parser reads, where a relic ends up when the
+# cell decides its origin late, that two live cells do not share one ruin, and that
+# tearing a cell down takes its relic and only its relic.
+_universe_parse_landmarks = NS["universe_parse_landmarks"]
+_universe_landmark_relic = NS["universe_landmark_relic"]
+_universe_landmark_cutscene_for = NS["universe_landmark_cutscene_for"]
+_universe_landmarks_in_system = NS["universe_landmarks_in_system"]
+_universe_system_title = NS["universe_system_title"]
+_universe_relic_build = NS["universe_relic_build"]
+_universe_relic_release_cell = NS["universe_relic_release_cell"]
+_universe_relics_in_cell = NS["universe_relics_in_cell"]
+_universe_in_relic = NS["universe_in_relic"]
+_universe_relic_holds = NS["universe_relic_holds"]
+_universe_relics_clear = NS["universe_relics_clear"]
+_universe_doc = NS["universe_doc"]
+
+_RELIC_LM_DOC = """# [Test](test)
+
+## [Landmarks](landmarks)
+
+### [The Ossuary](giants_house)
+---
+At: 2, -1
+Kind: derelict
+Relic: ossuary
+Relic file: ossuary.amd
+Cutscene: arrive_ossuary
+---
+An ancient thing, hollow.
+
+### [Just A Wreck](plain_wreck)
+---
+At: 3, 3
+Kind: derelict
+---
+"""
+
+_lm_doc = _universe_doc(_RELIC_LM_DOC)
+_lms = _universe_parse_landmarks(_lm_doc)
+_lm_relic = [l for l in _lms if l.get("key") == "giants_house"][0]
+_lm_plain = [l for l in _lms if l.get("key") == "plain_wreck"][0]
+
+check("a landmark reads its Relic: and its file",
+      _universe_landmark_relic(_lm_relic) == ("ossuary", "ossuary.amd"))
+check("a landmark with no Relic: is still just a prop",
+      _universe_landmark_relic(_lm_plain) is None)
+check("the relic file defaults to <key>.amd",
+      _universe_landmark_relic(NS["MastDataObject"]({"relic": "vault"}))
+      == ("vault", "vault.amd"))
+check("a system's first-visit cutscene is found by cell",
+      _universe_landmark_cutscene_for(_lms, 2, -1) == "arrive_ossuary"
+      and _universe_landmark_cutscene_for(_lms, 3, 3) is None)
+
+# The arrival card names the most specific thing first: what you came to see, then who
+# owns the place, then the region, then the coordinates.
+check("an arrival is named after its landmark",
+      _universe_system_title(_lms, [], 2, -1)[0] == "The Ossuary")
+check("...and its first line of description is the subtitle",
+      _universe_system_title(_lms, [], 2, -1)[1] == "An ancient thing, hollow.")
+check("a side's home beats the region",
+      _universe_system_title([], [], 4, 4, "Kestrel Reach")[0] == "Kestrel Reach")
+check("an empty cell is honest about it",
+      _universe_system_title([], [], 9, 9)[0] == "Uncharted (9, 9)")
+check("home is home", _universe_system_title([], [], 0, 0)[0] == "Home Port")
+
+# Building one. The .amd is written here rather than shipped, because this is about the
+# CELL, not about any particular ruin.
+_RELIC_DOC = """# [Test](test)
+
+## [Relics](relics)
+
+### [The Ossuary](ossuary)
+---
+Atmosphere: none
+Containment: tractor
+---
+
+### [hub](hub)
+---
+Relic: ossuary
+Chamber: 0, 0, 0, 900
+---
+"""
+import tempfile as _tempfile
+_relic_dir = _tempfile.mkdtemp()
+_relic_path = os.path.join(_relic_dir, "ossuary.amd")
+with open(_relic_path, "w", encoding="utf-8") as _f:
+    _f.write(_RELIC_DOC)
+
+# Straight from the library: universe_relics.py imports only what it uses, so these
+# are not in the merged namespace.
+from sbs_utils.procedural.amd_relics import relic_record as _relic_record, relics_clear as _relics_clear
+from sbs_utils.procedural.volume import volume_get as _volume_get, volume_contains as _volume_contains
+
+# Two cells with DIFFERENT world origins - the case the whole module exists for.
+_CO_A = universe_cell_origin(2, -1)
+_CO_B = universe_cell_origin(5, 5)
+
+_universe_relics_clear()
+_relics_clear()
+_built = _universe_relic_build("ossuary", _relic_path, _CO_A.x + 1000.0, 0.0, _CO_A.z,
+                               2, -1, "The Ossuary")
+check("a relic builds into a cell", _built is not None
+      and _universe_relics_in_cell(2, -1) == ["ossuary"])
+check("...at the position the CELL chose, not the one the .amd authored",
+      _volume_get("ossuary") is not None
+      and _volume_contains("ossuary", (_CO_A.x + 1000.0, 0.0, _CO_A.z)))
+check("...and nowhere near the authored origin",
+      not _volume_contains("ossuary", (0.0, 0.0, 0.0)))
+check("building twice in one cell rebuilds nothing",
+      _universe_relic_build("ossuary", _relic_path, _CO_A.x + 1000.0, 0.0, _CO_A.z,
+                            2, -1, "The Ossuary") is not None
+      and len(_universe_relics_in_cell(2, -1)) == 1)
+check("a position outside the ruin is outside it",
+      _universe_relic_holds("ossuary", (_CO_A.x + 1000.0, 0.0, _CO_A.z))
+      and not _universe_relic_holds("ossuary", (_CO_A.x + 90000.0, 0.0, _CO_A.z)))
+check("nobody is inside it yet", _universe_in_relic() is None)
+
+# The failure this design exists to prevent: a departing cell taking the ruin the crew
+# is standing in. universe_clear_cell runs while the NEXT cell is already built.
+# A DIFFERENT file, because a relic key lives in exactly one: asking for a key the
+# file does not hold is an authoring error the loader names rather than guesses at.
+_second_path = os.path.join(_relic_dir, "second.amd")
+with open(_second_path, "w", encoding="utf-8") as _f:
+    _f.write(_RELIC_DOC.replace("ossuary", "second").replace("The Ossuary", "The Second"))
+_universe_relic_build("second", _second_path, _CO_B.x, 0.0, _CO_B.z, 5, 5, "Second")
+_universe_relic_release_cell(2, -1)
+check("releasing a cell takes its relic",
+      _volume_get("ossuary") is None and _universe_relics_in_cell(2, -1) == [])
+check("...and leaves the other cell's ruin standing",
+      _universe_relics_in_cell(5, 5) == ["second"])
+check("the RECORD survives, so a return visit can rebuild",
+      _relic_record("ossuary") is not None)
+check("a return visit does rebuild",
+      _universe_relic_build("ossuary", _relic_path, _CO_A.x + 1000.0, 0.0, _CO_A.z,
+                            2, -1, "The Ossuary") is not None
+      and _volume_get("ossuary") is not None)
+_universe_relics_clear()
+
 print("\n" + ("ALL PASS" if not fails else f"{len(fails)} FAILED: {fails}"))
 sys.exit(1 if fails else 0)
