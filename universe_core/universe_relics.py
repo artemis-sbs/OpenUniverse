@@ -38,7 +38,7 @@ from sbs_utils.procedural.volume import (
 from sbs_utils.procedural.spawn import terrain_spawn
 from sbs_utils.procedural.roles import role
 from sbs_utils.procedural.query import to_object_list
-from sbs_utils.procedural.markers import marker_object
+from sbs_utils.procedural.markers import marker_object, marker_point
 from sbs_utils.procedural.terrain import (
     terrain_spawn_nebula_sphere, terrain_set_nebula_object_size,
 )
@@ -64,6 +64,16 @@ UNIVERSE_RELIC_NEBULA_CAP = 12000
 # Props per relic. ~0.08 ms each in the engine, so this is ~50 ms of build - paid once per
 # arrival, inside the jump tunnel where the crew is already waiting.
 UNIVERSE_RELIC_PROPS = 600
+
+# A NAVPOINT at the mouth, on top of the sensor contact.
+#
+# TEMPORARY, and deliberately one line to turn off. The design says the crew FINDS the
+# ruin - a contact on the radar and a bearing to fly - and a labelled dot on the map that
+# helm can steer to gives that away. But while the interiors are being authored, every
+# pass costs a search before it costs a test, and that trade is the wrong way round.
+#
+# Turn it off when the ruins are done being built and the finding becomes the point.
+UNIVERSE_RELIC_NAVPOINT = True
 
 
 def universe_relic_wall_role(key):
@@ -336,6 +346,8 @@ def universe_relic_contact(key, name):
     try:
         marker_object(pos[0], pos[1], pos[2], str(name),
                       roles=universe_relic_mark_role(key) + ", relic_contact, landmark")
+        if UNIVERSE_RELIC_NAVPOINT:
+            marker_point(pos[0], pos[1], pos[2], str(name))
     except Exception as e:
         log(f"relic '{key}': no sensor contact: {e}", "universe", "warning")
         return pos
