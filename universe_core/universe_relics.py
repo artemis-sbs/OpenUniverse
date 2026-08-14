@@ -24,18 +24,16 @@ its ruins look by editing the `.amd`, not this module.
 Every function is prefixed `universe_` because an addon's module-level functions land in
 one flat, mission-wide MAST namespace - a leading underscore does not make one private.
 """
-import math
-import random
 
 from sbs_utils.procedural.amd_relics import (
     relics_load, relic_record, relic_place, relic_volume, relic_contain,
     relic_release, relic_contents_arm, relic_points, relic_pos,
 )
+from sbs_utils.procedural.volume_dress import volume_dress, DEFAULT_STYLE
 from sbs_utils.procedural.volume import (
-    volume_get, volume_engaged, volume_surface_points, volume_solid_points,
+    volume_get, volume_engaged,
     volume_contains,
 )
-from sbs_utils.procedural.spawn import terrain_spawn
 from sbs_utils.procedural.roles import role
 from sbs_utils.procedural.query import to_object_list
 from sbs_utils.procedural.markers import marker_object, marker_point
@@ -75,6 +73,10 @@ UNIVERSE_RELIC_ATMOSPHERE = True   # the nebula (and the warp cap that comes wit
 
 # Props per relic. ~0.08 ms each in the engine, so this is ~50 ms of build - paid once per
 # arrival, inside the jump tunnel where the crew is already waiting.
+UNIVERSE_RELIC_WALL = 40        # wall thickness; a wall, not a partition
+UNIVERSE_RELIC_PLATE = 0.0      # plate size in units; 0 = scale it to the room
+UNIVERSE_RELIC_GAPS = 0.06      # fraction of plates missing - it is a RUIN
+UNIVERSE_RELIC_DEBRIS = 60      # loose rocks drifting inside the rooms
 UNIVERSE_RELIC_PROPS = 600
 
 # A NAVPOINT at the mouth, on top of the sensor contact.
@@ -244,11 +246,12 @@ def universe_relic_build(key, fname, x, y, z, ei, ej, name=None):
 
 
 def universe_relic_dress(key, props=None):
-    """Scatter wall props over the relic's boundary. Returns how many were made.
+    """Build the relic's walls. Returns how many props were made.
 
-    The MATHS is the library's (`volume_surface_points` samples evenly over spheres,
-    around capsules at any orientation, across box faces, and clips to the outside of the
-    union); this picks art, scale and roles.
+    Everything about HOW they look now lives in the library's `volume_dress` - the
+    sampling, the styles, sizing each prop to its own spacing, turning it to face the
+    surface it sits on. This chooses the relic's seed, budget and teardown role, and
+    hands over what the .amd authored.
 
     IDENTITY, not a once-flag: if the walls are already there this is a no-op, so a second
     ship arriving in the same system cannot double the prop count.
@@ -262,27 +265,39 @@ def universe_relic_dress(key, props=None):
         return existing
     rec = relic_record(key)
     seed = int(rec.get("seed") or 7) if rec is not None else 7
-    art = universe_relic_art(rec)
     count = int(props if props is not None else UNIVERSE_RELIC_PROPS)
-    rng = random.Random(seed)
-    made = 0
-    for (x, y, z, nx, ny, nz) in volume_surface_points(vol, count, seed=seed):
-        _universe_relic_prop(rng, art, x, y, z,
-                             _universe_relic_near_size(vol, (x, y, z)) / 90.0, wall)
-        made += 1
-    # A subtracted mass MUST be dressed or it is an invisible obstacle - containment stops
-    # the ship at something with nothing there to see.
-    for (x, y, z, nx, ny, nz) in volume_solid_points(vol, max(8, count // 12), seed=seed):
-        _universe_relic_prop(rng, art, x, y, z, 110.0 / 90.0, wall)
-        made += 1
-    return made
+    # Art beats style, per part beats per relic: `volume_dress` settles all four, so this
+    # only has to hand over what the file said.
+    # A WALL IS A WALL, not a slab sized to the containment tolerance. It was briefly the
+    # latter, on the theory that a wall thinner than the scrape band is a skin the ship
+    # crosses - true, but the fix for that is the BAND, not a 220-unit thick partition in
+    # a 840-unit corridor. Thin, like a wall in any blockout.
+    # A clean empty room is right for the walls and wrong for a ruin: the age and the
+    # sense of scale come from the loose stuff drifting in it.
+    return volume_dress(
+        vol, n=count, seed=seed, roles=wall, wall_depth=UNIVERSE_RELIC_WALL,
+        plate=float(rec.get("plate") or UNIVERSE_RELIC_PLATE) if rec is not None
+              else UNIVERSE_RELIC_PLATE,
+        gaps=float(rec.get("gaps") if rec is not None and rec.get("gaps") is not None
+                   else UNIVERSE_RELIC_GAPS),
+        debris=int(rec.get("debris") if rec is not None and rec.get("debris") is not None
+                   else UNIVERSE_RELIC_DEBRIS),
+        style=(rec.get("walls") if rec is not None else None) or DEFAULT_STYLE,
+        art=(rec.get("art") if rec is not None else None),
+        part_styles=(rec.get("part_walls") if rec is not None else None),
+        part_art=(rec.get("part_art") if rec is not None else None))
 
 
 def universe_relic_art(rec):
     """The prop meshes: whatever the relic authored, else the plain asteroid set.
 
-    VERIFY AN AUTHORED KEY AGAINST shipData. An unknown art key does not fail - it falls
-    back to the `unknown` mesh, so a typo reads as a ruin built out of question marks.
+    The dresser resolves this itself now (`volume_dress` weighs authored art against the
+    style's own); this stays because it answers "what will this relic be built from"
+    without building it, which the editor and the tests both ask.
+
+    An unknown art key does not fail - it falls back to the `unknown` mesh, so a typo
+    reads as a ruin built out of question marks. `sbs lint`'s `relic-unknown-art` is
+    what catches that now.
     """
     authored = (rec.get("art") if rec is not None else None) or ""
     keys = [k.strip() for k in str(authored).split(",") if k.strip()]
@@ -469,40 +484,3 @@ def _universe_relic_volume_name(key):
     return (rec.get("volume") if rec is not None else None) or key
 
 
-def _universe_relic_prop(rng, art_keys, x, y, z, scale, wall_role):
-    """One piece of wall: terrain, non-solid, never an AI behavior.
-
-    `exclusion_radius = 0` matters - an AI `behav_*` object with radius 0 NaNs the engine,
-    and terrain with a radius pushes the ship away from the wall it is meant to be.
-    """
-    art = art_keys[rng.randrange(len(art_keys))]
-    p = terrain_spawn(x, y, z, "", "#," + wall_role, art, "behav_asteroid")
-    s = scale * rng.uniform(0.75, 1.35)
-    p.blob.set("local_scale_x_coeff", s, 0)
-    p.blob.set("local_scale_y_coeff", s * rng.uniform(0.8, 1.2), 0)
-    p.blob.set("local_scale_z_coeff", s * rng.uniform(0.8, 1.2), 0)
-    p.engine_object.exclusion_radius = 0
-    return p
-
-
-def _universe_relic_near_size(vol, p):
-    """The size of the feature a point belongs to, so a prop scales to its room.
-
-    Nearest-primitive rather than exact ownership: a prop at a junction could belong to
-    either shape, and the closer one is both cheap and what the eye expects.
-    """
-    best, bestd = 600.0, float("inf")
-    for prim in vol.primitives():
-        if prim[0] == "sphere":
-            d, size = abs(_universe_relic_dist(p, prim[1]) - prim[2]), prim[2]
-        elif prim[0] == "capsule":
-            d, size = abs(_universe_relic_dist(p, prim[1]) - prim[3]), prim[3]
-        else:
-            d, size = _universe_relic_dist(p, prim[1]), min(prim[2])
-        if d < bestd:
-            bestd, best = d, size
-    return best
-
-
-def _universe_relic_dist(a, b):
-    return math.sqrt(sum((a[i] - b[i]) ** 2 for i in range(3)))
