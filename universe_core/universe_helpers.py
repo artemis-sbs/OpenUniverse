@@ -10,7 +10,7 @@ import os
 
 from sbs_utils import scatter
 from sbs_utils.vec import Vec3
-from sbs_utils.fs import get_mission_dir
+from sbs_utils.fs import get_mission_dir, get_common_data_filename
 from sbs_utils.procedural.terrain import (terrain_spawn_field_keyed,
                                           terrain_sow_begin, terrain_sow_end,
                                           terrain_sow_reset)
@@ -352,11 +352,14 @@ def universe_set_active_save(universe, slot=1):
 
 
 def universe_save_path():
-    """Path to the ACTIVE universe save file (per-universe + per-slot), creating
-    common_data if needed. See universe_set_active_save."""
-    common = os.path.join(os.path.dirname(get_mission_dir()), "common_data")
-    os.makedirs(common, exist_ok=True)
-    return os.path.join(common, "universe_save_" + _ACTIVE_SAVE + ".yaml")
+    """Path to the ACTIVE universe save file (per-universe + per-slot).
+
+    Under `common_data/saves/`. The folder used to be flat, and by the time a second
+    mission put files there it was carrying two owners' saves distinguished only by
+    filename prefix - so the grouping moved into the path. `get_common_data_filename`
+    creates the folder, and is the same helper the saved-setup and results stores use.
+    """
+    return get_common_data_filename("saves", "universe_save_" + _ACTIVE_SAVE + ".yaml")
 
 
 def _universe_store():
