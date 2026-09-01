@@ -31,15 +31,13 @@ default shared UNIVERSE_SITE_CALL_DELAY = 4
 
 //shared/signal/ship_docked
     ->END if not has_role(DOCK_STATION_ID, "away_site")
-    universe_site_dock_data = ~~{"SITE_SHIP": DOCK_SHIP_ID, "SITE_OBJECT": DOCK_STATION_ID}~~
-    task_schedule(universe_site_arrive, universe_site_dock_data)
+    task_schedule(universe_site_arrive, {"SITE_SHIP": DOCK_SHIP_ID, "SITE_OBJECT": DOCK_STATION_ID})
     ->END
 
 
 //shared/signal/ship_orbiting
     ->END if not has_role(ORBIT_BODY_ID, "away_site")
-    universe_site_orbit_data = ~~{"SITE_SHIP": ORBIT_SHIP_ID, "SITE_OBJECT": ORBIT_BODY_ID}~~
-    task_schedule(universe_site_arrive, universe_site_orbit_data)
+    task_schedule(universe_site_arrive, {"SITE_SHIP": ORBIT_SHIP_ID, "SITE_OBJECT": ORBIT_BODY_ID})
     ->END
 
 
@@ -63,7 +61,7 @@ default shared UNIVERSE_SITE_CALL_DELAY = 4
     universe_site_hails_now = universe_site_hails(universe_site_key)
     if universe_site_hails_now is None or len(universe_site_hails_now) == 0:
         # Nothing to ask, so nothing to wait for.
-        task_schedule(universe_site_descend, ~~{"SITE_SHIP": SITE_SHIP, "SITE_OBJECT": SITE_OBJECT}~~)
+        task_schedule(universe_site_descend, {"SITE_SHIP": SITE_SHIP, "SITE_OBJECT": SITE_OBJECT})
         ->END
 
     set_inventory_value(SITE_OBJECT, "SITE_ASKED", True)
@@ -83,7 +81,7 @@ default shared UNIVERSE_SITE_CALL_DELAY = 4
     ->END if universe_site_down_ship is None
     universe_site_down_obj = get_inventory_value(universe_site_down_ship, "SITE_PENDING", None)
     ->END if universe_site_down_obj is None
-    task_schedule(universe_site_descend, ~~{"SITE_SHIP": universe_site_down_ship, "SITE_OBJECT": universe_site_down_obj}~~)
+    task_schedule(universe_site_descend, {"SITE_SHIP": universe_site_down_ship, "SITE_OBJECT": universe_site_down_obj})
     ->END
 
 
@@ -110,8 +108,11 @@ default shared UNIVERSE_SITE_CALL_DELAY = 4
 
     # Hand the consoles over. The `away` addon owns the morph, the screens and the way
     # home; this file has no opinion about any of them.
-    universe_site_hand_over = ~~{"AWAY_SHIP": SITE_SHIP, "AWAY_ROSTER": list(universe_site_cast.values()), "AWAY_TITLE": universe_site_title(universe_site_dkey)}~~
-    signal_emit("away_begin", universe_site_hand_over)
+    signal_emit("away_begin", {
+        "AWAY_SHIP": SITE_SHIP,
+        "AWAY_ROSTER": list(universe_site_cast.values()),
+        "AWAY_TITLE": universe_site_title(universe_site_dkey),
+    })
     set_inventory_value(SITE_SHIP, "SITE_PENDING", None)
     log(f"site '{universe_site_dkey}': team down, scene={away_scene()}", "universe")
     ->END

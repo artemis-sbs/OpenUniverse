@@ -244,6 +244,17 @@ Art: starbase_science
 ---
 An old TSN research post, still broadcasting on a forgotten frequency.
 
+### [Ferrow Landing](ferrow)
+---
+At: 2, 1
+Kind: station
+Side: tsn
+Art: starbase_civil
+Site: quiet_shore
+---
+A farming colony on the quiet edge of the lane. They answer promptly, they need
+nothing, and they have needed nothing for fourteen months.
+
 ## [Goods](goods)
 
 The trade goods of this galaxy and how common each is as loot. Each heading key is

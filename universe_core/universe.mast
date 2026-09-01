@@ -1307,6 +1307,12 @@ default shared UNIVERSE_START_CELL = None
             if _lm_site is not None:
                 universe_site_load(_lm_site[0], _lm_site[1])
                 universe_site_place(_lm_site[0], _lm_obj, ei, ej, lm.name)
+                # A site has to be REACHABLE. OU only calls `docking_standard_player_station`
+                # inside its capture flows, so an ordinary station in an ordinary system is
+                # never dockable - the dock verb would never fire for a landmark and the crew
+                # would arrive at a place they cannot enter. Scoped to `away_site` on purpose:
+                # making every OU station dockable would quietly change the economy.
+                docking_set_docking_logic(role("__player__"), role("away_site"), docking_dock_with_friendly_station)
         # Terrain envelope: a landmark can author `Terrain: <kind> [color]` to wrap
         # itself in cover (a nebula pocket / asteroid field), guaranteeing the ruin
         # sits in terrain regardless of the cell's rolled kind. Regenerated each visit

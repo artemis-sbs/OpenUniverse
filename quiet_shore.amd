@@ -7,6 +7,28 @@ cast that beams down, the call that arrives when you dock, and the beats they pl
 engine side is `universe_sites.py` (the seam) and `universe_sites.mast` (the arrival);
 neither knows a word of what follows.
 
+**Every role can reach TWO readings on its own, and the shed opens at `learned >= 3`.**
+Three is reachable by any crew because a short landing party DOUBLES UP - one console
+speaks for several characters, so every role's readings are in play however many people
+are aboard. The two-per-role floor still matters: it is what keeps a reading worth taking
+rather than a duplicate of one already had. The first cut broke both rules at once - the
+engineer read `cold` in BOTH rooms and the science officer got nothing at all in the
+first, so before doubling up a single console could hold exactly one fact and the shed was
+unreachable, with the east cable looping between itself and the orchard forever. If a
+reading is moved, check that every role still reaches two DISTINCT facts.
+
+**Every room is REVERSIBLE, not just exitable.** The east cable used to offer only two
+flavour loops and a gated shed, so a party that walked there under-informed could go back
+to nothing - the only way out was off the planet. A room whose options all loop is a dead
+end however many of them there are. Every room now leads BACK as well as on, and a gated
+`%{learned < 3}` line says plainly that they have not found enough yet, rather than leaving
+the crew to guess whether the game is broken.
+
+**Every room offers a way home.** The shed is the only scene that ENDS the visit on its
+own, and it is gated at `learned >= 3` - so without a `- [Beam back up]()` in each room a
+party that gathers two readings is stuck walking between them with no exit at all. That
+is what happened the first time this was played.
+
 **The shape worth keeping.** Every room offers each character something only they can do,
 and nobody can take all four. A reading that matters carries `; learn <name>`; the shed
 opens at `if learned >= 3`. Three of the four, so there is no single correct route
@@ -85,8 +107,9 @@ Speaker: bel
 - [Look at the people meeting you](arrival_med) if medical >= 1 ; learn thin
 - [Look at the power spur](arrival_eng) if engineering >= 1 ; learn cold
 - [Count the doors](arrival_sec) if security >= 1 ; learn watched
-- [Ask when the last supply run came](arrival_sci) if science >= 1
+- [Ask when the last supply run came](arrival_sci) if science >= 1 ; learn idle
 - [Walk in with her](hall)
+- [Beam back up]()
 
 ### [The People Meeting You](arrival_med)
 ---
@@ -131,11 +154,12 @@ Speaker: bel
 % Tables for forty and eleven place settings, laid at the near end where the light is.
 % We keep it as it was. It seemed better than taking the rest away.
 
-- [Look at the place settings](hall_med) if medical >= 1
-- [Look at what is heating this room](hall_eng) if engineering >= 1 ; learn cold
-- [Look at the far end](hall_sec) if security >= 1 ; learn watched
+- [Look at the place settings](hall_med) if medical >= 1 ; learn tended
+- [Look at what is heating this room](hall_eng) if engineering >= 1 ; learn idle
+- [Look at the far end](hall_sec) if security >= 1 ; learn tended
 - [Read the colony register](hall_sci) if science >= 1 ; learn thin
 - [Ask to see the east cable](east)
+- [Beam back up]()
 
 ### [The Place Settings](hall_med)
 ---
@@ -179,10 +203,13 @@ Speaker: bel
 ---
 % It runs a kilometre to a shed with no windows, and the shed is the warmest thing on this world.
 % That is the relay. It is not interesting. I would rather show you the orchard.
+%{learned < 3} She says it pleasantly and does not move. You have nothing to put to her yet - whatever is wrong with Ferrow Landing, you have not found enough of it to say out loud.
 
 - [Ask her plainly what is in the shed](east_ask)
 - [Open it](open) if learned >= 3
 - [Let her show you the orchard](orchard)
+- [Walk back to the hall](hall)
+- [Beam back up]()
 
 ### [Asking Plainly](east_ask)
 ---
@@ -201,6 +228,7 @@ Speaker: bel
 % We plant one for each of them. It is what we could think of.
 
 - [Go back to the shed](east)
+- [Walk back to the hall](hall)
 
 ### [The Shed](open)
 ---

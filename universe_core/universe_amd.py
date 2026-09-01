@@ -270,6 +270,11 @@ def _declare_universe_vocabulary():
         # A landmark can be an INTERIOR rather than a prop - see universe_relics.py.
         "relic": text(hint="a relic key - this ruin is flyable inside"),
         "relic file": text(hint="the .amd holding it (default <key>.amd)"),
+        # ...or somewhere the crew LEAVES the ship for - see universe_sites.py. A
+        # different verb on a landmark, not a competing one: nothing stops a ruin you
+        # fly into also being a place you beam down to.
+        "site": text(hint="a site key - the crew beams down here"),
+        "site file": text(hint="the .amd holding it (default <key>.amd)"),
         "cutscene": text(hint="played once, the first time anyone arrives here"),
     }, domain="universe")
 
