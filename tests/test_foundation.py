@@ -561,5 +561,163 @@ check("a return visit does rebuild",
       and _volume_get("ossuary") is not None)
 _universe_relics_clear()
 
+# --- away sites in a cell ------------------------------------------------------
+# A landmark carrying `Site:` is a place the crew BEAMS DOWN to - neither a prop nor an
+# interior you fly into. Same three galaxy problems as a relic: the cell's origin is
+# decided late, a cell is rebuilt on return, and two can be live at once.
+_universe_landmark_site = NS["universe_landmark_site"]
+_universe_site_load = NS["universe_site_load"]
+_universe_site_place = NS["universe_site_place"]
+_universe_site_for = NS["universe_site_for"]
+_universe_site_object = NS["universe_site_object"]
+_universe_site_scenes = NS["universe_site_scenes"]
+_universe_site_hails = NS["universe_site_hails"]
+_universe_site_release_cell = NS["universe_site_release_cell"]
+_universe_sites_in_cell = NS["universe_sites_in_cell"]
+_universe_sites_clear = NS["universe_sites_clear"]
+_universe_site_record = NS["universe_site_record"]
+_to_id = NS["to_id"]
+
+_SITE_LM_DOC = """# [Test](test)
+
+## [Landmarks](landmarks)
+
+### [Quiet Shore](quiet_shore)
+---
+At: 4, 2
+Kind: station
+Site: shore
+Site file: shore.amd
+---
+
+### [Just A Station](plain_station)
+---
+At: 5, 2
+Kind: station
+---
+"""
+
+_site_lms = _universe_parse_landmarks(_universe_doc(_SITE_LM_DOC))
+_lm_site = [l for l in _site_lms if l.get("key") == "quiet_shore"][0]
+_lm_nosite = [l for l in _site_lms if l.get("key") == "plain_station"][0]
+
+check("a landmark reads its Site: and its file",
+      _universe_landmark_site(_lm_site) == ("shore", "shore.amd"))
+check("a landmark with no Site: is just a landmark",
+      _universe_landmark_site(_lm_nosite) is None)
+check("Site file: defaults to <key>.amd",
+      _universe_landmark_site({"site": "shore"}) == ("shore", "shore.amd"))
+
+# The content vocabulary is the SAME one a standalone mission uses, which is the whole
+# argument for `Site:` being a seam rather than a second dialect.
+_SITE_DOC = """# [Shore](shore)
+
+## [Away Team](team)
+
+### [Dr Sorel](sorel)
+---
+Face: terran_female
+Roles: away, medical
+---
+
+### [Chief Ruiz](ruiz)
+---
+Face: terran_male
+Roles: away, engineering
+---
+
+## [Hails](hails)
+
+### [Nobody Answers](shore_call)
+---
+Speaker: shore
+---
+% The relay is up and nobody is on it.
+
+- [Send a team down]()
+
+## [Scenes](away)
+
+### [The Landing](landing)
+---
+Speaker: shore
+---
+% Warm, still, and nothing moving.
+
+- [Read the bodies](landing_med) if medical >= 1
+- [Read the reactor](landing_eng) if engineering >= 1
+- [Beam back up]()
+
+### [The Bodies](landing_med)
+---
+Speaker: shore
+---
+% Not violence.
+
+- [Say it out loud](landing)
+
+### [The Reactor](landing_eng)
+---
+Speaker: shore
+---
+% Running, and running cold.
+
+- [Say it out loud](landing)
+"""
+
+_EMPTY_SITE_DOC = """# [E](e)
+
+## [Away Team](team)
+"""
+
+_sites_rec = _universe_site_load("shore", "shore.amd", content=_SITE_DOC)
+check("a site file registers its beats", _sites_rec is not None
+      and "landing" in _universe_site_scenes("shore"))
+check("...and its arrival hail", "shore_call" in _universe_site_hails("shore"))
+check("a second load is the same record, not a re-read",
+      _universe_site_load("shore", "shore.amd") is _sites_rec)
+check("a site with no Scenes is refused rather than half-built",
+      _universe_site_load("empty", "empty.amd", content=_EMPTY_SITE_DOC) is None)
+
+# Placement is arrival-time, because a cell's origin is decided late.
+_site_obj_a = _to_id(npc_spawn(_CO_A.x, 0, _CO_A.z, "Shore", "tsn, station",
+                              "starbase_civil", "behav_station"))
+_site_obj_b = _to_id(npc_spawn(_CO_B.x, 0, _CO_B.z, "Shore II", "tsn, station",
+                              "starbase_civil", "behav_station"))
+_universe_site_place("shore", _site_obj_a, 4, 2, "Quiet Shore")
+check("placing binds the site to the landmark's object",
+      _universe_site_object("shore", 4, 2) == _site_obj_a)
+check("and the object answers which site it is",
+      _universe_site_for(_site_obj_a) == "shore")
+check("the object carries the away_site role, which is what a route gates on",
+      has_role(_site_obj_a, "away_site"))
+check("an unplaced object belongs to no site", _universe_site_for(_site_obj_b) is None)
+check("placing twice binds nothing new",
+      _universe_site_place("shore", _site_obj_b, 4, 2) is not None
+      and _universe_site_object("shore", 4, 2) == _site_obj_a)
+check("an unregistered key places nothing",
+      _universe_site_place("nowhere", _site_obj_b, 4, 2) is None)
+
+# Two cells, two ships, Model A: releasing one must not touch the other.
+_universe_site_load("second_shore", "second.amd",
+                    content=_SITE_DOC.replace("shore", "second_shore"))
+_universe_site_place("second_shore", _site_obj_b, 7, 7, "Far Shore")
+check("two sites can be live in two cells",
+      _universe_sites_in_cell(4, 2) == ["shore"]
+      and _universe_sites_in_cell(7, 7) == ["second_shore"])
+_universe_site_release_cell(4, 2)
+check("releasing a cell takes its site", _universe_sites_in_cell(4, 2) == [])
+check("...and leaves the other cell's site standing",
+      _universe_sites_in_cell(7, 7) == ["second_shore"])
+check("the RECORD survives a release, so a return visit does not re-read the file",
+      _universe_site_record("shore") is not None)
+check("a return visit rebinds",
+      _universe_site_place("shore", _site_obj_a, 4, 2) is not None
+      and _universe_sites_in_cell(4, 2) == ["shore"])
+_universe_sites_clear()
+check("clearing drops placements and records", _universe_site_record("shore") is None
+      and _universe_sites_in_cell(4, 2) == [])
+
+
 print("\n" + ("ALL PASS" if not fails else f"{len(fails)} FAILED: {fails}"))
 sys.exit(1 if fails else 0)

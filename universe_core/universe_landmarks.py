@@ -47,6 +47,15 @@ def universe_parse_landmarks(doc):
                 # form gets None and the loader falls back to `<key>.amd`, which is a
                 # missing-file error against a name the author never wrote.
                 "relic_file": data.get("relic_file"),
+                # Site: this landmark is a place the crew BEAMS DOWN to - a colony, an
+                # outpost, a station that stopped answering. The key names the site; the
+                # file is read mission-relative, same as a relic. A site and a relic are
+                # different verbs on the same landmark (fly INTO vs leave the ship FOR),
+                # so nothing stops one carrying both.
+                "site": data.get("site"),
+                # UNDERSCORED, for the reason spelled out above: the fence parser turns
+                # `Site file:` into `site_file`.
+                "site_file": data.get("site_file"),
                 # Cutscene: played ONCE per system, the first time anyone arrives here
                 # (the flag is persisted, like guards_cleared). The name is a cutscene
                 # bed the mission has loaded with amd_cutscenes.
@@ -134,6 +143,22 @@ def universe_landmark_relic(lm):
     fname = lm.get("relic_file")
     return (key, str(fname).strip() if fname else key + ".amd")
 
+
+def universe_landmark_site(lm):
+    """A landmark's away site, as `(key, file)`, or None when nobody beams down here.
+
+    The file defaults to `<key>.amd`, because an author who names one site per file
+    should not have to say so twice. Exactly `universe_landmark_relic`'s contract - the
+    two are different verbs on a landmark, not competing ones.
+    """
+    key = lm.get("site")
+    if not key:
+        return None
+    key = str(key).strip()
+    if not key:
+        return None
+    fname = lm.get("site_file")
+    return (key, str(fname).strip() if fname else key + ".amd")
 
 def universe_landmark_cutscene_for(landmarks, i, j):
     """The cutscene a system plays on its FIRST visit, or None.

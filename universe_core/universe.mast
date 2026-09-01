@@ -1296,7 +1296,16 @@ default shared UNIVERSE_START_CELL = None
             # A hand-placed worldlet (Type: names the ## Worldlets entry).
             universe_worldlet_spawn(lm.wtype, lmpos[0], 0.0, lmpos[2], 2000)
         else:
-            npc_spawn(lmpos[0], lmpos[1], lmpos[2], lm.name, lm.side + ", station, landmark", universe_landmark_art(lm), "behav_station")
+            _lm_obj = npc_spawn(lmpos[0], lmpos[1], lmpos[2], lm.name, lm.side + ", station, landmark", universe_landmark_art(lm), "behav_station")
+            # Site: this landmark is somewhere the crew BEAMS DOWN to. Bound to the
+            # object HERE rather than authored, for the reason a relic is placed here
+            # rather than authored: the cell chose this origin a moment ago. Binding only
+            # tags and registers - the beats do not start until somebody arrives and
+            # takes the call.
+            _lm_site = universe_landmark_site(lm)
+            if _lm_site is not None:
+                universe_site_load(_lm_site[0], _lm_site[1])
+                universe_site_place(_lm_site[0], _lm_obj, ei, ej, lm.name)
         # Terrain envelope: a landmark can author `Terrain: <kind> [color]` to wrap
         # itself in cover (a nebula pocket / asteroid field), guaranteeing the ruin
         # sits in terrain regardless of the cell's rolled kind. Regenerated each visit
@@ -1476,6 +1485,7 @@ default shared UNIVERSE_START_CELL = None
     await delay_sim(5)
     if not universe_cell_live(ei, ej):
         universe_relic_release_cell(ei, ej)
+        universe_site_release_cell(ei, ej)
         ->END
     jump relic_cell_wait
 
