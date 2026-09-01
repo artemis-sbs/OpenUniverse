@@ -188,6 +188,17 @@ def universe_site_hails(key):
     return (rec or {}).get("hails") or {}
 
 
+def universe_site_title(key):
+    """What the shared view calls this place - the landmark's name, else the key.
+
+    The landmark's name, because that is what the crew saw on the map and heard on the
+    comms; a site key is an author's filename and reads like one on a main screen.
+    """
+    rec = universe_site_record(key)
+    if rec is None:
+        return str(key or "").upper()
+    return str(rec.get("name") or rec.get("key") or key).upper()
+
 def universe_site_cast_section(key):
     """The site's `## Away Team` section, for spawning its bodies on arrival."""
     rec = universe_site_record(key)

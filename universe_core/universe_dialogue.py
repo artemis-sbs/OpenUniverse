@@ -11,6 +11,13 @@ Speaker resolution (key -> face/color/name card) stays OU-specific in universe_c
 
 See UNIVERSE_CHANGES.md (Epic F). The `## Dialogue` section of universe.amd authors the scenes.
 """
+# The away module, imported HERE and not where it is used. `load_mission_vocabulary`
+# imports `*_amd.py` and `*_dialogue.py` only, so this is the file that decides what
+# `sbs lint` knows - the same reason `costs` and `earns` are registered here. Importing
+# `away` registers the `learn` outcome verb that Site: scenes use; without it the linter
+# calls every `; learn cold` an unknown verb on a file that works perfectly.
+from sbs_utils.procedural import away as _away_vocab  # noqa: F401
+
 from sbs_utils.procedural.amd_dialogue import (  # noqa: F401  (re-exported into the OU namespace)
     dialogue_parse, dialogue_get, dialogue_guard_ok, dialogue_pick_line,
     dialogue_choices, dialogue_apply, dialogue_entry_for, _dlg_norm,

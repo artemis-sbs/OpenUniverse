@@ -10,6 +10,12 @@
 # so a mission building on this engine gets no universes it did not ask for.
 # Helpers/data first, then the map itself (shared MAST namespace:
 # later files call the earlier helpers by bare name).
+# The away consoles come from the LM `away` addon - Site: landmarks hand their
+# consoles to it. `suggests`, not `requires`: a universe with no Site: landmark works
+# perfectly well without it, and a hard requirement would break every existing OU
+# mission until each story.json was updated.
+suggests away
+
 import universe_helpers.py
 import universe_mode.py
 import universe_doc.py
@@ -23,7 +29,9 @@ import universe_lifeforms.py
 import universe_regions.py
 import universe_landmarks.py
 import universe_relics.py
+import universe_sites.py
 import universe_goods.py
 import universe_systems.py
+import universe_sites.mast
 import universe_codex.mast
 import universe.mast

@@ -1,0 +1,212 @@
+# [The Quiet Shore](quiet_shore)
+
+An away site: a colony that is fine, welcoming, and lying.
+
+Declared by a landmark carrying `Site: quiet_shore`. Everything here is content - the
+cast that beams down, the call that arrives when you dock, and the beats they play. The
+engine side is `universe_sites.py` (the seam) and `universe_sites.mast` (the arrival);
+neither knows a word of what follows.
+
+**The shape worth keeping.** Every room offers each character something only they can do,
+and nobody can take all four. A reading that matters carries `; learn <name>`; the shed
+opens at `if learned >= 3`. Three of the four, so there is no single correct route
+through Ferrow Landing, and `learn` is a set - walking back into a room you have already
+read counts once. What is wrong with Ferrow Landing is legible only when the
+party puts its readings together and finds they do not agree - which is the whole reason
+this is played by four people at four consoles rather than one person with a menu.
+
+## [Away Team](team)
+
+### [Dr Sorel](sorel)
+---
+Face: terran_female
+Roles: away, medical
+Color: "#4cf"
+---
+Ship's surgeon. Reads bodies, and does not much care what the paperwork says.
+
+### [Chief Ruiz](ruiz)
+---
+Face: terran_male
+Roles: away, engineering
+Color: "#fc4"
+---
+Engineer. Trusts machines further than the people running them.
+
+### [Ensign Vale](vale)
+---
+Face: terran_male
+Roles: away, security
+Color: "#f66"
+---
+Security. Reads rooms. Notices what is missing before what is there.
+
+### [Lt Anders](anders)
+---
+Face: terran_fluid
+Roles: away, science
+Color: "#8f8"
+---
+Science officer. Would rather be right slowly than first.
+
+## [Voices](voices)
+
+### [Administrator Bel](bel)
+---
+Face: terran_female
+Roles: narrator
+Color: "#fd8"
+---
+Ferrow Landing's administrator. Delighted to see you. Has an answer ready for everything.
+
+## [Hails](hails)
+
+### [Ferrow Landing Answers](shore_call)
+---
+Speaker: bel
+Title: Ferrow Landing
+Color: "#fd8"
+---
+% Ferrow Landing here, and you are very welcome. We are all fine. Nothing needed, nothing to report.
+% We had a quiet year, that is all. You are welcome to come down and see the place if you have the time.
+
+- [Assemble a landing party]() ; signal away_down
+- [Thank her and stay aboard]()
+
+## [Scenes](away)
+
+### [The Landing Field](arrival)
+---
+Speaker: bel
+---
+% Warm, still, and swept. Somebody has raked the gravel into lines this morning.
+% Eleven of us now. We manage. The children are at their lessons, so it is quieter than usual.
+
+- [Look at the people meeting you](arrival_med) if medical >= 1 ; learn thin
+- [Look at the power spur](arrival_eng) if engineering >= 1 ; learn cold
+- [Count the doors](arrival_sec) if security >= 1 ; learn watched
+- [Ask when the last supply run came](arrival_sci) if science >= 1
+- [Walk in with her](hall)
+
+### [The People Meeting You](arrival_med)
+---
+Speaker: bel
+---
+% Four adults, all well fed, all with the same faint tremor in the hands.
+% Not illness. Not cold. You have seen it in people who have not slept properly in a long time and have stopped mentioning it.
+
+- [Say it out loud](arrival)
+
+### [The Power Spur](arrival_eng)
+---
+Speaker: bel
+---
+% Rated for eleven, drawing for forty. Every one of those amps is going somewhere and it is not going into these buildings.
+% The cable heading east is the newest thing on this colony.
+
+- [Say it out loud](arrival)
+
+### [Counting The Doors](arrival_sec)
+---
+Speaker: bel
+---
+% Nine doors on the square, and every one of them opens inward and locks from the outside.
+% That is not how you build against weather.
+
+- [Say it out loud](arrival)
+
+### [The Last Supply Run](arrival_sci)
+---
+Speaker: bel
+---
+% Fourteen months, she says, and the manifest agrees with her.
+% What it also says is that they ordered nothing on it. Not one item. A colony that needs nothing is a colony that has stopped planning.
+
+- [Say it out loud](arrival)
+
+### [The Long Hall](hall)
+---
+Speaker: bel
+---
+% Tables for forty and eleven place settings, laid at the near end where the light is.
+% We keep it as it was. It seemed better than taking the rest away.
+
+- [Look at the place settings](hall_med) if medical >= 1
+- [Look at what is heating this room](hall_eng) if engineering >= 1 ; learn cold
+- [Look at the far end](hall_sec) if security >= 1 ; learn watched
+- [Read the colony register](hall_sci) if science >= 1 ; learn thin
+- [Ask to see the east cable](east)
+
+### [The Place Settings](hall_med)
+---
+Speaker: bel
+---
+% Eleven laid, and every one of them worn at the same corner by the same right-handed grip.
+% One person set all of these, every day, for a long time.
+
+- [Say it out loud](hall)
+
+### [What Is Heating This Room](hall_eng)
+---
+Speaker: bel
+---
+% Nothing is. The heat in here is coming through the east wall, from something on the other side of it that is running hot.
+% You could warm this hall on the waste alone, and nobody has thought to.
+
+- [Say it out loud](hall)
+
+### [The Far End](hall_sec)
+---
+Speaker: bel
+---
+% Dust on the tables, and no dust on the floor between them. That floor is walked every day and never sat at.
+% Something goes down this hall regularly. It does not stop to eat.
+
+- [Say it out loud](hall)
+
+### [The Colony Register](hall_sci)
+---
+Speaker: bel
+---
+% Forty one names. Eleven without a line through them, and the lines are all in the same hand and the same ink.
+% They were not crossed out as it happened. Somebody sat down one afternoon and did all thirty at once.
+
+- [Say it out loud](hall)
+
+### [The East Cable](east)
+---
+Speaker: bel
+---
+% It runs a kilometre to a shed with no windows, and the shed is the warmest thing on this world.
+% That is the relay. It is not interesting. I would rather show you the orchard.
+
+- [Ask her plainly what is in the shed](east_ask)
+- [Open it](open) if learned >= 3
+- [Let her show you the orchard](orchard)
+
+### [Asking Plainly](east_ask)
+---
+Speaker: bel
+---
+% It is the relay.
+% She says it the same way both times, with the same pauses. You have heard a person say a true thing twice. This is not what that sounds like.
+
+- [Back to the shed](east)
+
+### [The Orchard](orchard)
+---
+Speaker: bel
+---
+% Thirty saplings in rows, none of them older than a year, each with a stone at its foot.
+% We plant one for each of them. It is what we could think of.
+
+- [Go back to the shed](east)
+
+### [The Shed](open)
+---
+Speaker: bel
+---
+% Thirty of them, warm, breathing, and asleep. The machine keeping them that way is drawing every spare amp on the colony and Bel is not stopping you looking at it.
+% We could not wake them. We could not bury them either. So we kept them, and we set their places, and we said we were fine.
+
+- [She was not lying, exactly]()

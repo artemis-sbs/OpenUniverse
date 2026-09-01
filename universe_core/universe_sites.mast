@@ -1,0 +1,117 @@
+# Arriving at an away site.
+#
+# `universe_sites.py` owns the seam - reading a `Site:` file, binding it to the landmark's
+# object, releasing it with the cell. This owns the ARRIVAL: noticing that a crew has
+# reached one, offering the call, and handing the consoles to the `away` addon.
+#
+# Two ways to arrive, because a site is whatever the landmark is:
+#
+#   * DOCK with it - a colony, an outpost, a station that stopped answering.
+#   * ORBIT it - a worldlet.
+#
+# Both end in the same place, so the difference is one route each and nothing else.
+#
+# THE FILE SAYS WHEN THE TEAM GOES DOWN. The arrival call is a `## Hails` scene, and the
+# choice that accepts carries `; signal away_down`:
+#
+#     - [Assemble a landing party]() ; signal away_down
+#     - [Hold position]()
+#
+# A declared signal rather than this file reading the button text. Matching on words like
+# "beam" or "down" works for exactly the phrasings whoever wrote the matcher imagined, and
+# fails silently for "Assemble a landing party" - the author gets a place the crew can
+# reach, can answer, and can never enter, with nothing logged.
+#
+# A site with no `## Hails` section goes down on arrival, since there was nothing to ask.
+
+
+# Long enough that the call does not arrive on top of the docking clunk.
+default shared UNIVERSE_SITE_CALL_DELAY = 4
+
+
+//shared/signal/ship_docked
+    ->END if not has_role(DOCK_STATION_ID, "away_site")
+    universe_site_dock_data = ~~{"SITE_SHIP": DOCK_SHIP_ID, "SITE_OBJECT": DOCK_STATION_ID}~~
+    task_schedule(universe_site_arrive, universe_site_dock_data)
+    ->END
+
+
+//shared/signal/ship_orbiting
+    ->END if not has_role(ORBIT_BODY_ID, "away_site")
+    universe_site_orbit_data = ~~{"SITE_SHIP": ORBIT_SHIP_ID, "SITE_OBJECT": ORBIT_BODY_ID}~~
+    task_schedule(universe_site_arrive, universe_site_orbit_data)
+    ->END
+
+
+# The crew has reached a site. Offer the call, or go straight down if there is none.
+=== universe_site_arrive
+    universe_site_key = get_inventory_value(SITE_OBJECT, "SITE_KEY", None)
+    ->END if universe_site_key is None
+    # Somebody is already down there. With two ships in two systems that is a live case
+    # rather than a corner: the away module holds ONE open scene, so a second crew
+    # arriving would take over the first crew's beat.
+    ->END if away_is_open()
+    ->END if get_inventory_value(SITE_OBJECT, "SITE_ASKED", False)
+
+    universe_site_scenes_now = universe_site_scenes(universe_site_key)
+    ->END if universe_site_scenes_now is None or len(universe_site_scenes_now) == 0
+
+    # Which site the answer belongs to. Held on the SHIP because that is what the hail
+    # was offered to, and because two ships can each have a different call pending.
+    set_inventory_value(SITE_SHIP, "SITE_PENDING", SITE_OBJECT)
+
+    universe_site_hails_now = universe_site_hails(universe_site_key)
+    if universe_site_hails_now is None or len(universe_site_hails_now) == 0:
+        # Nothing to ask, so nothing to wait for.
+        task_schedule(universe_site_descend, ~~{"SITE_SHIP": SITE_SHIP, "SITE_OBJECT": SITE_OBJECT}~~)
+        ->END
+
+    set_inventory_value(SITE_OBJECT, "SITE_ASKED", True)
+    await delay_sim(UNIVERSE_SITE_CALL_DELAY)
+    # Fire and forget: the ACCEPT choice's `; signal away_down` is what continues this,
+    # so a crew that ignores the call simply never goes down, and one that declines can
+    # be asked again by re-arming below.
+    universe_site_entry = next(iter(universe_site_hails_now), None)
+    hail_offer(SITE_SHIP, scene=universe_site_entry, scenes=universe_site_hails_now)
+    ->END
+
+
+# The file's accept choice fired. `//shared/signal`, so a six console bridge sends ONE
+# team down rather than six.
+//shared/signal/away_down
+    universe_site_down_ship = next(iter(role("__player__")), None)
+    ->END if universe_site_down_ship is None
+    universe_site_down_obj = get_inventory_value(universe_site_down_ship, "SITE_PENDING", None)
+    ->END if universe_site_down_obj is None
+    task_schedule(universe_site_descend, ~~{"SITE_SHIP": universe_site_down_ship, "SITE_OBJECT": universe_site_down_obj}~~)
+    ->END
+
+
+# Down they go.
+=== universe_site_descend
+    ->END if away_is_open()
+    universe_site_dkey = get_inventory_value(SITE_OBJECT, "SITE_KEY", None)
+    ->END if universe_site_dkey is None
+    universe_site_dscenes = universe_site_scenes(universe_site_dkey)
+    ->END if universe_site_dscenes is None or len(universe_site_dscenes) == 0
+
+    # The cast is spawned HERE, not at load: a lifeform is a body in the world, and a
+    # site that has been read but never visited has no world to put one in.
+    universe_site_cast = universe_site_spawn_cast(universe_site_dkey)
+    ->END if universe_site_cast is None or len(universe_site_cast) == 0
+
+    # `if medical >= 1` is answered against the ANSWERING character's roles. Installed
+    # here rather than at setup because it COMPOSES with whatever resolver is already in
+    # place - OU claims one at import - so calling it late, or twice, is safe.
+    away_metric_install()
+
+    universe_site_first = next(iter(universe_site_dscenes), None)
+    away_scene_begin(universe_site_dscenes, universe_site_first)
+
+    # Hand the consoles over. The `away` addon owns the morph, the screens and the way
+    # home; this file has no opinion about any of them.
+    universe_site_hand_over = ~~{"AWAY_SHIP": SITE_SHIP, "AWAY_ROSTER": list(universe_site_cast.values()), "AWAY_TITLE": universe_site_title(universe_site_dkey)}~~
+    signal_emit("away_begin", universe_site_hand_over)
+    set_inventory_value(SITE_SHIP, "SITE_PENDING", None)
+    log(f"site '{universe_site_dkey}': team down, scene={away_scene()}", "universe")
+    ->END
