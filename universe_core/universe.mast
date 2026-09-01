@@ -133,6 +133,7 @@ default shared UNIVERSE_START_CELL = None
     # never there, on every run after the first.
     universe_cells_reset()
     universe_relics_clear()
+    universe_sites_clear()
     # Point the save store at THIS universe's slot before any load/save, so each universe
     # (and each mission that loads the engine) has its own saves and can hold several.
     universe_set_active_save(UNIVERSE_SELECT, SAVE_SLOT)
