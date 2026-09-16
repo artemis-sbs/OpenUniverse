@@ -561,7 +561,7 @@ check("a return visit does rebuild",
       and _volume_get("ossuary") is not None)
 _universe_relics_clear()
 
-# --- away sites in a cell ------------------------------------------------------
+# --- boarding sites in a cell ------------------------------------------------------
 # A landmark carrying `Site:` is a place the crew BEAMS DOWN to - neither a prop nor an
 # interior you fly into. Same three galaxy problems as a relic: the cell's origin is
 # decided late, a cell is rebuilt on return, and two can be live at once.
@@ -612,18 +612,18 @@ check("Site file: defaults to <key>.amd",
 # argument for `Site:` being a seam rather than a second dialect.
 _SITE_DOC = """# [Shore](shore)
 
-## [Away Team](team)
+## [Boarding Party](team)
 
 ### [Dr Sorel](sorel)
 ---
 Face: terran_female
-Roles: away, medical
+Roles: boarding, medical
 ---
 
 ### [Chief Ruiz](ruiz)
 ---
 Face: terran_male
-Roles: away, engineering
+Roles: boarding, engineering
 ---
 
 ## [Hails](hails)
@@ -636,7 +636,7 @@ Speaker: shore
 
 - [Send a team down]()
 
-## [Scenes](away)
+## [Scenes](boarding)
 
 ### [The Landing](landing)
 ---
@@ -667,7 +667,7 @@ Speaker: shore
 
 _EMPTY_SITE_DOC = """# [E](e)
 
-## [Away Team](team)
+## [Boarding Party](team)
 """
 
 _sites_rec = _universe_site_load("shore", "shore.amd", content=_SITE_DOC)
@@ -689,8 +689,8 @@ check("placing binds the site to the landmark's object",
       _universe_site_object("shore", 4, 2) == _site_obj_a)
 check("and the object answers which site it is",
       _universe_site_for(_site_obj_a) == "shore")
-check("the object carries the away_site role, which is what a route gates on",
-      has_role(_site_obj_a, "away_site"))
+check("the object carries the boarding_site role, which is what a route gates on",
+      has_role(_site_obj_a, "boarding_site"))
 check("an unplaced object belongs to no site", _universe_site_for(_site_obj_b) is None)
 check("placing twice binds nothing new",
       _universe_site_place("shore", _site_obj_b, 4, 2) is not None

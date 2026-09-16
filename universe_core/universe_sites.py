@@ -3,8 +3,8 @@
 A landmark carrying `Site:` is neither a prop nor an interior you fly into. It is
 somewhere the crew leaves the ship for: a colony dome, a silent outpost, a station whose
 crew stopped answering. The scene it plays is authored as a self-contained `.amd` - a
-cast under `## Away Team`, beats under `## Scenes`, optionally an arrival call under
-`## Hails` - and the away module (`sbs_utils.procedural.away`) drives it, giving every
+cast under `## Boarding Party`, beats under `## Scenes`, optionally an arrival call under
+`## Hails` - and the away module (`sbs_utils.procedural.boarding`) drives it, giving every
 console its own character with its own menu.
 
 This is the same shape `universe_relics.py` has, for the same three reasons:
@@ -16,7 +16,7 @@ This is the same shape `universe_relics.py` has, for the same three reasons:
 * **Two sites can be live at once** - two ships in two systems, Model A. Nothing here may
   assume there is only one.
 
-**The content is portable, and that is the point.** The `## Away Team` / `## Scenes`
+**The content is portable, and that is the point.** The `## Boarding Party` / `## Scenes`
 vocabulary is exactly what a standalone mission uses (`LandingParty`), so a site file
 written for one plays in the other unchanged. `Site:` is the seam, not a second dialect.
 
@@ -50,7 +50,7 @@ _UNIVERSE_SITE_FILES = set()
 
 # The role a site's object carries. A mission's own routes gate on this - it is how
 # "the crew is in orbit of something they can beam down to" is asked.
-UNIVERSE_SITE_ROLE = "away_site"
+UNIVERSE_SITE_ROLE = "boarding_site"
 
 
 def universe_site_record(key):
@@ -98,7 +98,7 @@ def universe_site_load(key, fname, content=None):
         log(f"site file '{fname}' failed to parse: {e}", "universe", "warning")
         return None
 
-    scenes = dialogue_scenes(amd_section(doc, "away")) or {}
+    scenes = dialogue_scenes(amd_section(doc, "boarding")) or {}
     if not scenes:
         # A site with no beats is an authoring mistake, not an empty place: the crew
         # would beam down into a conversation that closes on the frame it opens.
@@ -177,7 +177,7 @@ def universe_site_object(key, ei=None, ej=None):
 
 
 def universe_site_scenes(key):
-    """The beats a site plays, ready for `away_scene_begin`."""
+    """The beats a site plays, ready for `boarding_scene_begin`."""
     rec = universe_site_record(key)
     return (rec or {}).get("scenes") or {}
 
@@ -200,7 +200,7 @@ def universe_site_title(key):
     return str(rec.get("name") or rec.get("key") or key).upper()
 
 def universe_site_cast_section(key):
-    """The site's `## Away Team` section, for spawning its bodies on arrival."""
+    """The site's `## Boarding Party` section, for spawning its bodies on arrival."""
     rec = universe_site_record(key)
     return (rec or {}).get("cast_section")
 

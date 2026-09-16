@@ -145,7 +145,7 @@ def universe_landmark_relic(lm):
 
 
 def universe_landmark_site(lm):
-    """A landmark's away site, as `(key, file)`, or None when nobody beams down here.
+    """A landmark's boarding site, as `(key, file)`, or None when nobody beams down here.
 
     The file defaults to `<key>.amd`, because an author who names one site per file
     should not have to say so twice. Exactly `universe_landmark_relic`'s contract - the

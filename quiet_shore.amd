@@ -1,6 +1,6 @@
 # [The Quiet Shore](quiet_shore)
 
-An away site: a colony that is fine, welcoming, and lying.
+A boarding site: a colony that is fine, welcoming, and lying.
 
 Declared by a landmark carrying `Site: quiet_shore`. Everything here is content - the
 cast that beams down, the call that arrives when you dock, and the beats they play. The
@@ -8,7 +8,7 @@ engine side is `universe_sites.py` (the seam) and `universe_sites.mast` (the arr
 neither knows a word of what follows.
 
 **Every role can reach TWO readings on its own, and the shed opens at `learned >= 3`.**
-Three is reachable by any crew because a short landing party DOUBLES UP - one console
+Three is reachable by any crew because a short boarding party DOUBLES UP - one console
 speaks for several characters, so every role's readings are in play however many people
 are aboard. The two-per-role floor still matters: it is what keeps a reading worth taking
 rather than a duplicate of one already had. The first cut broke both rules at once - the
@@ -37,12 +37,12 @@ read counts once. What is wrong with Ferrow Landing is legible only when the
 party puts its readings together and finds they do not agree - which is the whole reason
 this is played by four people at four consoles rather than one person with a menu.
 
-## [Away Team](team)
+## [Boarding Party](team)
 
 ### [Dr Sorel](sorel)
 ---
 Face: terran_female
-Roles: away, medical
+Roles: boarding, medical
 Color: "#4cf"
 ---
 Ship's surgeon. Reads bodies, and does not much care what the paperwork says.
@@ -50,7 +50,7 @@ Ship's surgeon. Reads bodies, and does not much care what the paperwork says.
 ### [Chief Ruiz](ruiz)
 ---
 Face: terran_male
-Roles: away, engineering
+Roles: boarding, engineering
 Color: "#fc4"
 ---
 Engineer. Trusts machines further than the people running them.
@@ -58,7 +58,7 @@ Engineer. Trusts machines further than the people running them.
 ### [Ensign Vale](vale)
 ---
 Face: terran_male
-Roles: away, security
+Roles: boarding, security
 Color: "#f66"
 ---
 Security. Reads rooms. Notices what is missing before what is there.
@@ -66,7 +66,7 @@ Security. Reads rooms. Notices what is missing before what is there.
 ### [Lt Anders](anders)
 ---
 Face: terran_fluid
-Roles: away, science
+Roles: boarding, science
 Color: "#8f8"
 ---
 Science officer. Would rather be right slowly than first.
@@ -92,10 +92,10 @@ Color: "#fd8"
 % Ferrow Landing here, and you are very welcome. We are all fine. Nothing needed, nothing to report.
 % We had a quiet year, that is all. You are welcome to come down and see the place if you have the time.
 
-- [Assemble a landing party]() ; signal away_down
+- [Assemble a boarding party]() ; signal boarding_down
 - [Thank her and stay aboard]()
 
-## [Scenes](away)
+## [Scenes](boarding)
 
 ### [The Landing Field](arrival)
 ---
