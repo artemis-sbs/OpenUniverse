@@ -164,6 +164,10 @@ default shared UNIVERSE_START_CELL = None
         legacy_jobs = universe_read_optional_file("side_quests.amd")
         if legacy_jobs is not None:
             UNIVERSE_SIDE_QUESTS = universe_parse_side_quests(legacy_jobs)
+    # The Offers board reads this system's untaken work. Registered once, here, because
+    # an OU station job is not a quest until it is ACCEPTED - so without a provider an
+    # untaken job exists nowhere a crew can look, which is the whole gap the board closes.
+    universe_offers_register()
     # Shared narrative arcs (the `narrative` section, may be None); granted below.
     shared UNIVERSE_NARRATIVE = universe_section(UNIVERSE_DOC, "narrative")
     # Campaign goals (the `goals` section, may be None): shared quests like narrative,
@@ -182,7 +186,11 @@ default shared UNIVERSE_START_CELL = None
     shared UNIVERSE_LIFEFORMS = universe_parse_lifeforms(UNIVERSE_DOC)
     for _lf in UNIVERSE_LIFEFORMS:
         if _lf.host is None and _lf.deliver_to is None:
-            universe_spawn_lifeform(_lf, None)
+            _lf_agent = universe_spawn_lifeform(_lf, None)
+            # Urges authored UNDER a cast record, so an advisor can speak unprompted the
+            # way a waiting passenger already can. require_marker, because a cast
+            # record's children are not all urges - only the ones that said `Urge` are.
+            urges_install_on(_lf_agent, _lf.node, require_marker=True)
     # Regions (the `regions` section): named map areas that set the sky + music on
     # arrival (universe_enter_system), and whose local generation overrides reshape
     # the system mix within their bounds (regions_configure -> universe_system_kind).

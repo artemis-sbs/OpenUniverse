@@ -719,5 +719,61 @@ check("clearing drops placements and records", _universe_site_record("shore") is
       and _universe_sites_in_cell(4, 2) == [])
 
 
+# --- Offers: this system's untaken work -----------------------------------------
+# An OU station job is not a quest until it is ACCEPTED (universe_grant_side_job calls
+# quest_add(state=ACTIVE) at that moment), so before the offer provider an untaken job
+# existed nowhere a crew could look. These pin the WIRING - that the provider resolves
+# its free globals out of the merged namespace and answers both questions the registry
+# asks. WHICH jobs a side extends is universe_side_work_offers' own rule, exercised
+# through it rather than re-asserted here.
+from sbs_utils.procedural.execution import set_shared_variable
+from sbs_utils.procedural.offer import offer_clear, offer_providers, offer_count
+
+_ou_offer_provider = NS["universe_offer_provider"]
+_ou_offers_register = NS["universe_offers_register"]
+
+
+def _ou_ctx(**kw):
+    base = {"client_id": 0, "ship_id": 0, "object_id": None, "console": None}
+    base.update(kw)
+    return MastDataObject(base)
+
+
+offer_clear()
+_ou_offers_register()
+check("the universe offer provider registers", "universe" in offer_providers())
+
+set_shared_variable("UNIVERSE_ACTIVE", False)
+check("silent when the universe is not running",
+      _ou_offer_provider(_ou_ctx(ship_id=0x1001)) == [])
+
+set_shared_variable("UNIVERSE_ACTIVE", True)
+check("no ship, no offers", _ou_offer_provider(_ou_ctx(ship_id=0)) == [])
+
+# THE POINT OF THIS BLOCK: the provider body resolves ship_cell,
+# universe_side_work_offers, universe_delivery_available and universe_passengers_at as
+# FREE GLOBALS out of the merged namespace. A sibling `import` would build a SECOND
+# module whose globals lack sides_standing / side_reward_mult, and this is the call that
+# would raise NameError - off-engine only, which is how it would reach a bridge.
+set_shared_variable("UNIVERSE_SIDES", [])
+set_shared_variable("UNIVERSE_SIDE_QUESTS", None)
+set_shared_variable("UNIVERSE_LIFEFORMS", [])
+set_shared_variable("universe_seed", 7)
+_ou_rows = _ou_offer_provider(_ou_ctx(ship_id=0x1001))
+check("the provider runs against the merged namespace", isinstance(_ou_rows, list))
+
+check("a non-station object offers nothing",
+      _ou_offer_provider(_ou_ctx(ship_id=0x1001, object_id=0x1002)) == [])
+
+set_shared_variable("UNIVERSE_SIDES", None)
+check("no sides configured is empty, not an error",
+      _ou_offer_provider(_ou_ctx(ship_id=0x1001)) == [])
+check("the registry still answers", offer_count(client_id=0, ship_id=0x1001) >= 0)
+
+offer_clear()
+check("offer_clear drops the universe provider but keeps core",
+      "universe" not in offer_providers() and "quest" in offer_providers())
+
+
 print("\n" + ("ALL PASS" if not fails else f"{len(fails)} FAILED: {fails}"))
 sys.exit(1 if fails else 0)
