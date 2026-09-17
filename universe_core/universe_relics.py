@@ -41,6 +41,7 @@ from sbs_utils.procedural.terrain import (
     terrain_spawn_nebula_sphere, terrain_set_nebula_object_size,
 )
 from sbs_utils.procedural.execution import log
+from sbs_utils.procedural.signal import signal_emit
 from sbs_utils.mast.mast import DEBUG
 
 
@@ -242,6 +243,17 @@ def universe_relic_build(key, fname, x, y, z, ei, ej, name=None):
     # both an engine run and the dev runner.
     DEBUG(f"relic '{key}' built in cell {int(ei)},{int(ej)}: "
           f"{len(role(universe_relic_wall_role(key)))} props, {br * 2:.0f}u across")
+    # AND SAY SO TO MAST. Building a relic was the one arrival with no seam on it: a
+    # mission that wants to do something when a ruin appears - offer it for EVA boarding,
+    # start a clock, hail the crew - had nowhere to hang that but a polling task.
+    #
+    # `RELIC_VOLUME` is carried rather than left to the reader to guess: a relic may be
+    # built under a name of its own, and anything guessing the key instead addresses a
+    # volume that does not exist and silently does nothing.
+    signal_emit("relic_built", {"RELIC_KEY": key,
+                                "RELIC_VOLUME": rec.get("volume") or key,
+                                "RELIC_NAME": name or rec.get("name") or key,
+                                "RELIC_CELL": (int(ei), int(ej))})
     return rec
 
 
