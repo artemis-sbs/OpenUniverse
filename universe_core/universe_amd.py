@@ -294,7 +294,10 @@ def _declare_universe_vocabulary():
         "unlocks": text(hint="storage N | extraction N% | requisition <item>"),
         "requires": ref("node", hint="the milestone before this one"),
     }, domain="universe")
-    amd_register_section_names(("officers", "cast", "crew"), "lifeform", domain="universe")
+    # Not "crew": sbs_utils owns that section name for its crew-roster archetype, and a
+    # second claim raises - which aborted this whole registration (the last line, so
+    # only the message showed). No OU .amd uses a Crew section.
+    amd_register_section_names(("officers", "cast"), "lifeform", domain="universe")
 
 
 try:

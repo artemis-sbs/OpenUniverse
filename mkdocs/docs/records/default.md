@@ -227,6 +227,18 @@ A vast Hollow Choir wreck adrift in the deep dark, said to hold forbidden charts
 
 An old TSN research post, still broadcasting on a forgotten frequency.
 
+### Ferrow Landing {: #default-landmarks-ferrow}
+
+| Fact | Value |
+|---|---|
+| Kind | station |
+| Side | tsn |
+| Art | starbase_civil |
+| At | 2, 1 |
+| Site | quiet_shore |
+
+A farming colony on the quiet edge of the lane. They answer promptly, they need nothing, and they have needed nothing for fourteen months.
+
 ## Goods {: #default-goods}
 
 The trade goods of this galaxy and how common each is as loot. Each heading key is a registered trade item; Weight sets how often it scatters. Drop goods or reweight them for a different economy. Driven by universe_goods.py.
