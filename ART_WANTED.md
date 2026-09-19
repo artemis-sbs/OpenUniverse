@@ -26,7 +26,7 @@ LOW = a niche mode, a GM tool, or behind a setting.
 
 | P | What | Today | Visibility |
 |---|---|---|---|
-| P1 | [Pickups and items](#p1-pickups-items-and-cargo) | 6 stock containers shared by ~25 items; no 2D item icons | HIGH |
+| P1 | [Pickups and items](#p1-pickups-items-and-cargo) | ~100 pickup keys are 16 shapes x 3 glows; no 2D item icons | HIGH |
 | P1 | [Fighters for Kralien, Skaraan, Torgoth](#p1-fighters-and-small-craft) | station wings fly `tsn_fighter` | HIGH vs those races |
 | P1 | [StormsBeacon relic items](#p1-stormsbeacon-relic-items) | ~19 items are the `unknown` question-mark mesh | HIGH in SB |
 | P1 | [Piranha rebuild](#p1-monsters) | its crash keeps 5 species switched off | HIGH once back |
@@ -48,23 +48,33 @@ LOW = a niche mode, a GM tool, or behind a setting.
 
 ## P1 - Pickups, items and cargo
 
-**No item has its own model.** Every item points at one of a handful of stock pickup meshes,
-so very different things look identical in space:
+**No item has its own model, and the stock pickup set is smaller than it looks.** The ship
+table lists about a hundred pickup keys, but they are **16 shapes** in three families:
 
-| Stock mesh | Used by |
-|---|---|
-| `container_small_6a` | Cetrocite Crystal, Tug Rig Mk I (LM `items/item_defs.mast`), trade ore and contraband (`trade_goods.mast`), bio sample (`fabrication/salvage.mast`) |
-| `container_4a` | Vigoranium Nodule, trade gas, salvage, all three turret kits (`turrets/turret_deploy.mast`) |
-| `container_1a` | Secret Code Case, Heavy Tug Rig, trade provisions |
-| `container_2a` | HiDens Power Cell, trade tech |
-| `alien_5a` | Haplix Overcharger, Hacking Virus |
-| `danger_4a` | Infusion PCoil, the fabrication **Beacon**, the Peacetime **Survey Probe**, the a2x beacon |
+| Family | Shapes | What the keys really are |
+|---|---|---|
+| `container_*` | 6 crates | `_Na/_Nb/_Nc` are the SAME mesh and diffuse texture with a different **glow** (emissive) color; `container_small_*` are the same crates at lower detail (`container6` exists only at low detail) |
+| `alien_*` | 5 artifacts | the same: 3 glow colors each, plus `alien_small_*` low-detail copies |
+| `danger_*` | 5 mines | the same - and these are the **mine** meshes (`behav_mine` uses `danger_1a`) |
 
-- **Wants:** at least one distinct mesh per category - **beacon** (worst today: it looks like a
-  speed-buff pickup), **turret kit crate**, **tug rig**, **trade goods**, **salvage**.
-- **2D item icons don't exist at all.** The Cargo, Upgrades, Market and Fabricate apps are
+So the only per-item tell today is **shape x glow color**, and ~25 items and upgrades (plus
+StormsBeacon's relic items) share 11 usable shapes.
+
+- **Done in data (2026-09-19):** every LM item now has its own shape-and-glow combination -
+  crates for cargo, trade, resources and kits; alien artifacts for exotic upgrades and
+  beacons; mines only for mines; red glow only for the dangerous or illicit (Hacking Virus,
+  contraband, the drone turret kit). The beacon, the Survey Probe, Infusion PCoil and
+  Lateral Array stopped using mine meshes. It is the best the stock set allows.
+- **Wants - new pickup meshes**, full + low detail, one per category that matters in play:
+  **beacon**, **turret kit crate**, **tug rig**, **power cell**, **trade goods** (ore / gas /
+  provisions / tech), **salvage**, **relic artifact**, **data chip / code case**. A distinct
+  silhouette reads at radar and main-screen distance; a glow color does not.
+- **Wants - 2D item icons.** None exist: the Cargo, Upgrades, Market and Fabricate apps are
   text lists. An icon per item (or per category) on a sheet like `media/epadd/icons.png`
   would make every one of those screens scan faster.
+- **Stock data bug (not ours to fix):** `data/shipData.yaml` lists `container_small_6a`
+  twice, and the first entry points at `container4lod_a` - so that key draws crate 4, not
+  crate 6. LM no longer uses it.
 - **Flat sprites for tethered cargo.** The grav-tether readout shows a dark panel for pickups
   and cargo pods (`consoles/tether_indicator.py` `MT_NO_ART`: `ship_art_image` returns
   nothing for them). LOW-MED.
