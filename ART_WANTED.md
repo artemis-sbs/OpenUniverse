@@ -1,144 +1,303 @@
-# ART_WANTED - Admiral console placeholders
+# ART_WANTED - every placeholder, borrowed asset and wished-for piece of art
 
-The manifest `ADMIRAL_CONSOLE.md` section 9 calls for: every placeholder the
-Admiral console ships with, what it should become, and how urgent. When an artist
-appears they get a shopping list instead of an archaeology dig.
+One shopping list for an artist, across all the missions: LegendaryMissions (LM),
+OpenUniverse (OU), StormsBeacon (SB) and the sbs_utils library. It started as the Admiral
+console's placeholder list (ADMIRAL_CONSOLE.md section 9) and grew to cover everything
+built since. When an artist appears they get a list instead of an archaeology dig.
 
-**How replacement works (no code changes):** every art reference lives in a data
-key - a platform's `art:` in `ADM_PLATFORMS` (universe_worldlets.py), a worldlet's
-`Palette:` / `Art:` in the AMD, a hull name in `FLEET_ROSTER`. Swapping art = edit
-that key (or, for palettes, the AMD numbers). Nothing here needs new code, only
-new assets + a one-line data edit. Placeholders are chosen to be *legible, not
-pretty* - ugly is fine as long as you can tell what a thing is.
+**How replacement works (almost never code):** every art reference lives in a data key -
+a hull's `artfileroot` in a ship-data file, an item's `art:`, a prefab's `ship_art`, an
+AMD `Art:` / `Face:` / `Palette:`, an icon name in a sheet. Swapping art = a new asset plus
+a one-line data edit. Placeholders were chosen to be *legible, not pretty*.
 
-**Priority:** **P1** = blocks readability / most impactful (do first); **P2** =
-clearly improves feel; **P3** = polish, current reuse is acceptable.
+**New hulls go through extra ship data.** A new model is a new ship-data entry in the
+mission's media pack (the turret and station-kind files are the pattern). It only reaches
+the engine with `EXTRA_SHIP_DATA` on, and a hull the engine never received crashes the
+spawn - so art for these arrives with its ship-data entry, never as a loose file.
+
+**Priority:** **P1** = players see it all the time, or it reads wrong; **P2** = clearly
+improves feel; **P3** = polish, today's reuse is acceptable.
+**Visibility:** HIGH = every player in normal play; MED = a common mode or feature;
+LOW = a niche mode, a GM tool, or behind a setting.
 
 ---
 
-## P1 - The Admiral 2D map iconography
+## At a glance
 
-Section 9 says design the icon set *first* - the galaxy/system map's shape
-language matters more than any 3D model. Today the galaxy map (universe.mast nav
-console) draws cells as coloured text buttons; there are no dedicated icons. This
-is the single highest-value art ask.
+| P | What | Today | Visibility |
+|---|---|---|---|
+| P1 | [Pickups and items](#p1-pickups-items-and-cargo) | 6 stock containers shared by ~25 items; no 2D item icons | HIGH |
+| P1 | [Fighters for Kralien, Skaraan, Torgoth](#p1-fighters-and-small-craft) | station wings fly `tsn_fighter` | HIGH vs those races |
+| P1 | [StormsBeacon relic items](#p1-stormsbeacon-relic-items) | ~19 items are the `unknown` question-mark mesh | HIGH in SB |
+| P1 | [Piranha rebuild](#p1-monsters) | its crash keeps 5 species switched off | HIGH once back |
+| P1 | [Peacetime props](#p1-peacetime-remastered-props) | `cargo_ship` stands in for ~10 unrelated things | HIGH in that map |
+| P1 | [Admiral 2D map icons](#p1-admiral-2d-map-iconography) | built-in glyph stand-ins | MED (Admiral) |
+| P2 | [Turrets](#p2-turrets) | towers are a shrunken starbase; mounts and crates are a fighter | MED-HIGH when on |
+| P2 | [Station kinds](#p2-station-kinds-and-missing-starbases) | a scaled copy of the race's one starbase | MED |
+| P2 | [Ximni and Pirate starbases](#p2-station-kinds-and-missing-starbases) | none exist, so those races can't hold bases | MED |
+| P2 | [Map markers](#p2-map-markers-and-radar-glyphs) | `generic-sphere`, default radar glyph | MED |
+| P2 | [ePADD / xESS glyphs](#p2-epadd-xess-and-quest-icons) | shared glyphs, Nav on a stand-in, a "wanted" word baked into the quest icon | HIGH (quest log) |
+| P2 | [Portraits](#p2-portraits) | every cast is generated faces | MED |
+| P2 | [MIA pod, antimatter veil, console icons](#p2-admiral-console-icons) | wreck / red nebula / text | MED (Admiral) |
+| P3 | [Typhon-style creatures](#p3-monsters-distinct-silhouettes) | 8 species on 5 shared primitives | HIGH on monster maps |
+| P3 | [Relic props](#p3-relics) | procedural rock; `generic-sphere` barriers | MED in SB |
+| P3 | [Admiral platforms, worldlets, Fabricator, livery](#p3-admiral-platforms-reused-station-hulls) | reused station hulls | MED (Admiral) |
+| P3 | [Skyboxes](#p3-skyboxes-and-music) | 7 stock skies, 2 used by AMD regions | HIGH (ambient) |
+
+---
+
+## P1 - Pickups, items and cargo
+
+**No item has its own model.** Every item points at one of a handful of stock pickup meshes,
+so very different things look identical in space:
+
+| Stock mesh | Used by |
+|---|---|
+| `container_small_6a` | Cetrocite Crystal, Tug Rig Mk I (LM `items/item_defs.mast`), trade ore and contraband (`trade_goods.mast`), bio sample (`fabrication/salvage.mast`) |
+| `container_4a` | Vigoranium Nodule, trade gas, salvage, all three turret kits (`turrets/turret_deploy.mast`) |
+| `container_1a` | Secret Code Case, Heavy Tug Rig, trade provisions |
+| `container_2a` | HiDens Power Cell, trade tech |
+| `alien_5a` | Haplix Overcharger, Hacking Virus |
+| `danger_4a` | Infusion PCoil, the fabrication **Beacon**, the Peacetime **Survey Probe**, the a2x beacon |
+
+- **Wants:** at least one distinct mesh per category - **beacon** (worst today: it looks like a
+  speed-buff pickup), **turret kit crate**, **tug rig**, **trade goods**, **salvage**.
+- **2D item icons don't exist at all.** The Cargo, Upgrades, Market and Fabricate apps are
+  text lists. An icon per item (or per category) on a sheet like `media/epadd/icons.png`
+  would make every one of those screens scan faster.
+- **Flat sprites for tethered cargo.** The grav-tether readout shows a dark panel for pickups
+  and cargo pods (`consoles/tether_indicator.py` `MT_NO_ART`: `ship_art_image` returns
+  nothing for them). LOW-MED.
+
+## P1 - Fighters and small craft
+
+- **Kralien, Skaraan and Torgoth have no fighter hull.** Their starbase wings launch
+  `tsn_fighter` (`hangar/hangar_wing.py` `HANGAR_WING_FALLBACK_HULL`; one warning per
+  station). Wants: a fighter, ideally a bomber, for each. Fighters are chosen by the host
+  hull's `origin`, so a hull with the right origin and a `fighter` role is picked up with
+  no code change.
+- **Hangar variants share hulls** (`hangar/hangar_crafts.yaml`, deliberate per its line 18):
+  Ximni fighter and bomber are both `xim_avenger`, Pirate both `pirate_fighter`, Arvonian
+  both `arvonian_fighter`; Ximni and Arvonian shuttles are `tsn_shuttle`, Pirates have no
+  shuttle. Wants: bomber hulls for those three and non-Terran shuttles. MED.
+
+## P1 - StormsBeacon relic items
+
+About 19 item records are `Art: unknown` - the question-mark mesh - and they spawn as relic
+contents the crew has to find: `relics/ash_warren.amd`, `cipher.amd`, `false_choir.amd`,
+`heart.amd`, `lens.amd`, `sink.amd`, `voice.amd`. The `unknown` art also has no interaction
+radius (`sbs_utils/procedural/items.py`), so they may not even be collectable by flying over
+them - unverified in the engine.
+
+- **Wants:** a route chart / data plate, a relic artifact, deep-salvage props. HIGH in SB.
+
+## P1 - Monsters
+
+- **Rebuild the Piranha.** `MONSTER_NON_TYPHON` is off by default because of an engine render
+  crash traced to `ships/monster2` - the only monster with a `.paxmesh` and split
+  `_body`/`_jaw` geometry (MeshSilhouette / Ribbon3D path). That switch keeps **Piranha,
+  Shark, Dragon, Charybdis and Insect** out of every game. A clean single-mesh Piranha is
+  what brings all five back (`settings.yaml`, `prefabs/monster.mast` "HOT FIX 2026-08-27").
+- **Converted 2.8 creatures** (`sbs_utils/procedural/a2x/spawn.py`): whale, tube and jelly
+  have no art at all; types 1-7 all use `monster_charybdis` as a placeholder. Shark, dragon, piranha and
+  bug could map to `monster4`, `monster3`, `monster2`, `monster5`. MED.
+- **Biomech comms portraits** - the stage-4 hailable biomech gets a human face (`races.amd`
+  falls back to terran). LOW-MED.
+
+## P1 - Peacetime Remastered props
+
+`maps/peacetime_remastered.mast` uses `cargo_ship` for ten things that are not freighters:
+
+| Object | Wants |
+|---|---|
+| Condemned Hulk, Salvage Hulk | wreck / hulk |
+| Ore Barge | ore barge |
+| Lifepod, Stranded Pod, Shielded Pod | escape pod (stock `escape-pod` art exists and is unused here) |
+| Comms Relay | relay buoy |
+| SS Meridian (derelict) | derelict |
+| Snared Grazer | should look like a Grazer |
+| Drift Netting | net / debris |
+
+The Survey Probe is `danger_4a`. Some of these (the pods) are a data swap to stock art, not
+new art.
+
+## P1 - Admiral 2D map iconography
+
+The galaxy map's shape language matters more than any 3D model (ADMIRAL_CONSOLE.md
+section 9). The Nav galaxy map is still text buttons (`universe.mast`); the Admiral galaxy
+theater now has **stand-ins** from the built-in icon sheet
+(`admiral/universe_galaxy_theater.py`): home = globe-grid, station = fountain, enemy =
+goblin, nebula = pinwheel, anomaly = atom, empty = circle-outline, fog = square-outline,
+player ship = patrol-badge, fleet = squad. Dedicated icons still wanted:
 
 | Icon | Needs | Where it reads |
 |---|---|---|
-| Worldlet (by type) | A glyph per worldlet type (cinder / gas / haven), tinted to the type | Map cell + the Admiral Map tab worldlet list |
-| Platform markers | HQ, Extractor, Refinery, Shipyard, Academy, Bastion, Relay - a small distinct glyph each | System view + the selected-worldlet panel |
-| Fleet marker | A friendly-fleet chevron, with an order tint (escort/patrol/strike/...) | System view (Admiral overlay) |
-| Foe border | A hatch / warning edge on cells bordering foe territory (skirmish pressure) | Galaxy map |
-| Antimatter veil | A hazard band glyph distinct from the amber wash it already gets | Galaxy map + nav "Selected System" panel |
-| Quest / requisition target | The existing amber cell wants a clearer objective pin | Galaxy map |
+| Worldlet (by type) | a glyph per type (cinder / gas / haven), tinted | map cell + Map tab worldlet list |
+| Platform markers | HQ, Extractor, Refinery, Shipyard, Academy, Bastion, Relay, Depot, Sensor Relay, Lab | system view + selected-worldlet panel |
+| Fleet marker | a friendly-fleet chevron with an order tint (escort / patrol / strike...) | system view |
+| Foe border | a hatch / warning edge on cells bordering foe territory | galaxy map |
+| Antimatter veil | a hazard band distinct from the amber wash | galaxy map + "Selected System" |
+| Quest / requisition target | a clear objective pin | galaxy map |
 
-Reference: the engine `grid-icon-sheet.png` (128px white-on-transparent sprites,
-Canvas-tinted) is the established icon substrate - a new sheet slots in the same
-way.
-
-## P2 - Console UI icons (ticker + tabs)
-
-The ticker is text (`ORE 240/600  GAS 96/600  CREW 40/600  CMD 1/3`) and the tab
-strip is text labels. Small icons would make the console scan faster.
-
-| Icon | Needs |
-|---|---|
-| Resource glyphs | ore / gas / crew / command-point - one small icon each, for the ticker + cost lines |
-| Tab glyphs | Map / Build / Research / Fleets / Requisition |
-
-## P2 - MIA escape pod
-
-A destroyed fleet's officer ejects into a pod the crews fly out to rescue - so it
-has to read clearly at a glance as "a person to save," not generic debris. Today
-it is a `wreck` art terrain object scaled to 0.35 with a `mia_pod` role.
-
-- **Is:** `terrain_spawn(..., "wreck", "behav_wreck")`, `local_scale_*_coeff 0.35`
-  (`universe_fleets.py` `_officer_mia_begin`).
-- **Wants:** a small life-pod / escape-capsule model with a blinking distress
-  beacon FX, distinct from salvage wrecks. Rescue objective legibility is the point.
-
-## P2 - Antimatter veil
-
-The veil is a survivable-only-briefly hazard curtain. Today it is red-tinted
-nebula spheres.
-
-- **Is:** `terrain_spawn_nebula_sphere(radius=8000, density=2, height=24000,
-  cluster_color="red")` per emitter, region skybox `sky-neb2-rvb`
-  (`universe.mast` enter_system).
-- **Wants:** a distinct antimatter *shear* look - a vertical rainbow/plasma
-  curtain rather than a red gas cloud - so it doesn't read as an ordinary nebula.
-  A dedicated skybox for veil systems would sell it further.
-
-## P3 - Admiral platforms (reused station hulls)
-
-All seven platforms reuse existing starbase hulls, differentiated by role via a
-consistent naming prefix, side colour, and (Bastion) scale. Legible today; a
-dedicated model set per platform is a nice-to-have, not a blocker.
-
-| Platform | Placeholder art | Intended |
-|---|---|---|
-| Headquarters | `starbase_command` | A flag/command anchor - the biggest, most fortified |
-| Extractor | `starbase_industry` | A mining rig clamped to a worldlet |
-| Refinery | `starbase_civil` | A processing plant (pipes/tanks), reads as "industry+" |
-| Shipyard | `starbase_science` | A drydock with hulls under construction |
-| Academy | `starbase_command` | A training/campus station (distinct from HQ) |
-| Bastion | `starbase_command`, `local_scale 1.5` | An armed fort - turrets/ion cannon, visibly a weapon |
-| Relay Gate | `starbase_science` | A jump-gate ring, reads as inter-system infrastructure |
-| Depot | `starbase_industry` | A supply depot with fuel tanks / tenders - a fleet resupply anchor |
-| Sensor Relay | `starbase_science` | A sensor/comms tower with dishes - reads as command + detection |
-| Lab | `starbase_science` | A research lab / observatory - distinct from the Shipyard's science hull |
-
-Art keys are the `art:` values in `ADM_PLATFORMS` (universe_worldlets.py) - an
-`## Platforms` AMD chapter could move them to data later. HQ and Bastion share
-`starbase_command`; a distinct Bastion silhouette is the most useful single swap.
-
-## P3 - Worldlets
-
-Worldlets already have *real* art via the `behav_planet` data_set surface knobs -
-each type authors a palette (base / emissive / clouds / bands) in its AMD entry,
-so there is visual variety now.
-
-- **Is:** `terrain_spawn(..., "planet", "behav_planet")` + palette
-  (`universe_worldlet_spawn`); Cinder `#8c2f1c`, Veiled Giant gas tones, Haven
-  greens (default.amd `## Worldlets`).
-- **Wants (polish):** distinct planet models or ring/asteroid-belt variants per
-  type; author 3-4 palettes per type. See ADMIRAL_CONSOLE.md appendix "worldlet
-  surface knobs" for the full data_set parameter list.
-
-## P3 - The Fabricator ship
-
-The build-model-B builder (`FAB_ART` in universe_fabricator.py) is a placeholder
-`tsn_light_cruiser`. Wants a slow, unarmed **construction / tender** hull -
-reads clearly as a non-combatant worker (cranes, cargo, a fat slow silhouette),
-so watching it cross contested space feels like exposing a valuable builder.
-Only relevant if the fabricator build model is adopted after the A/B test.
-
-## P3 - Fleet hull livery
-
-Fleets reuse real player-faction hulls (`tsn_light_cruiser` x2 as escorts,
-`tsn_battle_cruiser` as the line ship in `FLEET_ROSTER`). Fine as-is; an
-Admiral-fleet livery/decal to distinguish commissioned fleets from player ships
-would add character. Low priority.
-
-## P3 - Officer portraits
-
-Officers use the authored `Face:` keyword (male/female -> a random generated
-face). Works and is consistent per session (cached). Dedicated hand-drawn
-portraits for the named Academy officers (Vale / Kade / Ashwell) would give the
-roster more personality. Low priority.
+The engine `grid-icon-sheet.png` (128px white-on-transparent, tinted) is the substrate; a new
+sheet slots in the same way.
 
 ---
 
+## P2 - Turrets
+
+There are **no turret models**. Every turret hull (LM `media/turrets/extraShipData_turrets.yaml`)
+borrows a stock mesh:
+
+| Hull | Borrows | Wants |
+|---|---|---|
+| `lm_turret_beam` | `tsn-big-base` (the command starbase) at ~41% | a defense tower / gun emplacement |
+| `lm_turret_heavy` | the same, larger | a heavier fort-style emplacement |
+| `lm_turret_mount` | `TSNfighter` at 1.2 | a small gun turret that bolts onto a hull - today a tiny fighter is welded on |
+| `lm_turret_crate` | `TSNfighter` at 1.6 | an inert kit crate (its own file comment says so) |
+
+Constraint: a turret must be a hull the mission declares - stock hull art never fires
+(engine-measured). New art arrives as a new `artfileroot` in that file. Turrets only exist
+with `EXTRA_SHIP_DATA` on.
+
+## P2 - Station kinds and missing starbases
+
+- **Station kinds** (LM `station_kinds/`): the Industrial, Science and Civil bases of
+  Kralien, Arvonian, Skaraan and Torgoth are the race's one starbase **scaled** (0.8 / 0.6 /
+  0.5). Wants: a distinct silhouette per kind per race, the way Terran has
+  `starbase_industry` / `_science` / `_civil`. Swap the `artfileroot` in
+  `media/stations/extraShipData_station_kinds.yaml` (regenerate with
+  `station_kinds/make_station_kinds.py`, then edit). Only with `EXTRA_SHIP_DATA`.
+- **Ximni and Pirates have no starbase at all** (`races/races.amd`), so station maps never
+  pick them as the enemy. A starbase each opens them up.
+- **OU outposts** reuse Terran starbases for every side, pirate and cult included
+  (`universe_systems.py`); a landmark with no art falls back to `starbase_science` or `wreck`.
+
+## P2 - Map markers and radar glyphs
+
+Science's order markers (Alpha, Bravo...), job markers and nebula markers are all
+`generic-sphere` with `behav_selection`: hidden on the main screen, a tint on radar, and the
+default radar glyph (`sbs_utils/procedural/markers.py`, `terrain.py`). Wants radar glyphs
+for: **order marker**, **point of interest / job site**, **nebula**. MED.
+
+OU empty systems spawn an "Unknown Contact" as the `unknown` question-mark mesh
+(`universe.mast`) - wants a sensor-ghost or empty-space buoy. MED-HIGH in OU.
+
+## P2 - ePADD, xESS and quest icons
+
+The LM sheet `media/epadd/icons.png` is 4x6 cells of 128px; all 21 named cells have art and
+**3 cells are free**.
+
+- **Stand-in:** xESS **Nav** uses the built-in `helm-wheel` glyph (it asked for an
+  unregistered `epadd.helm` - see *Bugs found* below); a nav glyph on the sheet would match.
+- **Sharing a glyph:** Survey = Status, Available Quests = Quests; in xESS, Scan = Status,
+  Act = Quests, and Work and Fire both use Damage.
+- **The quest log's job icon** is the built-in `wanted` glyph, which has the word baked into
+  it (`icon_sheet.py` `ICON_ALIAS["quest.job"]`). Wants a quest/job glyph and a custom sheet
+  for the other `quest.*` meanings. HIGH.
+- Built-in stand-ins noted in `consoles/epadd.mast`: Help is a pointing hand, Airwing an
+  unreadable blob. The host's Save / Copy / Load icons are admitted placeholders
+  (`consoles/server_console.mast`). LOW.
+
+## P2 - Portraits
+
+There are **no hand-drawn portraits anywhere**; every cast uses generated faces by keyword.
+Named recurring characters that would carry a lot more with a real portrait:
+
+- OU: the officers - Vale, Kade, Ashwell, Serval, Voss, Orlan (`skirmish_arena.amd`,
+  `default.amd`).
+- StormsBeacon: its leads (`stormsbeacon.amd`).
+- LM: the casino bar regulars and Crazy Eddy.
+
+## P2 - Admiral console icons
+
+- **Ticker and tabs** are text (`ORE 240/600  GAS 96/600  CREW 40/600  CMD 1/3`): wants
+  resource glyphs (ore / gas / crew / command point) and tab glyphs (Map / Build / Research /
+  Fleets / Requisition).
+- **MIA escape pod** is a `wreck` scaled 0.35 (`universe_fleets.py`). Wants a small life-pod
+  with a blinking distress beacon - it has to read as "a person to save". The stock
+  `escape-pod` mesh exists and would already be better.
+- **Antimatter veil** is red nebula spheres plus `sky-neb2-rvb`. Wants a vertical
+  rainbow/plasma *shear* curtain, and a dedicated veil skybox.
+
+---
+
+## P3 - Monsters: distinct silhouettes
+
+The eight Typhon-style species share five geometry primitives, pairs differing only by tint:
+`typhon-big-cube` (Bulwark, Grazer), `typhon-cylinder` (Leech), `typhon-balls` (Ravener,
+Warden), `typhon-needle` (Reaver), `typhon-panel` (Sparkfeeder). A silhouette per species.
+
+## P3 - Relics
+
+Relic interiors are procedural from asteroids and `generic-*` primitives by design
+(`build/relics.md`). Optional: ancient-architecture wall / plate / pillar kits for built
+relics (The Voice), and real **barrier / door** props - today the barriers crews shoot
+through are `generic-sphere`.
+
+## P3 - Admiral platforms (reused station hulls)
+
+| Platform | Placeholder art | Intended |
+|---|---|---|
+| Headquarters | `starbase_command` | a flag / command anchor - the biggest, most fortified |
+| Extractor | `starbase_industry` | a mining rig clamped to a worldlet |
+| Refinery | `starbase_civil` | a processing plant (pipes / tanks) |
+| Shipyard | `starbase_science` | a drydock with hulls under construction |
+| Academy | `starbase_command` | a training / campus station, distinct from HQ |
+| Bastion | `starbase_command`, scale 1.5 | an armed fort - visibly a weapon |
+| Relay Gate | `starbase_science` | a jump-gate ring |
+| Depot | `starbase_industry` | a supply depot with fuel tanks / tenders |
+| Sensor Relay | `starbase_science` | a sensor / comms tower with dishes |
+| Lab | `starbase_science` | a research lab / observatory |
+
+Keys are `art:` in `ADM_PLATFORMS` (`universe_worldlets.py`). A distinct Bastion is the most
+useful single swap.
+
+## P3 - Worldlets, the Fabricator, fleet livery
+
+- **Worldlets** have real art via `behav_planet` palettes. Polish: distinct models or ring /
+  belt variants per type, 3-4 palettes each.
+- **The Fabricator** (`FAB_ART` in `universe_fabricator.py`) is a `tsn_light_cruiser`. Wants a
+  slow unarmed construction / tender hull. Only if build model B is adopted.
+- **Fleet livery:** commissioned Admiral fleets reuse player hulls (`FLEET_ROSTER`); a decal
+  to tell them from player ships.
+
+## P3 - Skyboxes and music
+
+LM picks from 7 stock skies (`basic_random_skybox.mast`); AMD regions across OU and SB only
+ever use `sky-neb2-rvb` and `sky-delight`, and one music bank (`Artemis2`). More skies -
+and a veil sky - would stop every region looking alike. `media/skybox/sky-local.png` ships
+in LM but nothing references it.
+
+## P3 - Docs
+
+`sbs docs` can't show hulls - `ship://` images stay a placeholder
+(`tooling/amd-docs.md`). Pre-rendered hull thumbnails would fill them. LOW.
+
+---
+
+## Bugs found while surveying (not art) - fixed
+
+- **The a2x converter spelled the monster key `monster_charbdis`**, which the ship table
+  does not have, so converted 2.8 monsters drew the `unknown` mesh. Now `monster_charybdis`,
+  with a test that every converter art key exists.
+- **The xESS Nav tile asked for `epadd.helm`**, which nothing registers. It now uses the
+  built-in `helm-wheel` glyph. A dedicated nav glyph in one of the 3 free ePADD cells would
+  still be nicer.
+- **Docs drift:** `build/epadd.md` showed the icon sheet as 4x5 (it is 4x6); LM
+  `hosting/settings.yaml.md` said `MONSTER_NON_TYPHON` defaults true (it is false).
+
 ## Not placeholders (no art needed)
 
-- **Requisition items** deliver real registered item objects (the classic
-  upgrades) with their existing art - nothing to replace.
-- **Skybox / music** for regions use existing named assets via the AMD
-  `Skybox:` / `Music:` keys.
+- **EVA suit** - real art (`lm_eva_suit`), with `EXTRA_SHIP_DATA`; without it the suit falls
+  back to `tsn_shuttle`.
+- **Cockpit overlay**, **casino decks**, **console backgrounds**, **Biomech hulls** - real art.
+- **Requisition items** deliver real registered items with existing art.
 
 ## References
 
-- `ADMIRAL_CONSOLE.md` section 9 (temporary art strategy) and the appendices
-  ("worldlet surface knobs", "CQ nebula catalog").
-- `ADMIRAL_CONSOLE.md` section 18 (Shipped work) for what each system does, if you
-  need context on a placeholder's role.
+- `ADMIRAL_CONSOLE.md` section 9 (temporary art strategy) and appendices ("worldlet surface
+  knobs", "CQ nebula catalog").
+- `sbs_utils/mkdocs/docs/build/turrets.md`, `build/relics.md`, `build/epadd.md`.
+- The `making-a-mod` and `art-pipeline` skills: how a hull reaches the engine, and the art
+  bake.
