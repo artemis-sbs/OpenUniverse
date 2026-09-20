@@ -198,6 +198,174 @@ def _board_markers(cam_id, role_name):
             if get_inventory_value(m.id, "board_cam", 0) == cam_id]
 
 
+def galaxy_theater_map_filter(cam_id):
+    """Filter ONE cam's comms 2D view to its own board: its system markers, unit icons and
+    fleet icons. The galaxy map IS the comms 2D view, and unfiltered it draws whatever else
+    the cam can see. Called after every change to the board; comms_map_filter_set skips
+    the network write when the set has not changed, so calling it on each sync is free.
+    Deleted icons drop out on their own (it keeps only live objects)."""
+    from sbs_utils.procedural.comms import comms_map_filter_set
+    if not cam_id or to_object(cam_id) is None:
+        return []
+    ids = [o.id for r in ("galaxy_marker", "galaxy_unit", "galaxy_fleet")
+           for o in _board_markers(cam_id, r)]
+    # The overseer's chips are a lens on those same tokens. This write happens after
+    # every sync, so without narrowing it here a sync would silently restore the whole
+    # board a moment after a chip was tapped (admiral_chips.py).
+    ids = admiral_chips_lens_for_cam(cam_id, "galaxy", ids)
+    return comms_map_filter_set(cam_id, ids)
+
+
+# --- DRAG TO COMMAND ---------------------------------------------------------------------
+# Drag a ship, fleet or whole system onto a system, ship or fleet on the board, and comms
+# opens with just the orders for that pair (//drag/comms in galaxy_theater_drag.mast). The
+# board holds PROXY tokens at fixed board positions, not the units: every order acts on the
+# real ship (unit_ship) or fleet (fleet_key) behind a token, and the token moves when its
+# unit's system changes (galaxy_theater_sync_units / _sync_fleets).
+#
+# The drag carries three objects (cam, source, target) and comms carries two, so the pair is
+# remembered on the cam until the menu is built. Ids only; stale records produce nothing.
+_DRAG_KEY = "galaxy_drag"
+
+
+def galaxy_theater_drag_set(cam_id, source_id, target_id):
+    """Remember that this cam's admiral dragged `source` onto `target`."""
+    set_inventory_value(cam_id, _DRAG_KEY, {"source": source_id, "target": target_id})
+
+
+def galaxy_theater_drag_clear(cam_id):
+    set_inventory_value(cam_id, _DRAG_KEY, None)
+
+
+def galaxy_theater_token_cell(token_id):
+    """The system (i, j) a board token stands for: a marker's own cell, a ship token's
+    ship's current cell, a fleet token's fleet's cell. None for anything else."""
+    obj = to_object(token_id)
+    if obj is None:
+        return None
+    if obj.has_role("galaxy_marker"):
+        return (get_inventory_value(token_id, "marker_i", 0), get_inventory_value(token_id, "marker_j", 0))
+    if obj.has_role("galaxy_unit"):
+        ship = get_inventory_value(token_id, "unit_ship", 0)
+        if not ship or to_object(ship) is None:
+            return None
+        c = object_cell(ship)
+        return (int(c[0]), int(c[1]))
+    if obj.has_role("galaxy_fleet"):
+        key = get_inventory_value(token_id, "fleet_key", None)
+        if key is None:
+            return None
+        c = admiralty_fleet_cell(key)
+        return (int(c[0]), int(c[1]))
+    return None
+
+
+def _galaxy_travel(src, dst, fleet=False):
+    """Button suffix: how far, and how long. A jump's time does not depend on distance -
+    a wind-up plus the warp screen - and a fleet relocates at once."""
+    from sbs_utils.procedural.execution import get_shared_variable
+    d = max(abs(dst[0] - src[0]), abs(dst[1] - src[1]))
+    away = "1 system away" if d == 1 else f"{d} systems away"
+    if fleet:
+        return f"{away}, deploys at once"
+    secs = int(round((get_shared_variable("UNIVERSE_WARP_CHARGE_SECONDS", 3.5) or 0) + 2))
+    return f"{away}, ~{secs}s jump"
+
+
+def _galaxy_forces_in(side, cell):
+    """Player ships and fleets of `side` in system `cell`."""
+    ships = [s for s in to_object_list(role("__player__") & role(side))
+             if tuple(int(v) for v in object_cell(s.id)) == tuple(cell)]
+    fleets = [f.get("key") for f in admiralty_fleets_of_side(side)
+              if tuple(int(v) for v in admiralty_fleet_cell(f.get("key"))) == tuple(cell)]
+    return ships, fleets
+
+
+def galaxy_theater_drag_buttons(cam_id, selected_id):
+    """The menu for this cam's pending drag of `selected_id`: [(text, data)] where data is
+    the `GD` dict galaxy_drag_do acts on. [] when nothing valid is pending - a stale record,
+    a target that is not a board token, or nothing that could move."""
+    rec = get_inventory_value(cam_id, _DRAG_KEY, None)
+    cam = to_object(cam_id)
+    if not rec or cam is None or rec.get("source") != selected_id:
+        return []
+    src_id, dst_id = rec.get("source"), rec.get("target")
+    src_cell = galaxy_theater_token_cell(src_id)
+    dst_cell = galaxy_theater_token_cell(dst_id)
+    if src_cell is None or dst_cell is None:
+        return []
+    src, dst = to_object(src_id), to_object(dst_id)
+    side = cam.side
+    i, j = dst_cell
+    where = f"({i}, {j})"
+    dst_ship = get_inventory_value(dst_id, "unit_ship", 0) if dst.has_role("galaxy_unit") else 0
+    if dst.has_role("galaxy_unit"):
+        where = f"{to_object(dst_ship).name} ({i}, {j})"
+    elif dst.has_role("galaxy_fleet"):
+        where = f"{admiralty_fleet_officer_name(get_inventory_value(dst_id, 'fleet_key', None))} ({i}, {j})"
+    out = []
+
+    def send(ship):
+        c = tuple(int(v) for v in object_cell(ship.id))
+        if c != (i, j):
+            out.append((f"Send {ship.name} to {where} - {_galaxy_travel(c, dst_cell)}",
+                        {"act": "send", "ships": [ship.id], "i": i, "j": j}))
+
+    def deploy(key):
+        c = tuple(int(v) for v in admiralty_fleet_cell(key))
+        name = admiralty_fleet_officer_name(key)
+        if dst_ship:
+            # Onto a player ship: go where it is and guard it.
+            out.append((f"Deploy {name} to escort {to_object(dst_ship).name} - "
+                        f"{_galaxy_travel(c, dst_cell, fleet=True)}",
+                        {"act": "deploy", "fleets": [key], "i": i, "j": j, "order": "escort"}))
+        if c == (i, j):
+            return
+        out.append((f"Deploy {name} to {where} - {_galaxy_travel(c, dst_cell, fleet=True)}",
+                    {"act": "deploy", "fleets": [key], "i": i, "j": j, "order": None}))
+        for order, verb in (("patrol", "patrol"), ("strike", "strike"), ("hold", "hold")):
+            out.append((f"Deploy {name} to {where} and {verb}",
+                        {"act": "deploy", "fleets": [key], "i": i, "j": j, "order": order}))
+
+    if src.has_role("galaxy_unit"):
+        ship = to_object(get_inventory_value(src_id, "unit_ship", 0))
+        if ship is not None:
+            send(ship)
+    elif src.has_role("galaxy_fleet"):
+        key = get_inventory_value(src_id, "fleet_key", None)
+        if key is not None:
+            deploy(key)
+    elif src.has_role("galaxy_marker") and tuple(src_cell) != (i, j):
+        ships, fleets = _galaxy_forces_in(side, src_cell)
+        if len(ships) > 1:
+            out.append((f"Send all {len(ships)} ships to {where} - {_galaxy_travel(src_cell, dst_cell)}",
+                        {"act": "send", "ships": [s.id for s in ships], "i": i, "j": j}))
+        if len(fleets) > 1:
+            out.append((f"Deploy all {len(fleets)} fleets to {where} - {_galaxy_travel(src_cell, dst_cell, fleet=True)}",
+                        {"act": "deploy", "fleets": list(fleets), "i": i, "j": j, "order": None}))
+        for s in ships:
+            send(s)
+        for key in fleets:
+            out.append((f"Deploy {admiralty_fleet_officer_name(key)} to {where} - "
+                        f"{_galaxy_travel(src_cell, dst_cell, fleet=True)}",
+                        {"act": "deploy", "fleets": [key], "i": i, "j": j, "order": None}))
+    if out:
+        out.append((f"Focus on {where}", {"act": "focus", "i": i, "j": j}))
+    return out
+
+
+def galaxy_theater_resync(cam_id):
+    """Move this cam's proxy tokens to where their units are NOW - after an order, so a
+    deployed fleet's token jumps at once instead of on the next watcher tick."""
+    cam = to_object(cam_id)
+    if cam is None:
+        return
+    ci = get_inventory_value(cam_id, "board_ci", 0)
+    cj = get_inventory_value(cam_id, "board_cj", 0)
+    galaxy_theater_sync_units(cam_id, ci, cj, cam.side)
+    galaxy_theater_sync_fleets(cam_id, ci, cj, cam.side)
+
+
 def galaxy_theater_clear(cam_id):
     """Despawn ONE cam's whole board (its system markers + unit icons + ship->icon links).
     A full teardown; normal operation REUSES the board and reconciles in place."""
@@ -208,6 +376,7 @@ def galaxy_theater_clear(cam_id):
         u.delete_object()
     for u in _board_markers(cam_id, "galaxy_fleet"):
         u.delete_object()
+    galaxy_theater_map_filter(cam_id)
 
 
 def galaxy_theater_clear_system(cam_id):
@@ -280,6 +449,7 @@ def galaxy_theater_sync_units(cam_id, ci, cj, side, win=GALAXY_UNIT_WIN):
         if u.id not in keep:
             _forget_unit_icon(u)
             u.delete_object()
+    galaxy_theater_map_filter(cam_id)
 
 
 def galaxy_theater_sync_fleets(cam_id, ci, cj, side, win=GALAXY_UNIT_WIN):
@@ -341,9 +511,11 @@ def galaxy_theater_sync_fleets(cam_id, ci, cj, side, win=GALAXY_UNIT_WIN):
     for u in _board_markers(cam_id, "galaxy_fleet"):
         if u.id not in keep:
             u.delete_object()
+    galaxy_theater_map_filter(cam_id)
 
 
-def galaxy_theater_build(cam_id, seed, danger, sides, systems, reveal, ci, cj, side, win=GALAXY_GRID_WIN):
+def galaxy_theater_build(cam_id, seed, danger, sides, systems, reveal, ci, cj, side,
+                         win=GALAXY_GRID_WIN, difficulty=5):
     """Rebuild ONE cam's STATIC system-marker grid: a (2*win+1) window of real system
     markers around cell (ci, cj) in this cam's region, meshed by actual kind (fog ->
     unknown), each tagged board_cam. Only called when the board re-centers (the caller
@@ -381,6 +553,14 @@ def galaxy_theater_build(cam_id, seed, danger, sides, systems, reveal, ci, cj, s
                 set_inventory_value(m.id, "marker_j", j)
                 set_inventory_value(m.id, "marker_kind", kind)
                 set_inventory_value(m.id, "board_cam", cam_id)
+                # How many worldlets the cell HAS - the Admiral's build sites, and the
+                # reason to send anyone to an otherwise empty system. Stored on the
+                # marker at build time (the Worldlets chip reads it) and only for a cell
+                # that is not fogged, so the board never tells the overseer what is in a
+                # system they have not charted.
+                if kind != "fog":
+                    set_inventory_value(m.id, "marker_worldlets",
+                                        admiralty_cell_worldlets(seed, sides, i, j, danger, difficulty))
     # Reconcile the unit + fleet icons to the (possibly new) centre - in place, not a
     # respawn - so player ships AND fleets show which system they're in. These use the WIDER
     # unit window (out to the radar edge), NOT the dense grid `win`, so a unit systems away

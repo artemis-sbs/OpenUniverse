@@ -1,0 +1,63 @@
+# DRAG TO COMMAND on the galaxy map.
+#
+# Drag a player ship, a fleet, or a whole system onto a system, a ship or a fleet, and comms
+# opens with only the orders for that pair: send the ship there, deploy the fleet there (and
+# patrol / strike / hold, or escort a ship it was dropped on), move everything in a system at
+# once, or focus the view there. Each button says how far and how long.
+#
+# The board's tokens are PROXIES at fixed board positions: every order acts on the real ship
+# or fleet behind the token, and the token moves when its unit's system changes - at once
+# for a fleet (galaxy_theater_resync), when the jump lands for a ship.
+#
+# Three objects, and comms carries two - so the pair is remembered on the galaxy cam
+# (galaxy_theater_drag_set) and the menu is built from it (galaxy_theater_drag_buttons).
+
+//drag/comms if has_roles(DRAG_SHIP_ID, "galaxy_theater_cam") and has_any_role(DRAG_SOURCE_ID, "galaxy_unit,galaxy_fleet,galaxy_marker") and has_any_role(DRAG_TARGET_ID, "galaxy_unit,galaxy_fleet,galaxy_marker")
+    ->END if not object_exists(DRAG_SHIP_ID)
+    ->END if not object_exists(DRAG_SOURCE_ID)
+    ->END if not object_exists(DRAG_TARGET_ID)
+    ->END if DRAG_SOURCE_ID == DRAG_TARGET_ID
+    galaxy_theater_drag_set(DRAG_SHIP_ID, DRAG_SOURCE_ID, DRAG_TARGET_ID)
+    # Comms buttons only show for the pair the console has selected.
+    set_comms_selection(DRAG_SHIP_ID, DRAG_SOURCE_ID)
+    follow_route_select_comms(DRAG_SHIP_ID, DRAG_SOURCE_ID)
+    comms_navigate_override(DRAG_SHIP_ID, DRAG_SOURCE_ID, "galaxy_drag", path_must_match=False)
+    ->END
+
+
+//comms/galaxy_drag if has_roles(COMMS_ORIGIN_ID, "galaxy_theater_cam")
+    + !0 "Back" //comms
+    # The button text is built in Python and carried as a plain variable, never as a
+    # formatted literal - a ship name is data, not markup.
+    for gd_text, gd_data in galaxy_theater_drag_buttons(COMMS_ORIGIN_ID, COMMS_SELECTED_ID):
+        + "{gd_text}" galaxy_drag_do {"GD": gd_data}
+
+
+# Carry out a drag order. Mirrors player_send_pick / fleet_deploy_pick (galaxy_theater_spike.mast)
+# for one unit or several, then moves the proxies and returns to the comms root.
+=== galaxy_drag_do
+    default GD = None
+    ->END if GD is None
+    gd_act = GD.get("act")
+    gd_i = GD.get("i")
+    gd_j = GD.get("j")
+    if gd_act == "send":
+        for gd_ship in GD.get("ships", []):
+            continue if not object_exists(gd_ship)
+            # The token shows "->(i,j)" while the ship travels (active_objective).
+            set_inventory_value(gd_ship, "active_objective", [gd_i, gd_j])
+            task_schedule(universe_jump_to, {"ti": gd_i, "tj": gd_j, "warp_ship": gd_ship})
+        admiralty_say(COMMS_ORIGIN.side, "Ordering ships to " + str(gd_i) + "," + str(gd_j) + ".")
+    elif gd_act == "deploy":
+        for gd_key in GD.get("fleets", []):
+            await task_schedule(fleet_deploy_to, {"DEPLOY_FLEET": gd_key, "ti": gd_i, "tj": gd_j})
+            if GD.get("order"):
+                comms_receive(admiralty_fleet_set_order(gd_key, GD.get("order")), "Order acknowledged", color="white", title_color="cyan")
+        admiralty_say(COMMS_ORIGIN.side, "Fleet deploying to " + str(gd_i) + "," + str(gd_j) + ".")
+    elif gd_act == "focus":
+        task_schedule(theater_jump_here, {"JMP_I": gd_i, "JMP_J": gd_j, "JH_CLIENT": get_inventory_value(COMMS_ORIGIN_ID, "cam_client", 0)})
+    galaxy_theater_drag_clear(COMMS_ORIGIN_ID)
+    # Move the proxies now: a deployed fleet's token jumps at once.
+    galaxy_theater_resync(COMMS_ORIGIN_ID)
+    comms_navigate("//comms")
+    yield success

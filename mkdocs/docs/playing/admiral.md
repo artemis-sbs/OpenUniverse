@@ -29,7 +29,10 @@ map](#the-galaxy-map-commanding-across-systems) below.) You give every order by
   fleets out past the edge.
 - **Click an object** - it's selected (the view recenters on it) and its actions
   appear on the right.
-- **Zoom control** - above the map; zoom out to see the whole system at once.
+- **Filter chips** - the row above the map: **Worldlets**, **Platforms**,
+  **Ships**, **Fleets**, **Threats**, each with a live count. Tap one and the map
+  shows only that; tap several to combine them; **All** brings everything back.
+  Use Worldlets when you are hunting for a build site in a crowded system.
 
 Two readouts keep you informed:
 
@@ -120,6 +123,26 @@ unexplored fog). It's your whole theatre at a glance, and where you move forces
   up close.
 - **Known locations** - a shortcut list of notable systems (home, side capitals, active
   objectives) to focus on without hunting the map.
+
+The map has its own **filter chips** above it, each with a live count:
+
+| Chip | Shows |
+|---|---|
+| **Ships** / **Fleets** | your forces' icons, and nothing else |
+| **Orders** | the systems you have sent ships to - where everyone is headed |
+| **Threats** | hostile systems |
+| **Yours** | systems you hold (you have a structure there) |
+| **Worldlets** | systems with a worldlet - i.e. somewhere you could build |
+| **Bases** | your home and the side capitals |
+| **Anomalies** / **Nebulae** | the odd corners worth exploring |
+| **Unknown** | the fog you have yet to chart |
+
+Tap one and the map shows only that, tap several to combine them, and **All** brings the
+whole board back. **Worldlets** is the expansion planner: it answers "where can I build
+next" without clicking through systems one at a time.
+
+A fogged system is in no chip but **Unknown** - its kind, its owner and its worldlets are
+exactly what you have not charted, so no count gives them away.
 
 Your own forces show as **live icons** on the map: **player ships** are health-tinted
 fighters (green -> amber -> red as shields fall), **fleets** are gold battle-cruisers

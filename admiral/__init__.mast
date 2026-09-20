@@ -17,5 +17,15 @@ import universe_skirmish.py
 import universe_fabricator.py
 import universe_warstate.py
 import universe_galaxy_theater.py
+# The map filter chips for both admiral maps (they replaced the zoom control).
+# The Admiralty: one object per side holding its build queue, status line and quests.
+import universe_admiralty.py
+import admiral_chips.py
+# The right-hand panel on both Admiral views: the xESS shell, content as apps.
+import admiral_apps.py
 import admiral.mast
 import galaxy_theater_spike.mast
+# The Admiral's ePADD screens: research and requisition, full screen.
+import admiral_padd.mast
+# Drag a ship, fleet or system onto the galaxy map for its orders.
+import galaxy_theater_drag.mast

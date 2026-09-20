@@ -13,11 +13,12 @@
 # CORE Mode gate (universe_mode.py admiral_present()) detects in the shared namespace to
 # know the admiral economy addon is loaded - so no compile-order-sensitive marker is
 # needed here. A core-only story/campaign mission omits this mastlib entirely.
-shared ADM_BUILDS = []
-# The overseer's last action result (build/commission/research confirmation or a
-# rejection reason). Surfaced in the overseer status line since that console has no
-# info panel; also mirrored to info cards for other consoles.
-default shared ADM_LAST_MSG = ""
+# THE BUILD QUEUE AND THE STATUS LINE BELONG TO A SIDE, and they live on that side's
+# ADMIRALTY (universe_admiralty.py) - `admiralty_builds(side)`, `admiralty_say(side, msg)`,
+# `admiralty_msg(side)`. They used to be two story-wide `shared` variables, which meant one
+# queue and one status line for the whole GAME: two admirals on opposing sides watched each
+# other's builds, read each other's confirmations, and could cancel into each other's war.
+# The Admiralty is the Admiral's Flight Wing - the thing a side's command actually is.
 
 
 # Started by @map/universe when the universe has an Admiralty chapter. One
@@ -160,25 +161,25 @@ default shared ADM_LAST_MSG = ""
     # building where and roughly how close, with several builds at once. Removed by
     # identity when this build finishes.
     build_rec = admiralty_build_record(build_kind, build_worldlet_id, build_side)
-    ADM_BUILDS.append(build_rec)
+    admiralty_builds(build_side).append(build_rec)
     # Poll in 1s steps (instead of one delay_sim) so the overseer can CANCEL a queued
     # build: the console sets build_rec.cancel, we refund + free the worldlet and stop.
     build_left = pdef.get("build_time")
 --- build_wait
     await delay_sim(1)
     if build_rec.get("cancel", False):
-        ADM_BUILDS.remove(build_rec)
+        admiralty_builds(build_side).remove(build_rec)
         admiralty_build_cancel(build_kind, build_side, build_worldlet_id)
-        ADM_LAST_MSG = pdef.get("name") + " build cancelled - resources refunded."
+        admiralty_say(build_side, pdef.get("name") + " build cancelled - resources refunded.")
         comms_navigate_override(role("admiral_cam") & role(build_side), build_worldlet_id)
         ->END
     build_left = build_left - 1
     jump build_wait if build_left > 0
-    ADM_BUILDS.remove(build_rec)
+    admiralty_builds(build_side).remove(build_rec)
     built_plat = admiralty_build_done(build_kind, build_side, build_worldlet_id)
     # Completion lands on the overseer status line (the platform also appears on the
     # 2D view); keeps the "did it finish?" question answered.
-    ADM_LAST_MSG = pdef.get("name") + " complete."
+    admiralty_say(build_side, pdef.get("name") + " complete.")
     # Force-refresh the comms buttons of any overseer that has this worldlet selected
     # so the newly unlocked builds appear without re-clicking (comms_navigate_override
     # no-ops for cameras not currently on this pair - "only if it's selected"). Scoped
@@ -203,9 +204,9 @@ default shared ADM_LAST_MSG = ""
     rdef = research_def(research_key)
     ->END if rdef is None
     research_label = "Research - " + rdef.get("name")
-    ADM_BUILDS.append(research_label)
+    admiralty_builds(research_side).append(research_label)
     await delay_sim(rdef.get("time"))
-    ADM_BUILDS.remove(research_label)
+    admiralty_builds(research_side).remove(research_label)
     research_complete(research_side, research_key)
     universe_save_players()
     universe_info_card("Research complete: " + rdef.get("name") + ".", "Admiralty", "#0cf")
@@ -290,81 +291,56 @@ default shared ADM_LAST_MSG = ""
     # routes need. The camera's ROLE is `admiral`, not `gamemaster`, so GM menus
     # (gated on the gamemaster role) don't apply - only our Admiral routes.
     gui_activate_console("gamemaster_overseer_comms")
+    # THIS CONSOLE'S QUESTS ARE THE SIDE'S, not the camera's. An Admiral flies an
+    # invisible cambot, so "You" on the quest screens meant a thing with no name and no
+    # war - the same bug a pilot on the flight deck had when their quests belonged to the
+    # carrier. The Admiralty is the holder, and the screens call it "Admiralty".
+    admiralty_use_command(client_id, adm_side)
     # Top tabs (the //gui/tab framework, like the hangar's Casino tab): enable the
     # Galaxy tab here; its click is handled by //gui/tab/galaxy. gui_tab_back sets
     # the framework-provided back tab to this console, so the galaxy view returns.
     #CONSOLE_SELECT = "admiral"
-    # Repaint entry point: the selectable build-queue listbox can't update in place,
-    # so a queue change (or the ~2s countdown tick) jumps here to rebuild the visual
-    # layout. The one-time setup above (cell enter, cam, gui_activate_console) is NOT
-    # re-run - task vars (adm_side, adm_cam...) persist across the jump.
---- repaint
+    # NO REPAINT SUB-LABEL, and no title band. The right column is an xESS panel now
+    # (admiral_apps.py), and it updates its own bar and rebuilds its own app region -
+    # so nothing on this screen needs the console repainted. The resource ticker that
+    # used to fill a full-width strip above the map is the Info app's opening lines,
+    # which is also where the system's NAME finally appears; the map took the strip's
+    # height. (That also retires the TEMP DIAGNOSTIC pace tag from the screen.)
     gui_tab_enable("galaxy")
     gui_tab_back(CONSOLE_SELECT)
-    gui_section(style="area: 2, 2, 98, 8; background:#1578;")
-    # Economy mode: live resource ticker (a plain label goes stale, so use a handle +
-    # on-change - the pools shift on the economy tick). Simple mode has no pools, so it
-    # just titles the console.
-    # TEMP DIAGNOSTIC: the "  [mode/pace ...]" tag reports the economy pace actually
-    # live at runtime (verifying the Skirmish Mode->brisk wiring). Remove the
-    # admiralty_debug_pace_text() appends once confirmed.
-    if ADMIRALTY_ECONOMY:
-        adm_ticker_w = gui_text("$text:" + admiralty_ticker_text(adm_side) + "  " + admiralty_debug_pace_text(adm_side) + ";justify:center;font:gui-4")
-        on change admiralty_ticker_text(adm_side):
-            # .update() replaces the whole style, so carry the format props too (else
-            # the text reverts to unstyled/left-aligned).
-            adm_ticker_w.update("text:" + admiralty_ticker_text(adm_side) + "  " + admiralty_debug_pace_text(adm_side) + ";justify:center;font:gui-4")
-    else:
-        """justify:center; font:gui-4; $text:Admiral - Fleet Command"""
-    # Left: zoom + the system 2D view (click an object to command it).
-    gui_section(style="area: 0, 9, 72, 100;")
-    gui_row("row-height: 34px;")
-    gui_layout_widget("radar_zoom_ctrl")
+    # Left: the filter chips + the system 2D view (click an object to command it).
+    # The chips took the band the zoom control used to sit in (admiral_chips.py): a
+    # horizontal listbox, so when they outrun the view it scrolls sideways. The
+    # background stays SEE-THROUGH - it draws on the same layer as the selection
+    # highlight, and an opaque one hides which chips are picked.
+    # BELOW THE TAB STRIP. The strip - and the ePADD button on it - owns the first 45px,
+    # so a chip row starting at 2% drew underneath it (seen in the engine, 2026-09-19).
+    gui_section(style="area: 0, 45px, 100-360px, 100;")
+    gui_row("row-height: 56px;")
+    adm_chips = gui_list_box(admiral_chips_items("system"), "col-width:6em;background:#0E151D80;", item_template=admiral_chips_template, section_style="padding:3px,4px,3px,4px;", select=True, multi=True)
+    adm_chips.horizontal = True
+    adm_chips.selected = admiral_chips_selected(client_id, "system")
+    admiral_chips_apply(client_id, adm_cam_id, "system", adm_side)
+    on change adm_chips.get_selected():
+        admiral_chips_normalize(client_id, adm_cam_id, "system", adm_chips, adm_side)
+    on change admiral_chips_revision(adm_cam_id, "system", adm_side):
+        admiral_chips_refresh(client_id, adm_cam_id, "system", adm_chips, adm_side)
     gui_row()
     gui_layout_widget("comms_2d_view")
-    # Right, top: the selected object's comms face + action menu.
-    gui_section(style="area: 72, 9, 100, 66;")
-    gui_row("row-height: 100px;")
-    gui_layout_widget("comms_face")
-    gui_row()
-    gui_layout_widget("comms_control")
-    # Right, bottom: build-queue / action status, under the comms buttons with real
-    # vertical space. This console has no info panel, so the Admiralty's build
-    # progress, confirmations and rejection reasons live here (ADM_BUILDS +
-    # ADM_LAST_MSG, both shared). The change key ticks each SECOND while builds are
-    # queued so the per-build countdown updates live; otherwise it only repaints on a
-    # build starting/finishing or a new message (no idle repaints).
-    # Build queue: a SELECTABLE list - pick a build and Cancel it (refunds the cost,
-    # frees the worldlet). Builds run in PARALLEL (each its own task), so there's no
-    # order to reprioritize. A status hint sits above; the list repaints on queue
-    # add/remove and ~every 2s while building (admiralty_build_count_key -> repaint).
-    if ADMIRALTY_ECONOMY:
-        gui_section(style="area: 72, 67, 100, 73; background:#0234;")
-        # Live queue countdown ABOVE the list: admiralty_status_line shows each active
-        # build's time remaining, and admiralty_status_change_key ticks every SECOND while
-        # building. Updating this handle uses the dirty system (a single-widget re-render),
-        # NOT gui_task_jump - so the countdown ticks live while the queue LISTBOX below stays
-        # intact and clickable (a per-tick full repaint made Cancel unusable).
-        adm_hint_w = gui_text("$text:" + admiralty_status_line(ADM_BUILDS, ADM_LAST_MSG) + ";justify:center;font:gui-1;color:#8cf")
-        on change admiralty_status_change_key(ADM_BUILDS, ADM_LAST_MSG):
-            adm_hint_w.update("text:" + admiralty_status_line(ADM_BUILDS, ADM_LAST_MSG) + ";justify:center;font:gui-1;color:#8cf")
-        gui_section(style="area: 72, 73, 100, 93;")
-        adm_qbox = gui_list_box(ADM_BUILDS, "row-height: 1.8em;", item_template=admiralty_build_row, title_template=admiralty_build_title, select=True)
-        on change admiralty_build_count_key(ADM_BUILDS, ADM_LAST_MSG):
-            gui_task_jump("repaint")
-        gui_section(style="area: 72, 93, 100, 100;")
-        adm_cancel_btn = gui_button("$text:Cancel selected build;font:gui-1;justify:center;")
-        on gui_message(adm_cancel_btn):
-            adm_qsel = adm_qbox.get_value()
-            if adm_qsel is not None and not isinstance(adm_qsel, str):
-                adm_qsel.cancel = True
-                ADM_LAST_MSG = "Cancelling " + adm_qsel.get("name", "build") + "..."
-    else:
-        # Simple (economy-off) mode: no build queue - just the command status line.
-        gui_section(style="area: 72, 67, 100, 100; background:#0234;")
-        adm_hint_w = gui_text("$text:" + admiralty_status_hint(ADM_BUILDS, ADM_LAST_MSG) + ";justify:center;font:gui-1;color:#8cf")
-        on change ADM_LAST_MSG:
-            adm_hint_w.update("text:" + admiralty_status_hint(ADM_BUILDS, ADM_LAST_MSG) + ";justify:center;font:gui-1;color:#8cf")
+    # Right: the Admiralty panel - the xESS shell with this console's content as apps
+    # (Info, Build, Forces, Log). No comms_face / comms_control: the comms buttons draw
+    # in the 2D view itself now, and a face is decoration on a console whose "target" is
+    # usually a worldlet.
+    #
+    # The panel's BAR names the system and carries the live status line; its APP AREA
+    # holds the tiles. The shell repaints those separately, so the build countdown ticks
+    # every second without rebuilding the queue listbox under a click - which is what the
+    # old gui_task_jump("repaint") could not do (it made Cancel unusable).
+    admiral_apps_register()
+    admiral_app_drawing(client_id, "admiral")
+    gui_xess_panel(client_id, "admiral")
+    on change xess_panel_revision(client_id, "admiral"):
+        gui_xess_tick("admiral")
     # Comms won't open on an object the side holds no science data for. Scan the
     # Admiral's theatre once now so THIS console's first click works; the economy
     # tick keeps it fresh side-wide thereafter (admiralty_scan_theatre is one pass
@@ -412,7 +388,7 @@ default shared ADM_LAST_MSG = ""
         # unit icons in place. The board centre is remembered on the galaxy cam, so the map
         # is the same objects next activation.
         if get_inventory_value(agv_gcam, "board_ci", 999999) != agv_cell[0] or get_inventory_value(agv_gcam, "board_cj", 999999) != agv_cell[1]:
-            galaxy_theater_build(agv_gcam, universe_seed, DANGER, UNIVERSE_SIDES, universe_systems, MAP_REVEAL, agv_cell[0], agv_cell[1], agv_side)
+            galaxy_theater_build(agv_gcam, universe_seed, DANGER, UNIVERSE_SIDES, universe_systems, MAP_REVEAL, agv_cell[0], agv_cell[1], agv_side, difficulty=DIFFICULTY)
             set_inventory_value(agv_gcam, "board_ci", agv_cell[0])
             set_inventory_value(agv_gcam, "board_cj", agv_cell[1])
             galaxy_theater_scan_for(agv_gcam)
@@ -430,37 +406,37 @@ default shared ADM_LAST_MSG = ""
 --- agv_repaint
     gui_tab_enable("galaxy")
     gui_tab_back("admiral")
-    gui_section(style="area: 2, 2, 98, 8; background:#1578;")
-    """justify:center; font:gui-4; $text:Galaxy Theater - click a system to command it"""
-    # Left: zoom + the theater 2D view (click a marker to command that system).
-    gui_section(style="area: 0, 9, 72, 100;")
-    gui_row("row-height: 34px;")
-    gui_layout_widget("radar_zoom_ctrl")
+    # No title band: the panel's bar names the system the board is centred on, which is
+    # more use than a caption saying what the screen plainly is. The map took its height.
+    # Left: the board's filter chips + the theater 2D view (click a marker to command
+    # that system). The chips are the board's own tokens - ship and fleet proxies, and
+    # the system markers split into Known and Unknown - and they replaced the zoom
+    # control's band. galaxy_theater_map_filter re-applies whatever is picked here after
+    # every board sync, so a synced board does not undo the lens.
+    # BELOW THE TAB STRIP. The strip - and the ePADD button on it - owns the first 45px,
+    # so a chip row starting at 2% drew underneath it (seen in the engine, 2026-09-19).
+    gui_section(style="area: 0, 45px, 100-360px, 100;")
+    gui_row("row-height: 56px;")
+    agv_chips = gui_list_box(admiral_chips_items("galaxy"), "col-width:6em;background:#0E151D80;", item_template=admiral_chips_template, section_style="padding:3px,4px,3px,4px;", select=True, multi=True)
+    agv_chips.horizontal = True
+    agv_chips.selected = admiral_chips_selected(client_id, "galaxy")
+    admiral_chips_apply(client_id, agv_gcam, "galaxy", agv_side)
+    on change agv_chips.get_selected():
+        admiral_chips_normalize(client_id, agv_gcam, "galaxy", agv_chips, agv_side)
+    on change admiral_chips_revision(agv_gcam, "galaxy", agv_side):
+        admiral_chips_refresh(client_id, agv_gcam, "galaxy", agv_chips, agv_side)
     gui_row()
     gui_layout_widget("comms_2d_view")
-    # Right, top: selected marker's comms face + command menu (deploy / jump / close).
-    gui_section(style="area: 72, 9, 100, 50;")
-    gui_row("row-height: 90px;")
-    gui_layout_widget("comms_face")
-    gui_row()
-    gui_layout_widget("comms_control")
-    # Right, middle: "who is where" - a selectable list of every friendly player ship +
-    # fleet and the SYSTEM it is in (window-INDEPENDENT, so forces off the board are still
-    # listed). Click a row to FOCUS the overseer on that unit's system (same jump the marker
-    # menu's "Focus here" uses). Rebuilt by change (a ship jumps / a fleet forms or reorders).
-    gui_section(style="area: 72, 51, 100, 90; background:#0122;")
-    agv_roster_lb = gui_list_box(galaxy_theater_roster_items(agv_side), "row-height: 1.7em;", item_template=galaxy_theater_roster_item_template, title_template=galaxy_theater_roster_title, select=True)
-    on change agv_roster_lb.value:
-        agv_sel = agv_roster_lb.get_value()
-        if agv_sel is not None:
-            task_schedule(theater_jump_here, {"JMP_I": agv_sel.i, "JMP_J": agv_sel.j, "JH_CLIENT": client_id})
-    on change galaxy_theater_roster_sig(agv_side):
-        jump agv_repaint
-    # Right, bottom: the shared Admiralty status line (deploy confirmations land here).
-    gui_section(style="area: 72, 91, 100, 100; background:#0234;")
-    agv_hint_w = gui_text("$text:" + admiralty_status_hint(ADM_BUILDS, ADM_LAST_MSG) + ";justify:center;font:gui-1;color:#8cf")
-    on change ADM_LAST_MSG:
-        agv_hint_w.update("text:" + admiralty_status_hint(ADM_BUILDS, ADM_LAST_MSG) + ";justify:center;font:gui-1;color:#8cf")
+    # Right: the same Admiralty panel as the system view, on its OWN surface - so an app
+    # opened here does not follow the overseer back to the system view, and vice versa.
+    # "Who is where" is the Forces app (still window-independent: a ship past the edge of
+    # the board is listed, and clicking it focuses the overseer there), the deploy
+    # confirmations are the bar's status line, and the comms menus are in the 2D view.
+    admiral_apps_register()
+    admiral_app_drawing(client_id, "admiral_galaxy")
+    gui_xess_panel(client_id, "admiral_galaxy")
+    on change xess_panel_revision(client_id, "admiral_galaxy"):
+        gui_xess_tick("admiral_galaxy")
     # Live unit layer: reconcile the ship icons in place (~1s) so a SENT ship moves /
     # re-labels / re-tints by CHANGE, never a board rebuild. Auto-cancels when the admiral
     # leaves the theater (a new GUI is presented).
@@ -643,9 +619,9 @@ default shared ADM_LAST_MSG = ""
     adm_hostile = admiralty_cell_has_hostiles(adm_side, adm_wc[0], adm_wc[1])
     adm_has_fleet = admiralty_side_fleet_in_cell(adm_side, adm_wc[0], adm_wc[1])
     if adm_uncontrolled and adm_hostile:
-        ADM_LAST_MSG = "Uncontrolled system - clear the hostile forces to claim it."
+        admiralty_say(adm_side, "Uncontrolled system - clear the hostile forces to claim it.")
     if adm_uncontrolled and not adm_hostile and not adm_has_fleet:
-        ADM_LAST_MSG = "Uncontrolled system - bring a fleet here to hold it while you build."
+        admiralty_say(adm_side, "Uncontrolled system - bring a fleet here to hold it while you build.")
     adm_items = admiralty_buildable_items(adm_side, COMMS_SELECTED_ID, universe_systems, adm_here)
     yield success if len(adm_items) == 0
     for adm_it in adm_items:
@@ -668,19 +644,19 @@ default shared ADM_LAST_MSG = ""
         if build_fail is None:
             admiralty_spend(BUILD_SIDE, adm_pdef.get("cost"))
             fabricator_enqueue(BUILD_SIDE, BUILD_PICK, SEL_WORLDLET)
-            ADM_LAST_MSG = "Fabricator dispatched to build " + adm_pname + "."
+            admiralty_say(BUILD_SIDE, "Fabricator dispatched to build " + adm_pname + ".")
         else:
-            ADM_LAST_MSG = build_fail
+            admiralty_say(BUILD_SIDE, build_fail)
     else:
         build_fail = admiralty_try_build(BUILD_PICK, BUILD_SIDE, SEL_WORLDLET, universe_systems, adm_here)
         if build_fail is None:
             task_schedule(admiralty_build_task, {"build_kind": BUILD_PICK, "build_worldlet_id": SEL_WORLDLET, "build_side": BUILD_SIDE})
-            ADM_LAST_MSG = "Construction started: " + adm_pname + "."
+            admiralty_say(BUILD_SIDE, "Construction started: " + adm_pname + ".")
         else:
-            ADM_LAST_MSG = build_fail
+            admiralty_say(BUILD_SIDE, build_fail)
     # Surface on the overseer status line (ADM_LAST_MSG) AND as an info card for the
     # tab console / any console with an info panel.
-    universe_info_card(ADM_LAST_MSG, "Admiralty", "#0cf")
+    universe_info_card(admiralty_msg(BUILD_SIDE), "Admiralty", "#0cf")
     # Refresh the worldlet's comms buttons now the build is underway (the started
     # item drops out of its own menu) - only for THIS side's cameras currently on
     # this worldlet (& role(BUILD_SIDE), so a rival Admiral isn't touched).
@@ -734,9 +710,9 @@ default shared ADM_LAST_MSG = ""
         officer_card(OFFICER_PICK, admiralty_fleet_line("formed"))
         adm_ocmr = officer_def(OFFICER_PICK)
         adm_ocmr_name = adm_ocmr.name if adm_ocmr is not None else "An officer"
-        ADM_LAST_MSG = adm_ocmr_name + " has taken command of a new fleet at the shipyard."
+        admiralty_say(ADM_ACT_SIDE, adm_ocmr_name + " has taken command of a new fleet at the shipyard.")
     else:
-        ADM_LAST_MSG = fail
+        admiralty_say(ADM_ACT_SIDE, fail)
     ->END
 
 
@@ -759,10 +735,10 @@ default shared ADM_LAST_MSG = ""
         task_schedule(admiralty_research_task, {"research_key": RESEARCH_PICK, "research_side": ADM_ACT_SIDE})
         adm_rrec = research_def(RESEARCH_PICK)
         adm_rname = adm_rrec.name if adm_rrec is not None else "project"
-        ADM_LAST_MSG = "Research started: " + adm_rname + "."
+        admiralty_say(ADM_ACT_SIDE, "Research started: " + adm_rname + ".")
     else:
-        ADM_LAST_MSG = fail
-    universe_info_card(ADM_LAST_MSG, "Admiralty R&D", "#0cf")
+        admiralty_say(ADM_ACT_SIDE, fail)
+    universe_info_card(admiralty_msg(ADM_ACT_SIDE), "Admiralty R&D", "#0cf")
     ->END
 
 
@@ -781,7 +757,7 @@ default shared ADM_LAST_MSG = ""
 # no info panel; ADM_LAST_MSG is the shared surface the build-status widget watches).
 === admiral_platform_hail
     default HAIL_ID = None
-    ADM_LAST_MSG = admiralty_platform_status_text(to_object(HAIL_ID))
+    admiralty_say(to_object(HAIL_ID).side, admiralty_platform_status_text(to_object(HAIL_ID)))
     ->END
 
 
@@ -797,12 +773,12 @@ default shared ADM_LAST_MSG = ""
         if len(deliver_players) > 0:
             dpos = deliver_players[0].pos
             item_spawn(REQ_PICK, dpos.x + 600, dpos.y, dpos.z + 400)
-            ADM_LAST_MSG = "Requisition delivered: " + req_entry[1] + " - collect nearby."
+            admiralty_say(REQ_SIDE, "Requisition delivered: " + req_entry[1] + " - collect nearby.")
         else:
-            ADM_LAST_MSG = "No player ship on that side to deliver to."
+            admiralty_say(REQ_SIDE, "No player ship on that side to deliver to.")
     else:
-        ADM_LAST_MSG = fail
-    universe_info_card(ADM_LAST_MSG, "Admiralty Quartermaster", "#0cf")
+        admiralty_say(REQ_SIDE, fail)
+    universe_info_card(admiralty_msg(REQ_SIDE), "Admiralty Quartermaster", "#0cf")
     ->END
 
 
@@ -818,10 +794,10 @@ default shared ADM_LAST_MSG = ""
         adm_new_sub = admiralty_subsidy_cycle(COMMS_ORIGIN.side)
         universe_save_players()
         if adm_new_sub > 0:
-            ADM_LAST_MSG = "Crew subsidy set to " + str(int(adm_new_sub * 100)) + "% off station prices."
+            admiralty_say(COMMS_ORIGIN.side, "Crew subsidy set to " + str(int(adm_new_sub * 100)) + "% off station prices.")
         else:
-            ADM_LAST_MSG = "Crew subsidy stood down."
-        universe_info_card(ADM_LAST_MSG, "Admiralty Quartermaster", "#0cf")
+            admiralty_say(COMMS_ORIGIN.side, "Crew subsidy stood down.")
+        universe_info_card(admiralty_msg(COMMS_ORIGIN.side), "Admiralty Quartermaster", "#0cf")
     # Requisition: one button per catalog item (requisition_try_deliver already
     # requires an HQ, so the Quartermaster platform is its natural home). Delivered
     # beside the crews - the overseer equivalent of the bridge Requisition tab.

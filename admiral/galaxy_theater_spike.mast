@@ -112,7 +112,7 @@
     # Record the destination so the ship's board icon shows "->(i,j)" while it travels.
     set_inventory_value(PS_SHIP, "active_objective", [PS_I, PS_J])
     task_schedule(universe_jump_to, {"ti": PS_I, "tj": PS_J, "warp_ship": PS_SHIP})
-    ADM_LAST_MSG = "Ordering ship to " + str(PS_I) + "," + str(PS_J) + "."
+    admiralty_say(COMMS_ORIGIN.side, "Ordering ship to " + str(PS_I) + "," + str(PS_J) + ".")
     ->END
 
 
@@ -137,7 +137,7 @@
     default DF_J = 0
     ->END if DF_KEY is None
     task_schedule(fleet_deploy_to, {"DEPLOY_FLEET": DF_KEY, "ti": DF_I, "tj": DF_J})
-    ADM_LAST_MSG = "Fleet deploying to " + str(DF_I) + "," + str(DF_J) + "."
+    admiralty_say(COMMS_ORIGIN.side, "Fleet deploying to " + str(DF_I) + "," + str(DF_J) + ".")
     ->END
 
 

@@ -184,6 +184,44 @@ def universe_worldlet_home_pick():
     return keys[0] if keys else None
 
 
+# A cell -> how many worldlets its deck draws. Deterministic from the seed, so it is
+# cached forever rather than recomputed: the galaxy map asks it for every cell on the
+# board, every time it counts a chip.
+_CELL_WORLDLETS = {}
+
+
+def admiralty_cell_worldlets(seed, sides, i, j, danger="Quiet", difficulty=5):
+    """How many worldlets cell (i, j) HAS - without going there and without spawning
+    anything.
+
+    Runs the cell's own POI deck (`universe_system_deck`), which is what the generator
+    spawns from, with the kind/owner the galaxy map already derives for that cell. So
+    the answer cannot disagree with what a crew finds when they arrive - which a
+    re-implementation of the draw would eventually do.
+
+    The CALLER decides whether the overseer is allowed to know: this says what is there,
+    not what has been charted (see universe_cell_known).
+    """
+    ckey = (int(seed), int(i), int(j), str(danger), int(difficulty))
+    hit = _CELL_WORLDLETS.get(ckey)
+    if hit is not None:
+        return hit
+    key = universe_system_key(seed, i, j)
+    kind = universe_system_kind(seed, i, j, danger)
+    owner, kind = universe_system_side(sides, seed, i, j, kind)
+    foe = owner is not None and universe_hostile_to_players(owner)
+    deck = universe_system_deck(key, kind, owner, sides_character(sides, owner), foe,
+                                difficulty, int(i), int(j))
+    n = len([p for p in deck if p.get("type") == "worldlet"])
+    _CELL_WORLDLETS[ckey] = n
+    return n
+
+
+def admiralty_cell_worldlets_clear():
+    """Forget the per-cell worldlet answers (a new universe / tests)."""
+    _CELL_WORLDLETS.clear()
+
+
 # --- Spawning -----------------------------------------------------------------
 def universe_worldlet_spawn(type_key, x, y, z, radius=None):
     """Spawn one worldlet of an authored type: behav_planet terrain + palette +
