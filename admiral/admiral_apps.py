@@ -232,12 +232,6 @@ def _economy_available(client_id):
     return _economy()
 
 
-def _row(label, value, color=None):
-    gui_row("row-height: 1.4em; padding: 2px, 8px, 2px, 10px;")
-    gui_text("$text:%s;font:gui-1;color:%s;col-width: 7em;" % (label, _DIM))
-    gui_text("$text:%s;font:gui-1;%s" % (value, ("color:%s;" % color) if color else ""))
-
-
 def admiral_app_info_draw(client_id):
     """INFO - where you are, what is here, and what you have.
 
@@ -266,29 +260,44 @@ def admiral_app_info_draw(client_id):
     i, j = cell
     kind, owner = _system_of(i, j)
     sides = get_shared_variable("UNIVERSE_SIDES", None)
-    _row("Coords:", "(%d, %d)" % (i, j))
-    _row("Type:", _KIND_WORD.get(kind, "System"))
-    _row("Owner:", (_call("sides_name", sides, owner) or str(owner)) if owner else "Unclaimed")
-    _row("Control:", _control_word(client_id, i, j))
-
-    worldlets = _call("worldlets_in_cell", i, j) or []
-    _row("Worldlets:", str(len(worldlets)))
+    # ONE text area holding a header-less GRID, rather than a pair of gui_text widgets
+    # per fact at a hand-set 7em label column. The grid sizes its label column to the
+    # longest label, and the yes/no answers are icons a glance can read.
+    facts = [
+        ("Coords", "(%d, %d)" % (i, j)),
+        ("Type", _KIND_WORD.get(kind, "System")),
+        ("Owner", (_call("sides_name", sides, owner) or str(owner)) if owner else "Unclaimed"),
+        ("Control", _control_word(client_id, i, j)),
+        ("Worldlets", str(len(_call("worldlets_in_cell", i, j) or []))),
+    ]
     if side:
         plats = [p for p in (to_object_list(role("admiral_platform") & role(side)) or [])
                  if _cell_of(p.id) == cell]
-        _row("Platforms:", str(len(plats)))
-        _row("Fleet here:", "yes" if _call("admiralty_side_fleet_in_cell", side, i, j) else "no")
-        _row("Hostiles:", "yes" if _call("admiralty_cell_has_hostiles", side, i, j) else "no")
+        facts.append(("Platforms", str(len(plats))))
+        facts.append(("Fleet here", _yes_no(_call("admiralty_side_fleet_in_cell", side, i, j))))
+        facts.append(("Hostiles", _yes_no(_call("admiralty_cell_has_hostiles", side, i, j),
+                                          yes_icon="skull", yes_color="Crimson")))
+    lines = ["| | |", "|:--|:--|"] + ["| %s | %s |" % (_cell(k), v) for k, v in facts]
 
     if _economy() and side:
-        gui_row("row-height: 1.6em; padding: 8px, 8px, 2px, 10px;")
-        gui_text("$text:Admiralty;font:gui-2;color:%s;" % _ACCENT)
         ticker = _call("admiralty_ticker_text", side) or ""
-        for part in [p for p in ticker.split("  ") if p.strip()]:
-            gui_row("row-height: 1.3em; padding: 0, 8px, 0, 10px;")
-            gui_text("$text:%s;font:gui-1;" % part.strip())
-    gui_row("row-height: 1fr;")
-    gui_blank()
+        parts = [p.strip() for p in ticker.split("  ") if p.strip()]
+        if parts:
+            lines += ["", "### Admiralty"] + [_cell(p) for p in parts]
+    gui_row("row-height: 1fr; padding: 4px, 8px, 0, 10px;")
+    gui_text_area(chr(10).join(lines))
+
+
+def _cell(text):
+    """A value going into a grid cell: a `|` would split the row."""
+    return str(text if text is not None else "").replace("|", "/").replace(chr(10), " ").strip()
+
+
+def _yes_no(flag, yes_icon="check.on", yes_color="springgreen"):
+    """A yes/no fact as an icon and the word, so it reads at a glance."""
+    if flag:
+        return "![](icon://%s?color=%s) yes" % (yes_icon, yes_color)
+    return "![](icon://check.off?color=%s) no" % _DIM
 
 
 def _cell_of(obj_id):

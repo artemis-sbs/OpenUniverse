@@ -246,12 +246,12 @@ class ItDrawsWithoutRaising(_PanelBase):
         self.click("xess-app-admiral-info")
         self.build()
         self.assertEqual(X.xess_opened(CID, AA.SURFACE_SYSTEM), "info")
-        self.assertTrue(self.emitted.saying("Coords:"), "the Info app did not draw")
+        self.assertTrue(self.emitted.saying("Coords"), "the Info app did not draw")
 
     def test_each_app_draws(self):
         """A raising app costs only its own tile, so a broken one is SILENT - the panel
         still draws, with an apology where the app was. Assert on the content instead."""
-        for key, needle in (("info", "Coords:"), ("build", "Nothing under construction"),
+        for key, needle in (("info", "Coords"), ("build", "Nothing under construction"),
                             ("forces", "No ships or fleets"), ("log", "Nothing to report")):
             X.xess_open(CID, key, AA.SURFACE_SYSTEM)
             self.build()
@@ -360,6 +360,19 @@ class ThePaddScreensAreScopedToThisConsole(_PanelBase):
         rather than a number belonging to somebody else."""
         FrameContext.page = None
         self.assertEqual(AA.admiral_padd_research_badge(), "")
+
+
+class InfoGridHelpers(unittest.TestCase):
+    """The Info app is one text-area grid: yes/no facts are icons, and a value can
+    never split a row."""
+
+    def test_yes_no_are_icons(self):
+        self.assertIn("icon://check.on", AA._yes_no(True))
+        self.assertIn("icon://check.off", AA._yes_no(False))
+        self.assertIn("icon://skull", AA._yes_no(True, yes_icon="skull", yes_color="Crimson"))
+
+    def test_a_pipe_cannot_split_a_row(self):
+        self.assertNotIn("|", AA._cell("Kralien | Torgoth"))
 
 
 if __name__ == "__main__":
