@@ -40,7 +40,7 @@ def universe_parse_captains(doc):
     return out
 
 
-def captain_get(captains, key):
+def _captain_get(captains, key):
     for c in captains:
         if c.key == key:
             return c
@@ -65,16 +65,6 @@ def captain_full_name(captain):
     return (str(captain.get("name")) + ", " + str(t)) if t else captain.get("name")
 
 
-def captain_is_rival(agent_id, captain):
-    """True while the captain's authored `Rival when:` guard holds against the
-    player's *personal* standing with him (the captain record is the rep context,
-    so `standing` / a pole read his personal reputation). No guard -> never rival."""
-    guard = captain.get("rival_when") if captain is not None else None
-    if not guard:
-        return False
-    return dialogue_guard_ok(guard, agent_id, captain)
-
-
 def dialogue_speaker(sides, captains, lifeforms, key):
     """Resolve a scene's Speaker key to a voice record (key/name/color/leans) used by
     the dialogue driver for the card AND as the reputation context. Checks, in order:
@@ -84,7 +74,7 @@ def dialogue_speaker(sides, captains, lifeforms, key):
     universe_lifeforms.py), officer_speaker from universe_fleets.py (shared namespace)."""
     if key is None:
         return None
-    cap = captain_get(captains, key)
+    cap = _captain_get(captains, key)
     if cap is not None:
         side = sides_get(sides, cap.get("side"))
         return MastDataObject({

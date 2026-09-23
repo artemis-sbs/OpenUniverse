@@ -100,12 +100,6 @@ def admiral_present():
     return "admiralty_configure" in globals()
 
 
-def mode_allows_admiral():
-    """True when the active Mode's preset permits the RTS (independent of whether the
-    addon is loaded or content authored)."""
-    return _MODE_ALLOWS_ADMIRAL
-
-
 def mission_mode():
     """The active mission-shape Mode (sandbox | skirmish | war | campaign | story).
     The keystone dial - see FOUNDATION_PLAN.md."""

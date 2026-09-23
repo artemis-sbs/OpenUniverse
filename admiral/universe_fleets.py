@@ -177,7 +177,7 @@ def officers_configure(officers):
     _NEXT_FLEET = [1]
 
 
-def officer_face(key):
+def _officer_face(key):
     """The officer's face string, resolved once per session from the authored
     Face keyword (lifeform_face, shared namespace) and cached so the portrait
     stays stable."""
@@ -197,7 +197,7 @@ def officer_card(key, line, time=12):
     o = _OFFICERS.get(key)
     title = (str(o.get("name")) + ", " + str(o.get("title"))) if o is not None else "Fleet Command"
     comms_info_card(all_roles("console, comms"), line, title=title,
-                    color="#8cf", face=officer_face(key), time=time, notify=True)
+                    color="#8cf", face=_officer_face(key), time=time, notify=True)
 
 
 # --- Officer voices (dialogue cast) ------------------------------------------------
@@ -227,7 +227,7 @@ def _officer_cast_host(key, ship_id):
         return
     agent_id = _OFFICER_CAST.get(key)
     if agent_id is None:
-        agent = lifeform_spawn(str(o.get("name")), officer_face(key), "officer_cast",
+        agent = lifeform_spawn(str(o.get("name")), _officer_face(key), "officer_cast",
                                ship_id, path="//comms/universe_cast", title_color="#8cf")
         set_inventory_value(agent, "scene", o.get("scene"))
         set_inventory_value(agent, "lf_key", key)
@@ -269,33 +269,33 @@ def officer_fleet(key):
     return None
 
 
-def officer_level(key):
+def _officer_level(key):
     """Veteran level from accrued active-duty service (capped). 0 = rookie."""
     st = _OFFICER_STATE.get(key)
     vet = float(st.get("vet", 0.0)) if isinstance(st, dict) else 0.0
     return min(VETERAN_MAX_LEVEL, int(vet / VETERAN_STEP))
 
 
-def officer_effective_lean(key, pole):
+def _officer_effective_lean(key, pole):
     """An officer's pole weight grown by veterancy - but only for poles they were
     built for (an authored strength deepens with service; veterancy never grants
     a pole from nothing, so officers grow INTO their character, not out of it)."""
     base = ((_OFFICERS.get(key) or {}).get("leans") or {}).get(pole, 0)
     if base <= 0:
         return base
-    return base + officer_level(key) * VETERAN_BUMP
+    return base + _officer_level(key) * VETERAN_BUMP
 
 
-def officer_bonus(key, kind):
+def _officer_bonus(key, kind):
     """A trait-derived multiplier. Linear in the pole weight (grown by veterancy),
     so the authored Values ARE the tuning: by_the_book 40 -> gas x0.8;
     resourceful 40 -> salvage x1.5; fearsome 40 -> engage range x1.4."""
     if kind == "gas":
-        return max(0.5, 1.0 - officer_effective_lean(key, "by_the_book") * 0.005)
+        return max(0.5, 1.0 - _officer_effective_lean(key, "by_the_book") * 0.005)
     if kind == "salvage":
-        return 1.0 + officer_effective_lean(key, "resourceful") * 0.0125
+        return 1.0 + _officer_effective_lean(key, "resourceful") * 0.0125
     if kind == "engage":
-        return 1.0 + officer_effective_lean(key, "fearsome") * 0.01
+        return 1.0 + _officer_effective_lean(key, "fearsome") * 0.01
     return 1.0
 
 
@@ -314,12 +314,6 @@ MIA_RESCUE_RANGE = 1500.0
 def officer_status(key):
     st = _OFFICER_STATE.get(key)
     return st.get("status", "active") if isinstance(st, dict) else "active"
-
-
-def officer_captor(key):
-    """The side holding this officer prisoner, or None."""
-    st = _OFFICER_STATE.get(key)
-    return st.get("captor") if isinstance(st, dict) else None
 
 
 def officers_captured_by(side_key):
@@ -379,9 +373,9 @@ def _officer_add_service(side, key, dt):
     st = _OFFICER_STATE.setdefault(key, {"status": "active", "vet": 0.0})
     if not isinstance(st, dict):
         return
-    before = officer_level(key)
+    before = _officer_level(key)
     st["vet"] = float(st.get("vet", 0.0)) + float(dt)
-    if officer_level(key) != before:
+    if _officer_level(key) != before:
         _officers_sync(side)
 
 
@@ -760,7 +754,7 @@ def admiralty_fleet_tick(fleet_key, dt_seconds, veiled=False):
     # the fleet sits in a Depot's supply radius, where it is resupplied locally
     # and burns nothing (universe_worldlets.admiralty_in_supply).
     if order != "hold" and not admiralty_in_supply(side, lead0.pos.x, lead0.pos.z):
-        burn = float(admiralty_tuning("fleet_gas_burn", 2)) * officer_bonus(okey, "gas")
+        burn = float(admiralty_tuning("fleet_gas_burn", 2)) * _officer_bonus(okey, "gas")
         need = burn * float(dt_seconds) / 60.0
         if admiralty_pool_get(side, "gas") <= 0:
             setattr(f, "order", "hold")
@@ -781,7 +775,7 @@ def admiralty_fleet_tick(fleet_key, dt_seconds, veiled=False):
     # Active duty grows the officer: veterancy deepens their fleet bonuses.
     if order != "hold":
         _officer_add_service(side, okey, dt_seconds)
-    engage = 6000.0 * officer_bonus(okey, "engage")
+    engage = 6000.0 * _officer_bonus(okey, "engage")
     # The "raider" role is ceasefire-BLIND: a side you negotiated to NEUTRAL keeps
     # its raider tag. Intersect with the live enemy set so player fleets stop firing
     # on a ceasefired side (mirrors the diplomacy-aware fleet brains in LM). role()
@@ -828,7 +822,7 @@ def admiralty_fleet_tick(fleet_key, dt_seconds, veiled=False):
             return _evt(okey, admiralty_fleet_line("salvage_none"))
         d2 = (lead.pos.x - wreck.pos.x) ** 2 + (lead.pos.z - wreck.pos.z) ** 2
         if d2 < 1500.0 ** 2:
-            mult = officer_bonus(okey, "salvage")
+            mult = _officer_bonus(okey, "salvage")
             ore_v = int(30 * mult)
             gas_v = int(15 * mult)
             delete_object(wreck.id)
@@ -863,27 +857,3 @@ def admiralty_fleet_status_text(fleet_key):
 
 
 # --- Console listbox templates (admiral.mast) ------------------------------------
-def officer_list_title():
-    gui_row("row-height: 1.2em;padding:6px;background:#1578;")
-    gui_text("$text:Officers")
-
-
-def officer_list_template(item):
-    okey = item.get("key")
-    o_state = officer_status(okey)
-    if o_state == "mia":
-        status = "MISSING - pod beacon active"
-    elif o_state == "captured":
-        status = "PRISONER - ransom at the captor's stations"
-    elif o_state == "lost":
-        status = "lost in action"
-    else:
-        f = officer_fleet(okey)
-        status = ("commanding " + f.get("key").upper() + " (" + f.get("order") + ")"
-                  if f is not None else "available")
-    line = str(item.get("name")) + ", " + str(item.get("title")) + "  -  " + status
-    o_lvl = officer_level(okey)
-    if o_lvl > 0:
-        line = line + "   [Vet " + str(o_lvl) + "]"
-    gui_row("row-height: 2.2em;")
-    gui_text("$text:" + line + ";font:gui-1")

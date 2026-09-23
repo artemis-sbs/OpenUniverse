@@ -58,13 +58,6 @@ def universe_parse_lifeforms(doc):
     return out
 
 
-def lifeform_get(lifeforms, key):
-    for c in lifeforms:
-        if c.key == key:
-            return c
-    return None
-
-
 def lifeform_face(record):
     """Resolve a record's face spec via the shared face_resolve (keyword -> random face of
     that kind; literal -> itself; nothing -> a random terran)."""

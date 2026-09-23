@@ -163,13 +163,13 @@ def worldlet_type(key):
     return _WORLDLET_TYPES.get(key)
 
 
-def worldlet_type_keys():
+def _worldlet_type_keys():
     return list(_WORLDLET_TYPES.keys())
 
 
 def universe_worldlet_pick(r):
     """A worldlet type key for the POI deck's draw (deck's own seeded rng)."""
-    keys = worldlet_type_keys()
+    keys = _worldlet_type_keys()
     return r.choice(keys) if keys else None
 
 
@@ -180,7 +180,7 @@ def universe_worldlet_home_pick():
     for k, t in _WORLDLET_TYPES.items():
         if t.get("reserve") is None:
             return k
-    keys = worldlet_type_keys()
+    keys = _worldlet_type_keys()
     return keys[0] if keys else None
 
 
@@ -296,25 +296,6 @@ def _admiralty_set_planet_color(ds, prefix, hexstr):
     ds.set(prefix + "R", rgb[0])
     ds.set(prefix + "G", rgb[1])
     ds.set(prefix + "B", rgb[2])
-
-
-def worldlet_info(obj_or_id):
-    """(type record, yields dict, reserve) for a spawned worldlet - the map
-    popup / Admiral panel read. reserve None = unlimited."""
-    obj = to_object(obj_or_id)
-    if obj is None:
-        return None, {}, None
-    wt = worldlet_type(obj.get_inventory_value("worldlet_type"))
-    return (wt,
-            obj.get_inventory_value("worldlet_yields", {}) or {},
-            obj.get_inventory_value("worldlet_reserve"))
-
-
-def worldlets_in_system():
-    """All live worldlet objects across every live cell, in creation order (sorted
-    ids). Multi-cell: prefer worldlets_in_cell(i, j) for per-cell persistence -
-    this bare form spans cells (fine only when one cell is live)."""
-    return sorted(to_object_list(role("worldlet")), key=lambda o: o.id)
 
 
 def worldlets_in_cell(i, j):
@@ -1130,44 +1111,6 @@ def admiralty_platform_status_text(obj):
     if kind == "relay":
         return name + " online. Relaying this system's income while the flag is away."
     return name + " online and operational."
-
-
-def worldlet_list_title():
-    gui_row("row-height: 1.2em;padding:6px;background:#1578;")
-    gui_text("$text:Worldlets in this system")
-
-
-def worldlet_list_template(item):
-    """One listbox row: name, type, yields, reserve state."""
-    wt, yields, reserve = worldlet_info(item)
-    tname = wt.get("name") if wt is not None else "?"
-    ytext = " ".join(k + " " + str(v) for k, v in (yields or {}).items())
-    rtext = "unlimited" if reserve is None else (str(int(reserve)) if reserve > 0 else "DEPLETED")
-    gui_row("row-height: 2.2em;")
-    gui_text("$text:" + str(item.name) + "  (" + str(tname) + ")  " + ytext +
-             " /min   reserve " + rtext + ";font:gui-1")
-
-
-def worldlet_sel_text(worldlet_id, side):
-    """The selected-worldlet context panel body (one string, ^-separated lines
-    for $text)."""
-    wobj = to_object(worldlet_id)
-    if wobj is None:
-        return "Nothing selected."
-    wt, yields, reserve = worldlet_info(wobj)
-    lines = [str(wobj.name)]
-    if wt is not None:
-        lines.append(str(wt.get("name")))
-    lines.append("Yields " + " ".join(k + " " + str(v) for k, v in (yields or {}).items()) + " per min per extractor")
-    lines.append("Reserve " + ("unlimited" if reserve is None else str(int(reserve))))
-    plats = []
-    for kind in ADM_PLATFORMS:
-        if wobj.get_inventory_value("building_" + kind, False):
-            plats.append(ADM_PLATFORMS[kind]["name"] + " (building)")
-        elif admiralty_platform_at(wobj, kind) is not None:
-            plats.append(ADM_PLATFORMS[kind]["name"])
-    lines.append("Platforms " + (", ".join(plats) if plats else "none"))
-    return "^".join(lines)
 
 
 def universe_platform_spawn(kind, side, worldlet_obj):

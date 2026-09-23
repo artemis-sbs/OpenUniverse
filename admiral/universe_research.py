@@ -64,12 +64,12 @@ def research_list():
 
 
 # --- Per-side state (side-agent inventory; persisted in the universe save) ----
-def research_done(side):
+def _research_done(side):
     return list(get_inventory_value(to_side_id(side), "adm_research", []) or [])
 
 
-def research_has(side, key):
-    return key in research_done(side)
+def _research_has(side, key):
+    return key in _research_done(side)
 
 
 # Concurrent research: the side researches up to research_slots() milestones at
@@ -84,7 +84,7 @@ def research_slots(side):
     return RESEARCH_SLOTS_BASE + len(to_object_list(role("admiral_lab") & role(side)))
 
 
-def research_current_list(side):
+def _research_current_list(side):
     """The milestones currently in progress (a list; [] when idle)."""
     v = get_inventory_value(to_side_id(side), "adm_researching", None)
     if not v:
@@ -92,23 +92,17 @@ def research_current_list(side):
     return [v] if isinstance(v, str) else list(v)
 
 
-def research_current(side):
-    """Back-compat: the first in-progress milestone, or None."""
-    cur = research_current_list(side)
-    return cur[0] if cur else None
-
-
 def research_state(side, key):
     """'done' / 'researching' / 'available' / 'locked' for the Research tab."""
     r = _RESEARCH.get(key)
     if r is None:
         return "locked"
-    if research_has(side, key):
+    if _research_has(side, key):
         return "done"
-    if key in research_current_list(side):
+    if key in _research_current_list(side):
         return "researching"
     req = r.get("requires")
-    if req and not research_has(side, req):
+    if req and not _research_has(side, req):
         return "locked"
     return "available"
 
@@ -119,21 +113,21 @@ def research_try_start(side, key):
     r = _RESEARCH.get(key)
     if r is None:
         return "Unknown research."
-    if research_has(side, key):
+    if _research_has(side, key):
         return "Already researched."
-    cur = research_current_list(side)
+    cur = _research_current_list(side)
     if key in cur:
         return "Already researching that."
     if len(cur) >= research_slots(side):
         return "All research slots are busy (build a Lab for more)."
     req = r.get("requires")
-    if req and not research_has(side, req):
+    if req and not _research_has(side, req):
         rdef = _RESEARCH.get(req)
         return "Requires " + (rdef.get("name") if rdef else req) + "."
     if len(to_object_list(role("admiral_shipyard") & role(side))) == 0:
         return "Requires a Shipyard."
     if not admiralty_spend(side, r.get("costs")):
-        return "Not enough resources (" + research_costs_text(key) + ")."
+        return "Not enough resources (" + _research_costs_text(key) + ")."
     cur.append(key)
     set_inventory_value(to_side_id(side), "adm_researching", cur)
     return None
@@ -143,17 +137,17 @@ def research_complete(side, key):
     """Finish a milestone: clear its slot and record it (effects apply lazily
     from the done set)."""
     sid = to_side_id(side)
-    cur = research_current_list(side)
+    cur = _research_current_list(side)
     if key in cur:
         cur.remove(key)
         set_inventory_value(sid, "adm_researching", cur)
-    done = research_done(side)
+    done = _research_done(side)
     if key not in done:
         done.append(key)
         set_inventory_value(sid, "adm_research", done)
 
 
-def research_costs_text(key):
+def _research_costs_text(key):
     r = _RESEARCH.get(key) or {}
     costs = r.get("costs") if hasattr(r, "get") else {}
     return ", ".join(str(v) + " " + k for k, v in (costs or {}).items())
@@ -161,7 +155,7 @@ def research_costs_text(key):
 
 # --- Effects (computed from the completed set) ---------------------------------
 def _done_unlocks(side):
-    for key in research_done(side):
+    for key in _research_done(side):
         r = _RESEARCH.get(key)
         if r is None:
             continue
@@ -192,7 +186,7 @@ def research_extraction_mult(side):
     return mult
 
 
-def research_requisition_unlocks(side):
+def _research_requisition_unlocks(side):
     """Item keys added to the catalog by 'requisition <key>' unlocks."""
     out = []
     for phrase in _done_unlocks(side):
@@ -217,10 +211,10 @@ _REQ_UNLOCKABLE = {
 }
 
 
-def requisition_catalog(side):
+def _requisition_catalog(side):
     """[(key, name, costs)] available to this side right now."""
     out = list(_REQ_BASE)
-    for key in research_requisition_unlocks(side):
+    for key in _research_requisition_unlocks(side):
         entry = _REQ_UNLOCKABLE.get(key)
         if entry is not None and all(k != key for k, _, _ in out):
             out.append((key, entry[0], entry[1]))
@@ -228,13 +222,13 @@ def requisition_catalog(side):
 
 
 def requisition_entry(side, key):
-    for k, name, costs in requisition_catalog(side):
+    for k, name, costs in _requisition_catalog(side):
         if k == key:
             return (k, name, costs)
     return None
 
 
-def requisition_costs_text(side, key):
+def _requisition_costs_text(side, key):
     entry = requisition_entry(side, key)
     if entry is None:
         return ""
@@ -258,15 +252,10 @@ def research_list_template_for(side):
     return _tmpl
 
 
-def research_list_template(item):
-    # Back-compat default (primary side) for any caller that doesn't bind a side.
-    research_list_template_for(universe_primary_side())(item)
-
-
 def requisition_catalog_items(side):
     """The catalog as listbox items (key/name/costs_text)."""
     out = []
-    for key, name, costs in requisition_catalog(side):
+    for key, name, costs in _requisition_catalog(side):
         out.append(MastDataObject({
             "key": key, "name": name,
             "costs_text": ", ".join(str(v) + " " + k for k, v in costs.items())}))
@@ -292,5 +281,5 @@ def requisition_try_deliver(side, key):
     if len(to_object_list(role("admiral_hq") & role(side))) == 0:
         return "Requires a Headquarters."
     if not admiralty_spend(side, entry[2]):
-        return "Not enough resources (" + requisition_costs_text(side, key) + ")."
+        return "Not enough resources (" + _requisition_costs_text(side, key) + ")."
     return None
