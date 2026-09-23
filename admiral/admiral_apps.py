@@ -248,8 +248,11 @@ def admiral_app_info_draw(client_id):
     gui_row("row-height: 1.6em; padding: 4px, 8px, 0, 10px;")
     gui_text("$text:%s;font:gui-3;overflow:shrink;" % name)
     if sub:
-        gui_row("row-height: 1.2em; padding: 0, 8px, 4px, 10px;")
-        gui_text("$text:%s;font:gui-1;color:%s;overflow:shrink;" % (sub, _DIM))
+        # `content`, not a fixed 1.2em: a system's description is a sentence, and at
+        # gui-1 (the smallest font, so `shrink` has nowhere to go) it wraps. In a fixed
+        # row the second line was drawn over the facts below it (engine-seen).
+        gui_row("row-height: content; padding: 0, 8px, 4px, 10px;")
+        gui_text("$text:%s;font:gui-1;color:%s;" % (sub, _DIM))
 
     if cell is None:
         gui_row("row-height: 1.4em; padding: 4px, 8px, 4px, 10px;")
@@ -283,9 +286,22 @@ def admiral_app_info_draw(client_id):
         ticker = _call("admiralty_ticker_text", side) or ""
         parts = [p.strip() for p in ticker.split("  ") if p.strip()]
         if parts:
-            lines += ["", "### Admiralty"] + [_cell(p) for p in parts]
+            # A BLANK line after the heading: a heading's style carries onto the lines
+            # under it until one, so the stock came out heading-sized (engine-seen).
+            lines += ["", "### Admiralty", ""] + [_ticker_line(p) for p in parts]
     gui_row("row-height: 1fr; padding: 4px, 8px, 0, 10px;")
     gui_text_area(chr(10).join(lines))
+
+
+def _ticker_line(part):
+    """One ticker entry. `ORE 2400/4800` - a stock against its capacity - is a GAUGE,
+    so how full the store is reads at a glance; anything else stays text."""
+    import re
+    m = re.match(r"^([A-Za-z][\w ]*?)\s+(-?\d+)\s*/\s*(\d+)$", part)
+    if m is None:
+        return _cell(part)
+    label, have, cap = m.group(1).strip(), int(m.group(2)), int(m.group(3))
+    return "[%s](gauge://%d?max=%d&show=frac)" % (label.replace("]", ""), have, max(cap, 1))
 
 
 def _cell(text):

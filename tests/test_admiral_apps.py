@@ -371,6 +371,11 @@ class InfoGridHelpers(unittest.TestCase):
         self.assertIn("icon://check.off", AA._yes_no(False))
         self.assertIn("icon://skull", AA._yes_no(True, yes_icon="skull", yes_color="Crimson"))
 
+    def test_stock_against_capacity_is_a_gauge(self):
+        self.assertEqual(AA._ticker_line("ORE 2400/4800"), "[ORE](gauge://2400?max=4800&show=frac)")
+        self.assertEqual(AA._ticker_line("CMD 0/3"), "[CMD](gauge://0?max=3&show=frac)")
+        self.assertEqual(AA._ticker_line("War: none"), "War: none")
+
     def test_a_pipe_cannot_split_a_row(self):
         self.assertNotIn("|", AA._cell("Kralien | Torgoth"))
 
