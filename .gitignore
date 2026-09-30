@@ -9,3 +9,6 @@ mkdocs/site/
 # Rendered documents from `sbs docs` - build output, not source. An embedded
 # edition can run to several MB because it inlines the face atlases.
 __docs__/
+
+# The standalone site from `sbs site --emit site` - build output, not source.
+__site__/
