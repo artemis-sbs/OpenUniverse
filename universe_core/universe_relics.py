@@ -27,7 +27,7 @@ one flat, mission-wide MAST namespace - a leading underscore does not make one p
 
 from sbs_utils.procedural.amd_relics import (
     relics_load, relic_record, relic_place, relic_volume, relic_contain,
-    relic_release, relic_contents_arm, relic_points, relic_pos,
+    relic_release, relic_contents_arm, relic_points, relic_pos, relic_walls,
 )
 from sbs_utils.procedural.volume_dress import volume_dress, DEFAULT_STYLE
 from sbs_utils.procedural.volume import (
@@ -275,29 +275,35 @@ def universe_relic_dress(key, props=None):
     existing = len(role(wall))
     if existing:
         return existing
-    rec = relic_record(key)
-    seed = int(rec.get("seed") or 7) if rec is not None else 7
     count = int(props if props is not None else UNIVERSE_RELIC_PROPS)
-    # Art beats style, per part beats per relic: `volume_dress` settles all four, so this
-    # only has to hand over what the file said.
+    # The AMD-to-dress mapping - `Walls:` chains, `Art:`, per-part looks, plate, gaps,
+    # debris, seed - and the `Dress:` set pieces now live in the library (`relic_walls`),
+    # so a kit from an art pack reaches every relic the same way. What stays here is the
+    # universe's budget and its teardown role.
     # A WALL IS A WALL, not a slab sized to the containment tolerance. It was briefly the
     # latter, on the theory that a wall thinner than the scrape band is a skin the ship
     # crosses - true, but the fix for that is the BAND, not a 220-unit thick partition in
     # a 840-unit corridor. Thin, like a wall in any blockout.
-    # A clean empty room is right for the walls and wrong for a ruin: the age and the
-    # sense of scale come from the loose stuff drifting in it.
-    return volume_dress(
-        vol, n=count, seed=seed, roles=wall, wall_depth=UNIVERSE_RELIC_WALL,
-        plate=float(rec.get("plate") or UNIVERSE_RELIC_PLATE) if rec is not None
-              else UNIVERSE_RELIC_PLATE,
-        gaps=float(rec.get("gaps") if rec is not None and rec.get("gaps") is not None
-                   else UNIVERSE_RELIC_GAPS),
-        debris=int(rec.get("debris") if rec is not None and rec.get("debris") is not None
-                   else UNIVERSE_RELIC_DEBRIS),
-        style=(rec.get("walls") if rec is not None else None) or DEFAULT_STYLE,
-        art=(rec.get("art") if rec is not None else None),
-        part_styles=(rec.get("part_walls") if rec is not None else None),
-        part_art=(rec.get("part_art") if rec is not None else None))
+    return relic_walls(key, n=count, roles=wall, wall_depth=UNIVERSE_RELIC_WALL,
+                       name=_universe_relic_volume_name(key))
+
+
+def universe_relic_redress(key):
+    """Tear a relic's walls down and dress it again - what a live edit needs.
+
+    `relic_reload` rebuilds the GEOMETRY in place and emits `relic_rebuilt`; the walls are
+    this module's, so it answers. The old props are deleted (queued, the safe way) and
+    the new ones made straight away rather than through `universe_relic_dress`, whose
+    identity guard would see the old ones - still in their role until the deletes land -
+    and do nothing.
+    """
+    from sbs_utils.procedural.space_objects import delete_object
+    if relic_record(key) is None or volume_get(_universe_relic_volume_name(key)) is None:
+        return 0
+    for oid in list(role(universe_relic_wall_role(key))):
+        delete_object(oid)
+    return relic_walls(key, n=UNIVERSE_RELIC_PROPS, roles=universe_relic_wall_role(key),
+                       wall_depth=UNIVERSE_RELIC_WALL, name=_universe_relic_volume_name(key))
 
 
 def universe_relic_art(rec):

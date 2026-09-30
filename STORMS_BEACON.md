@@ -288,9 +288,14 @@ want, per the detached-console / spawn-role note in `MAST_CLAUDE.md`.)
    feel. XORN is the campaign's single largest new mechanic. (§7)
 5. **Episode count for v1:** ship the 3 tentpoles + how many procedural episodes? Suggest
    proving the slice + 2 procedural before authoring all three tentpoles.
-6. **Ancient-station relics:** are ruins *scannable derelicts* (like The Fading Signal's
-   Meridian) or *dockable/boardable* interiors? The former is nearly free today; the
-   latter is more authoring.
+6. **Ancient-station relics:** ~~are ruins *scannable derelicts* (like The Fading Signal's
+   Meridian) or *dockable/boardable* interiors?~~ **DECIDED - boardable.** Every ruin is a
+   relic interior the ship flies into AND the crew board in pressure suits (EVA). Each
+   ruin's `relics/*.amd` carries its own place scenes (`## Dialogue`, opened in the xESS
+   Act app when a suit arrives), one side story per job (`## Side Stories`), hidden finds
+   revealed by skill checks, and barriers a suit can work open by hand or cut. The walls
+   are the Cosmos-Tiles `ruins` art pack's kits (`Walls: torgoth, plates` and so on), with
+   the old looks as the fallback when the pack is not pinned.
 7. **Eddie's up/downgrades:** ~~real stat effects or narrative flavor?~~ **DECIDED
    (2026-07-07)** — **real ship-stat effects.** Buying applies to the ship (turn rate, top
    speed, scan range, shields…) and downgrades genuinely hurt; the gamble matters. Requires

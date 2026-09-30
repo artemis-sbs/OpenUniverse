@@ -177,4 +177,4 @@ def universe_info_card(line, title=None, color="#0cf", time=10):
     an info-panel card - same surface as side chatter, no portrait."""
     if not line:
         return
-    comms_info_card(_chatter_consoles(), line, title=title, color=color, time=time, notify=True)
+    comms_info_card(universe_chatter_consoles(), line, title=title, color=color, time=time, notify=True)

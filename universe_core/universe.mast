@@ -1608,3 +1608,9 @@ default shared UNIVERSE_START_CELL = None
         sbs.super_hyper_warp_mode(cid, "", 0)
     ->END
 
+
+# A LIVE EDIT OF A RUIN. `relic_reload` (the editor's Preview) rebuilds the geometry in
+# place and emits this; the walls are the universe's, so they are dressed again here -
+# otherwise the new room is flown through old walls. Server-once: the props are shared.
+//shared/signal/relic_rebuilt
+    universe_relic_redress(key)

@@ -246,7 +246,7 @@ def universe_chatter_line(side):
 # the side's name + color (+ optional face/icon), kept in history, auto-dismissed.
 # These are thin wrappers over the reusable sbs_utils helper comms_info_card
 # (promoted from the HereThereBeMonsters here_*_info_message pattern).
-def _chatter_consoles():
+def universe_chatter_consoles():
     """The comms consoles that should receive universe chatter/comms cards."""
     return all_roles("console, comms")
 
@@ -260,7 +260,7 @@ def universe_chatter_card(side, line, time=10):
     color = side.get("color", "#0cf") if side is not None else "#0cf"
     name = side.get("name") if side is not None else None
     comms_info_card(
-        _chatter_consoles(), line, title=name, color=color,
+        universe_chatter_consoles(), line, title=name, color=color,
         face=(side.get("face") if side is not None else None),
         icon_index=(side.get("icon") if side is not None else None), time=time,
         notify=True)

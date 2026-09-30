@@ -93,13 +93,15 @@ StormsBeacon's relic items) share 11 usable shapes.
 
 ## P1 - StormsBeacon relic items
 
-About 19 item records are `Art: unknown` - the question-mark mesh - and they spawn as relic
-contents the crew has to find: `relics/ash_warren.amd`, `cipher.amd`, `false_choir.amd`,
-`heart.amd`, `lens.amd`, `sink.amd`, `voice.amd`. The `unknown` art also has no interaction
-radius (`sbs_utils/procedural/items.py`), so they may not even be collectable by flying over
-them - unverified in the engine.
+**ADDRESSED (2026-09-30) by the Cosmos-Tiles `ruins` pack.** Every StormsBeacon find has a
+mesh and a picture (`ruins_find_*`, `pic:find_*`), and the four Beacon pieces have their own
+(`ruins_beacon_*`). Items name them as a fallback chain - `Art: ruins_find_manifest,
+alien_1a` - so a mission without the pack still spawns something collectable. The `unknown`
+art had no interaction radius at all, so those items were never collectable by contact.
 
-- **Wants:** a route chart / data plate, a relic artifact, deep-salvage props. HIGH in SB.
+- **Still wanted:** own meshes for the six finds added with the EVA content (the dispatcher's
+  log, focusing blank, miner's tally, XORN cutter, hymn plate, flight recorder), which borrow
+  a neighbour's today.
 
 ## P1 - Monsters
 
@@ -240,10 +242,10 @@ Warden), `typhon-needle` (Reaver), `typhon-panel` (Sparkfeeder). A silhouette pe
 
 ## P3 - Relics
 
-Relic interiors are procedural from asteroids and `generic-*` primitives by design
-(`build/relics.md`). Optional: ancient-architecture wall / plate / pillar kits for built
-relics (The Voice), and real **barrier / door** props - today the barriers crews shoot
-through are `generic-sphere`.
+**ADDRESSED (2026-09-30) by the Cosmos-Tiles `ruins` pack**: five wall kits (Torgoth,
+Kralien, choir, hulk, cave) with floors, ceilings, trims, pillars and set pieces, named by a
+relic's `Walls:` chain, and `Dress:` for set pieces and barriers (`build/relics.md`).
+Engine-checked on the Voice; the other kits are unverified in the engine.
 
 ## P3 - Admiral platforms (reused station hulls)
 
