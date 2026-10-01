@@ -93,6 +93,11 @@ def admiral_app_cell(client_id, surface=SURFACE_SYSTEM):
     centre of the board on screen - the cam parks among its markers out in dead space, so
     its own position says nothing about which part of the galaxy is being shown.
     """
+    if surface == SURFACE_GALAXY and _call("galaxy_map_tiles"):
+        # The TILE map: about the system this console picked, else the one in the middle.
+        cell = (_call("galaxy_map_selected", client_id)
+                or _call("galaxy_map_focus_cell", client_id))
+        return (int(cell[0]), int(cell[1])) if cell else None
     cam = _cam(client_id, surface)
     if not cam or not object_exists(cam):
         return None
@@ -218,7 +223,8 @@ def admiral_app_revision(client_id, surface=SURFACE_SYSTEM):
     key = _call("admiralty_build_count_key", _builds(side), _call("admiralty_msg", side) or "")
     extra = None
     if surface == SURFACE_GALAXY:
-        extra = _call("galaxy_theater_roster_sig", admiral_app_side(client_id))
+        extra = (_call("galaxy_theater_roster_sig", admiral_app_side(client_id)),
+                 _call("galaxy_map_revision", client_id))
     return (key, admiral_app_cell(client_id, surface), extra)
 
 
@@ -402,6 +408,10 @@ def admiral_app_focus(client_id, row):
         i, j = int(row.i), int(row.j)
     except Exception:                                    # noqa: BLE001
         return False
+    if _drawing_surface(client_id) == SURFACE_GALAXY and _call("galaxy_map_tiles"):
+        # On the tile map, "go there" is LOOK there: the overseer stays put and the map
+        # comes to the unit. Going is the Orders app's "Go to".
+        return bool(_call("galaxy_map_focus", client_id, i, j, True))
     task_schedule("theater_jump_here", {"JMP_I": i, "JMP_J": j, "JH_CLIENT": client_id})
     return True
 

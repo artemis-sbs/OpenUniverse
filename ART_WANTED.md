@@ -136,11 +136,23 @@ new art.
 ## P1 - Admiral 2D map iconography
 
 The galaxy map's shape language matters more than any 3D model (ADMIRAL_CONSOLE.md
-section 9). The Nav galaxy map is still text buttons (`universe.mast`); the Admiral galaxy
-theater now has **stand-ins** from the built-in icon sheet
-(`admiral/universe_galaxy_theater.py`): home = globe-grid, station = fountain, enemy =
-goblin, nebula = pinwheel, anomaly = atom, empty = circle-outline, fog = square-outline,
-player ship = patrol-badge, fleet = squad. Dedicated icons still wanted:
+section 9). Both galaxy maps - the tile map that Navigation and the Admiral now share
+(`universe_core/universe_galaxy_map.py`), and the classic theater - draw **stand-ins** from
+the built-in icon sheet: home = globe-grid, station = fountain, enemy = goblin, nebula =
+pinwheel, anomaly = atom, empty = circle-outline, fog = square-outline, player ship =
+patrol-badge, fleet = squad. The tile map's frames are slices of the square glyph.
+
+**A galaxy tile art set** would replace all of these at once. Each system kind already
+names a ground look (`galaxy_home`, `galaxy_station`, `galaxy_enemy`, `galaxy_nebula`,
+`galaxy_anomaly`, `galaxy_empty`, `galaxy_fog`), so a `media/tileart/galaxy/` pack
+drops in through `tilemap_art_use` without code changes. Wanted in it:
+
+- the seven system grounds;
+- a ship and a fleet token;
+- the quest, "headed here" and "+ more" badges;
+- a frame set: a selection frame, a foe-border hatch and a veil band.
+
+Dedicated icons still wanted:
 
 | Icon | Needs | Where it reads |
 |---|---|---|

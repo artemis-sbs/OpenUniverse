@@ -1,0 +1,100 @@
+# The Admiral's Galaxy tab as a TILE MAP (universe_core/universe_galaxy_map.py for the map,
+# admiral_galaxy_map.py for the orders). Reached from admiral_galaxy_view (admiral.mast)
+# when GALAXY_MAP_MODE is "tiles"; the theater stays behind "classic" until the tile map
+# has been played in the engine.
+#
+# No galaxy camera and no reassignment: the console stays on its command camera, so the
+# framework back tab simply returns to the system view.
+#
+# Click a ship or fleet token to pick the UNIT, then a system to pick WHERE: the Orders app
+# on the right lists what that pair can do.
+
+=== admiral_galaxy_tiles
+--- agt_repaint
+    gui_tab_enable("galaxy")
+    gui_tab_back("admiral")
+    # BEFORE the view is built: a view whose first paint finds no area never draws.
+    galaxy_map_open(client_id, "admiral")
+
+    # The toolbar sits BELOW the tab strip, which owns the first 45px of the screen.
+    gui_section(style="area: 0, 45px, 100-360px, 101px; background:#0E151D80;")
+    gui_row("row-height: 1fr; padding: 6px, 6px, 6px, 6px;")
+    agt_west = gui_button("$text:< W;font:gui-1;justify:center;")
+    on gui_message(agt_west):
+        galaxy_map_pan(client_id, -3, 0)
+    agt_south = gui_button("$text:S v;font:gui-1;justify:center;")
+    on gui_message(agt_south):
+        galaxy_map_pan(client_id, 0, -3)
+    agt_north = gui_button("$text:N ^;font:gui-1;justify:center;")
+    on gui_message(agt_north):
+        galaxy_map_pan(client_id, 0, 3)
+    agt_east = gui_button("$text:E >;font:gui-1;justify:center;")
+    on gui_message(agt_east):
+        galaxy_map_pan(client_id, 3, 0)
+    agt_wider = gui_button("$text:Zoom out;font:gui-1;justify:center;")
+    on gui_message(agt_wider):
+        if galaxy_map_zoom(client_id, 1):
+            gui_task_jump("agt_repaint")
+    agt_closer = gui_button("$text:Zoom in;font:gui-1;justify:center;")
+    on gui_message(agt_closer):
+        if galaxy_map_zoom(client_id, -1):
+            gui_task_jump("agt_repaint")
+    agt_here = gui_button("$text:Here;font:gui-1;justify:center;")
+    on gui_message(agt_here):
+        agt_cell = galaxy_map_owner_cell(client_id)
+        if agt_cell is not None:
+            galaxy_map_focus(client_id, agt_cell[0], agt_cell[1], True)
+    agt_home = gui_button("$text:Home;font:gui-1;justify:center;")
+    on gui_message(agt_home):
+        agt_cell = galaxy_map_home_cell(client_id)
+        galaxy_map_focus(client_id, agt_cell[0], agt_cell[1], True)
+
+    gui_section(style="area: 0, 101px, 100-360px, 100; background:#0b1420;")
+    gui_tilemap(None, galaxy_map_area(client_id), cols=galaxy_map_cols(client_id), on_click=galaxy_map_click, fog=False, hints=galaxy_map_hints)
+
+    # Right: the Admiralty panel on its galaxy surface, with Orders and Places.
+    admiral_apps_register()
+    admiral_galaxy_map_register()
+    admiral_app_drawing(client_id, "admiral_galaxy")
+    gui_xess_panel(client_id, "admiral_galaxy")
+    on change xess_panel_revision(client_id, "admiral_galaxy"):
+        gui_xess_tick("admiral_galaxy")
+    gui_sub_task_schedule("agt_watch")
+    await gui()
+
+--- agt_watch
+    await delay_sim(1)
+    galaxy_map_sync(client_id)
+    jump agt_watch
+
+
+# Carry out a move ordered from the tile map's Orders app (admiral_galaxy_map_do). The
+# same steps as the theater's galaxy_drag_do, but the side and the console are passed in:
+# there is no comms origin here to read them from.
+=== galaxy_map_do
+    default GD = None
+    default GD_SIDE = None
+    default GD_CLIENT = 0
+    ->END if GD is None
+    gmd_act = GD.get("act")
+    gmd_i = GD.get("i")
+    gmd_j = GD.get("j")
+    if gmd_act == "send":
+        for gmd_ship in GD.get("ships", []):
+            continue if not object_exists(gmd_ship)
+            # The map marks where a ship is headed while it travels (active_objective).
+            set_inventory_value(gmd_ship, "active_objective", [gmd_i, gmd_j])
+            task_schedule(universe_jump_to, {"ti": gmd_i, "tj": gmd_j, "warp_ship": gmd_ship})
+        admiralty_say(GD_SIDE, "Ordering ships to " + str(gmd_i) + "," + str(gmd_j) + ".")
+    elif gmd_act == "deploy":
+        admiralty_say(GD_SIDE, "Fleet deploying to " + str(gmd_i) + "," + str(gmd_j) + ".")
+        for gmd_key in GD.get("fleets", []):
+            await task_schedule(fleet_deploy_to, {"DEPLOY_FLEET": gmd_key, "ti": gmd_i, "tj": gmd_j})
+            if GD.get("order"):
+                admiralty_say(GD_SIDE, admiralty_fleet_set_order(gmd_key, GD.get("order")))
+    elif gmd_act == "focus":
+        task_schedule(theater_jump_here, {"JMP_I": gmd_i, "JMP_J": gmd_j, "JH_CLIENT": GD_CLIENT})
+    # Move the tokens now: a deployed fleet's jumps at once.
+    if GD_CLIENT != 0:
+        galaxy_map_sync(GD_CLIENT)
+    ->END

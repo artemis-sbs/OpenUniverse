@@ -337,12 +337,12 @@ def officer_release(side, key):
 
 def _admiralty_pick_captor(sides, side):
     """The side that claims a lapsed pod: a currently hostile foe side, or
-    None (deep space - the officer is simply lost). _admiralty_side_is_foe is the
+    None (deep space - the officer is simply lost). admiralty_side_is_foe is the
     skirmish module's ceasefire-aware check (shared namespace)."""
     if not sides:
         return None
     try:
-        foes = [c.get("key") for c in sides if _admiralty_side_is_foe(sides, c.get("key"), side)]
+        foes = [c.get("key") for c in sides if admiralty_side_is_foe(sides, c.get("key"), side)]
     except NameError:
         foes = []
     return random.choice(foes) if foes else None

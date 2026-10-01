@@ -158,8 +158,11 @@ fleets, the six orders, veterancy), `universe_research.py` (tech ladder),
   It's a detached camera + comms 2D view where
   you **select objects to act**: worldlet -> build; fleet hull -> orders; platform
   -> its actions (Shipyard = commission, Lab = research, HQ = subsidy + requisition).
-  A Galaxy top tab (the `//gui/tab` framework) reuses the player Navigation console's
-  galaxy map for jumping between systems. The
+  A Galaxy top tab (the `//gui/tab` framework) shows the GALAXY TILE MAP, the same GUI
+  map the player Navigation console draws (`universe_core/universe_galaxy_map.py`; the
+  orders are in `admiral/admiral_galaxy_map.py`). Click a unit, then a system, and the
+  Orders xESS app moves it. `GALAXY_MAP_MODE = "classic"` brings back the old 2D-view
+  theater (`universe_galaxy_theater.py`) until the tile map is engine-verified. The
   detached-console / comms-refresh / side-wide-scan / role-from-art patterns live in
   `../sbs_utils/MAST_CLAUDE.md` ("Detached command consoles").
 - **Multi-side rule (will bite you):** derive the side from context

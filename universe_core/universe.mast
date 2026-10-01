@@ -45,6 +45,10 @@ default shared UNIVERSE_CULL_RADIUS = 25000
 # Player Navigation grid map: retired by default (the Admiral theater is the single
 # strategic map; quests move players). Flip on for solo / no-admiral / Mode fallback.
 default shared NAV_CONSOLE_ENABLED = False
+# Which galaxy map both consoles draw: "tiles" (the GUI tile map, universe_galaxy_map.py) or
+# "classic" (the Admiral's 2D-view theater and Navigation's button grid). The A/B knob until
+# the tile map has been played in the engine.
+default shared GALAXY_MAP_MODE = "tiles"
 # Admiral ECONOMY/BUILD mode toggle. True = full RTS economy (pools, extraction, build
 # queue, worldlet building). False = a "simple" overseer that just MOVES units (player
 # ships + any fleets) from the theater - no economy, no building. The economy code stays
@@ -913,12 +917,13 @@ default shared UNIVERSE_START_CELL = None
         task_schedule(universe_jump_to, {"ti": qe_sec[0], "tj": qe_sec[1], "warp_ship": QE_SHIP})
 
 
-# The player Navigation console's galaxy map + jump drive: a GUI grid overlay, so the
-# player stays on its own ship (its client can't be reassigned to a cam without breaking
-# helm/weapons). The Admiral overseer uses the 2D-view theater instead (admiral_galaxy_view)
-# - it's a detached camera, so its view can ride the galaxy cam. The go_btn still routes by
-# the client's ship role (defensive), but in practice only player ships reach this map now.
+# The player Navigation console's galaxy map + jump drive. By default this hands straight
+# to the galaxy TILE MAP (universe_galaxy_map.mast), which the Admiral's Galaxy tab draws
+# too. What follows is the CLASSIC page (GALAXY_MAP_MODE = "classic"): a GUI button grid,
+# so the player stays on its own ship (its client can't be reassigned to a cam without
+# breaking helm/weapons). The go_btn routes by the client's ship role (defensive).
 === universe_galaxy_map_gui
+    jump universe_galaxy_map_tiles if galaxy_map_tiles()
     default GALAXY_BACK = None
 --- repaint
     gui_tab_back(CONSOLE_SELECT)

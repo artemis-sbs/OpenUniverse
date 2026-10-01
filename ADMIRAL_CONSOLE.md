@@ -750,6 +750,27 @@ Player + author docs shipped (mkdocs `playing/admiral.md` + `writing/admiralty.m
      (marginal: the veil is whole-system, so refuse-and-hold is arguably correct).
    - Event dialogue *scenes* - richer than the authorable canned chatter pools.
    - Distinct Admiral-platform art (see `ART_WANTED.md`).
+5. **Galaxy tile map (2026-09-30, NOT yet played in the engine).** The Galaxy tab and the
+   player Navigation console now draw ONE map, a GUI tile map
+   (`universe_core/universe_galaxy_map.py` + `.mast`; the Admiral's orders in
+   `admiral/admiral_galaxy_map.py` + `.mast`). There is no galaxy camera and no
+   reassignment. Each system is a 3x3 tile block: the glyph sits in the middle, and the
+   frame round it is tinted by what the system is to this console (yours, a foe's, a
+   region, a quest target, here, picked). Ships ride the top row and fleets the bottom.
+   Click a unit, then a system, and the **Orders** xESS app lists what that pair can do.
+   **Places** is the known-locations list. `GALAXY_MAP_MODE` (`tiles` / `classic`) is the
+   A/B knob; `classic` keeps this theater (section 19) and the Nav button grid.
+   Before the theater can be retired:
+   - an engine playtest. Check that the glyphs and tints draw, and that 39 columns don't
+     crash at 1920x1080 or 1024x768 (about 2,300 widgets). Check that pans leave no stale
+     tiles and that clicks still hit the right system. Check for no magenta hover, that
+     tokens and badges draw over the frames, and that zoom leaves no remnants. Check that
+     Orders -> Send jumps the ship and a deployed fleet's token moves. Finally, run two
+     Admirals plus a Nav console at once;
+   - a chip "lens" on the tile map (the theater's filter chips have no tiles equivalent
+     yet);
+   - a real galaxy art set (`ART_WANTED.md`);
+   - then delete the theater and the helpers the tile map copied from it.
 
 ---
 

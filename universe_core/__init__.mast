@@ -33,6 +33,9 @@ import universe_relics.py
 import universe_sites.py
 import universe_goods.py
 import universe_systems.py
+import universe_galaxy_map.py
 import universe_sites.mast
 import universe_codex.mast
 import universe.mast
+# The galaxy map as a tile map - Navigation's page here; the Admiral's in admiral/.
+import universe_galaxy_map.mast

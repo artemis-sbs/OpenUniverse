@@ -669,10 +669,12 @@ def universe_grant_mystery(ship_id, seed, i, j):
     return qid, ti, tj
 
 
-def universe_quest_target_sectors():
-    """(i,j) target systems of all players' ACTIVE on_reach quests (map markers)."""
+def universe_quest_target_sectors(side=None):
+    """(i,j) target systems of the players' ACTIVE on_reach quests (map markers). Every
+    player ship's, or only `side`'s - a map should not pin a rival crew's errands."""
     out = set()
-    for ship in to_object_list(role("__player__")):
+    ships = role("__player__") & role(side) if side else role("__player__")
+    for ship in to_object_list(ships):
         tree = quest_agent_quests(ship.id)
         children = tree.get("children") if tree is not None else None
         for qid, q in (children or {}).items():

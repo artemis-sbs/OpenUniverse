@@ -34,7 +34,7 @@ def skirmish_reset():
     _SKIRMISH = {}
 
 
-def _admiralty_side_is_foe(sides, key, side):
+def admiralty_side_is_foe(sides, key, side):
     """Authored a foe AND still hostile: a negotiated ceasefire (diplomacy
     economy) lifts the pressure. Falls back to the authored disposition when
     the side agents don't exist (early start, headless tests)."""
@@ -60,7 +60,7 @@ def skirmish_pressure(sides, seed, i, j, danger="Quiet", side=None):
             ci, cj = int(i) + di, int(j) + dj
             kind = universe_system_kind(seed, ci, cj, danger)
             owner = universe_system_side(sides, seed, ci, cj, kind)[0]
-            if owner is not None and _admiralty_side_is_foe(sides, owner, side):
+            if owner is not None and admiralty_side_is_foe(sides, owner, side):
                 pressure += 2 if (di == 0 and dj == 0) else 1
                 if owner not in foes:
                     foes.append(owner)

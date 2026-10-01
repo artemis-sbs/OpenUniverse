@@ -23,7 +23,10 @@ import universe_admiralty.py
 import admiral_chips.py
 # The right-hand panel on both Admiral views: the xESS shell, content as apps.
 import admiral_apps.py
+# The galaxy tile map's orders (the map itself is universe_core's).
+import admiral_galaxy_map.py
 import admiral.mast
+import admiral_galaxy_map.mast
 import galaxy_theater_spike.mast
 # The Admiral's ePADD screens: research and requisition, full screen.
 import admiral_padd.mast

@@ -354,11 +354,10 @@
 //gui/tab/admiral
     jump console_selected 
 
-# Galaxy top tab. On the Admiral it opens the 2D strategic THEATER (a marker board out
-# in dead space), NOT the old GUI grid - the overseer is a detached camera, so its view
-# can ride the galaxy cam. The player Navigation console keeps the grid: a player's
-# client is bound to its ship, so it can't be reassigned to a cam without breaking its
-# other consoles (helm/weapons).
+# Galaxy top tab. By default it opens the galaxy TILE MAP (admiral_galaxy_map.mast) - the
+# same GUI map the player Navigation console draws. With GALAXY_MAP_MODE = "classic" it
+# opens the 2D strategic THEATER below instead (a marker board out in dead space, which
+# only works because the overseer is a detached camera that can ride the galaxy cam).
 #
 # CONTENT only - it is scoped by being ENABLED (gui_tab_enable("galaxy") in the admiral
 # console page above), not by a CONSOLE_SELECT gate here. See GUI.md "Adding a console
@@ -373,6 +372,8 @@
 # restores the system view. Left-click a marker -> the theater //comms (deploy/jump);
 # right-click empty space -> Close (galaxy_theater_spike.mast).
 === admiral_galaxy_view
+    # The tile map (admiral_galaxy_map.mast) unless the A/B knob says classic.
+    jump admiral_galaxy_tiles if galaxy_map_tiles()
     agv_cam = get_inventory_value(client_id, "ADMIRAL_CAM", 0)
     agv_side = universe_console_side(client_id)
     # A COPY PER ADMIRAL: this client's OWN galaxy cam + board region (so two overseers

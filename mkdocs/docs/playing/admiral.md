@@ -107,52 +107,53 @@ fuelled and out of the lethal systems.
 ## The galaxy map - commanding across systems
 
 Everything above is your **home system**. To command the wider galaxy, open the
-**Galaxy** tab. The command camera rides out to a strategic **map of star systems** -
-one icon per system, meshed and coloured by what's there (your bases, foes, nebulae,
-unexplored fog). It's your whole theatre at a glance, and where you move forces
-**between** systems.
+**Galaxy** tab: a map of star systems with north at the top. Each system is a square
+with its symbol in the middle (your bases, foes, nebulae, anomalies, and a hollow square
+for systems you have not charted). The square's **frame** says what the system is to
+you:
 
-**Click a system**, and its orders appear:
-
-- **Send \<captain\> here** - dispatch that fleet to the system. It travels, arrives,
-  and takes orders there (a fleet holds a system *live* while it's on station).
-- **Send \<ship\> here** - vector a **player ship** to the system. You're the strategic
-  navigator: crews fly locally, you move them between systems. (A ship already in the
-  selected system isn't offered - no point sending it where it is.)
-- **Focus here** - take **yourself** (the command camera) to that system to oversee it
-  up close.
-- **Known locations** - a shortcut list of notable systems (home, side capitals, active
-  objectives) to focus on without hunting the map.
-
-The map has its own **filter chips** above it, each with a live count:
-
-| Chip | Shows |
+| Frame | Means |
 |---|---|
-| **Ships** / **Fleets** | your forces' icons, and nothing else |
-| **Orders** | the systems you have sent ships to - where everyone is headed |
-| **Threats** | hostile systems |
-| **Yours** | systems you hold (you have a structure there) |
-| **Worldlets** | systems with a worldlet - i.e. somewhere you could build |
-| **Bases** | your home and the side capitals |
-| **Anomalies** / **Nebulae** | the odd corners worth exploring |
-| **Unknown** | the fog you have yet to chart |
+| Green | yours - you have a structure there |
+| Red | held by a side you are at war with |
+| A side's own color | that side's home, or a system a neutral side holds |
+| Amber band | an antimatter veil - deadly to linger in |
+| Orange | a quest target |
+| Bright green | where your command camera is |
+| Yellow | the system you picked |
 
-Tap one and the map shows only that, tap several to combine them, and **All** brings the
-whole board back. **Worldlets** is the expansion planner: it answers "where can I build
-next" without clicking through systems one at a time.
+Your own forces sit on the frames: **player ships** along the top (tinted green, amber
+or red as their shields fall) and **fleets** along the bottom in gold. A "+" means more
+than three are there. A small flag marks a quest target, and a chevron marks where a
+ship is headed.
 
-A fogged system is in no chip but **Unknown** - its kind, its owner and its worldlets are
-exactly what you have not charted, so no count gives them away.
+The buttons above the map move it: **W / S / N / E** to look around, **Zoom out /
+Zoom in** to see more or fewer systems, **Here** to come back to your own system, and
+**Home** to look at your HQ.
 
-Your own forces show as **live icons** on the map: **player ships** are health-tinted
-fighters (green -> amber -> red as shields fall), **fleets** are gold battle-cruisers
-labelled with their officer and order. Each icon is labelled with **its system** (e.g.
-`Artemis (2,3)`) and, while travelling, where it's headed (`->(2,3)`). Icons show out to
-the edge of the map view; the map updates as forces move - no need to reopen it.
+**Click a system** and the **Orders** panel on the right lists what you can do there:
 
-Beside the map, the **Forces** list ("who is where") names **every** friendly ship and
-fleet and the system it's in - including forces too far away to fit on the map view.
-**Click a row to focus** on that unit's system.
+- **Send \<ship\> here** - vector a **player ship** to the system. You're the strategic
+  navigator: crews fly locally, you move them between systems. A ship already in the
+  system isn't offered.
+- **Deploy \<captain\> here** - dispatch that fleet to the system. It travels, arrives,
+  and takes orders there (a fleet holds a system *live* while it's on station).
+- **Go to** - take **yourself** (the command camera) to that system to oversee it up
+  close. You land back on the system view.
+
+**To order one unit somewhere, click it first, then click where it should go.** Click a
+fleet's token and then a system, and Orders lists *Deploy there*, *Deploy and patrol*,
+*strike* or *hold*. Click a fleet in its own system and you get its standing orders
+(escort, patrol, strike, hold, salvage, withdraw). Click a ship and then a system to
+send it there, or a ship in its own system to recall it home. **Deselect** lets the
+unit go.
+
+**Places** lists the notable systems - home, the sides' capitals, your quest targets -
+and clicking one brings the map there. The **Forces** list ("who is where") names
+**every** friendly ship and fleet and the system it's in, including ones off the map;
+click a row to bring the map to that unit.
+
+The map updates as forces move - no need to reopen it.
 
 !!! note "Your own galaxy map"
     With more than one Admiral, **each commands its own galaxy map**, centred on its own

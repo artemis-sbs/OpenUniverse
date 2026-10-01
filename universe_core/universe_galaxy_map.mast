@@ -1,0 +1,115 @@
+# The player Navigation console's galaxy map, as a TILE MAP (universe_galaxy_map.py).
+#
+# Reached from universe_galaxy_map_gui (universe.mast) when GALAXY_MAP_MODE is "tiles".
+# The map is built ONCE per page: panning regenerates the window under the same tiles and
+# a click changes the selection in place, so only zooming rebuilds the page (the view's
+# tile count is fixed at its build). The right-hand column follows the selection through
+# galaxy_map_revision.
+#
+# The map is in a TOP-LEVEL section on purpose: the tile view repaints itself, which a
+# widget inside a region (a tab panel, a listbox) cannot do.
+
+=== universe_galaxy_map_tiles
+    default JUMP_I = "0"
+    default JUMP_J = "0"
+--- ugm_repaint
+    gui_tab_back(CONSOLE_SELECT)
+    # BEFORE the view is built: a view whose first paint finds no area never draws.
+    galaxy_map_open(client_id, "nav")
+
+    ugm_title_text = galaxy_map_title_text(client_id)
+    gui_section(style="area: 4, 3, 96, 11; background:#1578;")
+    ugm_title = gui_text("$text:{ugm_title_text};justify:center;font:gui-5;")
+
+    # The map. North (+j) is at the top; click a system to pick it (it does not jump).
+    gui_section(style="area: 4, 11, 56, 79; background:#0b1420;")
+    gui_tilemap(None, galaxy_map_area(client_id), cols=galaxy_map_cols(client_id), on_click=galaxy_map_click, fog=False, hints=galaxy_map_hints)
+
+    # Look around. Panning keeps this page; zooming rebuilds it.
+    gui_section(style="area: 4, 80, 56, 90;")
+    gui_row("row-height: 2.2em;")
+    ugm_west = gui_button("$text:< W;font:gui-1;justify:center;")
+    on gui_message(ugm_west):
+        galaxy_map_pan(client_id, -3, 0)
+    ugm_south = gui_button("$text:S v;font:gui-1;justify:center;")
+    on gui_message(ugm_south):
+        galaxy_map_pan(client_id, 0, -3)
+    ugm_north = gui_button("$text:N ^;font:gui-1;justify:center;")
+    on gui_message(ugm_north):
+        galaxy_map_pan(client_id, 0, 3)
+    ugm_east = gui_button("$text:E >;font:gui-1;justify:center;")
+    on gui_message(ugm_east):
+        galaxy_map_pan(client_id, 3, 0)
+    ugm_wider = gui_button("$text:Zoom out;font:gui-1;justify:center;")
+    on gui_message(ugm_wider):
+        if galaxy_map_zoom(client_id, 1):
+            gui_task_jump("ugm_repaint")
+    ugm_closer = gui_button("$text:Zoom in;font:gui-1;justify:center;")
+    on gui_message(ugm_closer):
+        if galaxy_map_zoom(client_id, -1):
+            gui_task_jump("ugm_repaint")
+
+    # The picked system. A text area, updated in place when the selection changes.
+    gui_section(style="area: 58, 11, 96, 32; background:#1572;")
+    gui_row("row-height: 1fr; padding: 4px, 8px, 4px, 10px;")
+    ugm_info_text = galaxy_map_info_text(client_id)
+    ugm_info = gui_text_area(ugm_info_text)
+    on change galaxy_map_revision(client_id):
+        ugm_info.value = galaxy_map_info_text(client_id)
+        ugm_title_text = galaxy_map_title_text(client_id)
+        ugm_title_props = "$text:{ugm_title_text};justify:center;font:gui-5;"
+        ugm_title.update(ugm_title_props)
+
+    # Known places: pick one to look at it.
+    gui_section(style="area: 58, 33, 96, 57; background:#1572;")
+    ugm_places = gui_list_box(galaxy_map_known_places(client_id), "item-gap:0.1em;", item_template=universe_location_template, title_template=universe_location_title, select=True)
+    on change ugm_places.get_value():
+        ugm_place = ugm_places.get_value()
+        if ugm_place is not None:
+            galaxy_map_focus(client_id, ugm_place.i, ugm_place.j, True)
+
+    # Type coordinates to look there.
+    gui_section(style="area: 58, 58, 96, 67;")
+    gui_row("row-height:2em;")
+    """ $text:Go to (i, j):"""
+    gui_input("desc: i;", var="JUMP_I")
+    gui_input("desc: j;", var="JUMP_J")
+    ugm_go = gui_button("$text:Go;justify:center;")
+    on gui_message(ugm_go):
+        galaxy_map_focus(client_id, safe_int(JUMP_I), safe_int(JUMP_J), True)
+
+    gui_section(style="area: 58, 68, 96, 90;")
+    gui_row("row-height: 2.2em;")
+    ugm_warp = gui_button("$text:Jump Here;justify:center;", style="background:#0a6;")
+    # Route by the client's CURRENT ship (see the classic page): a detached overseer cam
+    # takes the camera self-jump, a crew on its own ship the player jump.
+    on gui_message(ugm_warp):
+        ugm_sel = galaxy_map_selected(client_id)
+        nav_ship = sbs.get_ship_of_client(client_id)
+        if ugm_sel is not None and nav_ship:
+            if has_role(nav_ship, "admiral_cam"):
+                task_schedule(universe_admiral_jump, {"ti": ugm_sel[0], "tj": ugm_sel[1], "cam_id": nav_ship, "jump_client": client_id})
+            else:
+                task_schedule(universe_jump_to, {"ti": ugm_sel[0], "tj": ugm_sel[1], "warp_ship": nav_ship})
+    gui_row("row-height: 2.2em;")
+    ugm_center = gui_button("$text:Center on Selected;justify:center;")
+    on gui_message(ugm_center):
+        ugm_sel = galaxy_map_selected(client_id)
+        if ugm_sel is not None:
+            galaxy_map_focus(client_id, ugm_sel[0], ugm_sel[1])
+    gui_row("row-height: 2.2em;")
+    ugm_me = gui_button("$text:Recenter on Me;justify:center;")
+    on gui_message(ugm_me):
+        ugm_here = galaxy_map_owner_cell(client_id)
+        if ugm_here is not None:
+            galaxy_map_focus(client_id, ugm_here[0], ugm_here[1], True)
+
+    # Follow the ship to a new system, and keep tokens and badges current.
+    gui_sub_task_schedule("ugm_watch")
+    await gui()
+
+--- ugm_watch
+    await delay_sim(1)
+    ->END if not UNIVERSE_ACTIVE
+    galaxy_map_sync(client_id)
+    jump ugm_watch

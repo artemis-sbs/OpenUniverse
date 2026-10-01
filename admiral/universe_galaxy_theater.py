@@ -107,16 +107,16 @@ _REL_HOSTILE = "#ff4444"
 def galaxy_theater_marker_color(sides, i, j, side, owner, kind_color):
     """A system marker's radar colour by DIPLOMACY, not just kind. A system YOUR side
     controls (has built a structure in) reads friendly green; one owned by a side HOSTILE to
-    your side (ceasefire-aware, _admiralty_side_is_foe) reads red; one owned by a NEUTRAL side takes
+    your side (ceasefire-aware, admiralty_side_is_foe) reads red; one owned by a NEUTRAL side takes
     that side's own house colour (sides_color); an unowned + uncontrolled system keeps its
     kind colour. So enemy territory - including a foe side's HOME, whose kind is 'station' -
-    stops reading as a neutral cyan base. admiralty_side_controls_cell / _admiralty_side_is_foe /
+    stops reading as a neutral cyan base. admiralty_side_controls_cell / admiralty_side_is_foe /
     sides_color are sibling free globals."""
     if admiralty_side_controls_cell(side, i, j):
         return _REL_FRIENDLY
     if owner is None:
         return kind_color
-    if _admiralty_side_is_foe(sides, owner, side):
+    if admiralty_side_is_foe(sides, owner, side):
         return _REL_HOSTILE
     return sides_color(sides, owner)
 
