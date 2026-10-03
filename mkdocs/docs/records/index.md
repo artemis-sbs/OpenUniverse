@@ -13,7 +13,7 @@ Every record this mission ships, generated from its `.amd` files. These pages ar
 | [Verdant](dialogue/verdant.md) | 4 | `dialogue/verdant.amd` |
 | [Jobs](jobs.md) | 12 | `jobs.amd` |
 | [Lore](lore.md) | 15 | `lore.amd` |
-| [The Quiet Shore](quiet_shore.md) | 25 | `quiet_shore.amd` |
+| [The Quiet Shore](quiet_shore.md) | 20 | `quiet_shore.amd` |
 | [The Fading Signal](scout_signal.md) | 10 | `scout_signal.amd` |
 | [The Silver Reach](silver_reach.md) | 41 | `silver_reach.amd` |
 | [The Broken Accord](skirmish_arena.md) | 17 | `skirmish_arena.amd` |

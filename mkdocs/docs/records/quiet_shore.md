@@ -2,57 +2,17 @@
 
 A boarding site: a colony that is fine, welcoming, and lying.
 
-Declared by a landmark carrying \`Site: quiet_shore\`. Everything here is content - the cast that beams down, the call that arrives when you dock, and the beats they play. The engine side is \`universe_sites.py\` (the seam) and \`universe_sites.mast\` (the arrival); neither knows a word of what follows.
+Declared by a landmark carrying \`Site: quiet_shore\`. Everything here is content - the call that arrives when you dock, and the beats the crew play. The engine side is \`universe_sites.py\` (the seam) and \`universe_sites.mast\` (the arrival); neither knows a word of what follows.
 
-\*\*Every role can reach TWO readings on its own, and the shed opens at \`learned \>= 3\`.\*\* Three is reachable by any crew because a short boarding party DOUBLES UP - one console speaks for several characters, so every role's readings are in play however many people are aboard. The two-per-role floor still matters: it is what keeps a reading worth taking rather than a duplicate of one already had. The first cut broke both rules at once - the engineer read \`cold\` in BOTH rooms and the science officer got nothing at all in the first, so before doubling up a single console could hold exactly one fact and the shed was unreachable, with the east cable looping between itself and the orchard forever. If a reading is moved, check that every role still reaches two DISTINCT facts.
+\*\*The crew go as themselves.\*\* There is no cast in this file. Whoever is at each console beams down as the person they have been all evening, with the job their crew roster gave them (\`Roles:\`), or the seat they left when it gave them none.
+
+\*\*Every role can reach TWO readings on its own, and the shed opens at \`learned \>= 3\`.\*\* Three is reachable by any crew because a job nobody aboard holds is FORWARDED to one console, so every role's readings are in play however many people are aboard. The two-per-role floor still matters: it is what keeps a reading worth taking rather than a duplicate of one already had. The first cut broke both rules at once - the engineer read \`cold\` in BOTH rooms and the science officer got nothing at all in the first, so a single role could hold exactly one fact and the shed was unreachable, with the east cable looping between itself and the orchard forever. If a reading is moved, check that every role still reaches two DISTINCT facts.
 
 \*\*Every room is REVERSIBLE, not just exitable.\*\* The east cable used to offer only two flavour loops and a gated shed, so a party that walked there under-informed could go back to nothing - the only way out was off the planet. A room whose options all loop is a dead end however many of them there are. Every room now leads BACK as well as on, and a gated \`%{learned \< 3}\` line says plainly that they have not found enough yet, rather than leaving the crew to guess whether the game is broken.
 
 \*\*Every room offers a way home.\*\* The shed is the only scene that ENDS the visit on its own, and it is gated at \`learned \>= 3\` - so without a \`- \[Beam back up\]()\` in each room a party that gathers two readings is stuck walking between them with no exit at all. That is what happened the first time this was played.
 
-\*\*The shape worth keeping.\*\* Every room offers each character something only they can do, and nobody can take all four. A reading that matters carries \`; learn \<name\>\`; the shed opens at \`if learned \>= 3\`. Three of the four, so there is no single correct route through Ferrow Landing, and \`learn\` is a set - walking back into a room you have already read counts once. What is wrong with Ferrow Landing is legible only when the party puts its readings together and finds they do not agree - which is the whole reason this is played by four people at four consoles rather than one person with a menu.
-
-## Boarding Party {: #quiet-shore-team}
-
-### Dr Sorel {: #quiet-shore-team-sorel}
-
-| Fact | Value |
-|---|---|
-| Face | terran_female |
-| Roles | boarding, medical |
-| Color | `"#4cf"` |
-
-Ship's surgeon. Reads bodies, and does not much care what the paperwork says.
-
-### Chief Ruiz {: #quiet-shore-team-ruiz}
-
-| Fact | Value |
-|---|---|
-| Face | terran_male |
-| Roles | boarding, engineering |
-| Color | `"#fc4"` |
-
-Engineer. Trusts machines further than the people running them.
-
-### Ensign Vale {: #quiet-shore-team-vale}
-
-| Fact | Value |
-|---|---|
-| Face | terran_male |
-| Roles | boarding, security |
-| Color | `"#f66"` |
-
-Security. Reads rooms. Notices what is missing before what is there.
-
-### Lt Anders {: #quiet-shore-team-anders}
-
-| Fact | Value |
-|---|---|
-| Face | terran_fluid |
-| Roles | boarding, science |
-| Color | `"#8f8"` |
-
-Science officer. Would rather be right slowly than first.
+\*\*The shape worth keeping.\*\* Every room offers each job something only it can do: a medic, an engineer, somebody from security, a science officer. A reading that matters carries \`; learn \<name\>\`; the shed opens at \`if learned \>= 3\`. Three of the four, so there is no single correct route through Ferrow Landing, and \`learn\` is a set - walking back into a room you have already read counts once. What is wrong with Ferrow Landing is legible only when the party puts its readings together and finds they do not agree - which is why it plays best with several people at several consoles rather than one person with a menu.
 
 ## Voices {: #quiet-shore-voices}
 
