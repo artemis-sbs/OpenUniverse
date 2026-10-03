@@ -79,7 +79,7 @@ Built-in goods for `recover`: `provisions`, `ore`, `gas`, `tech`,
 | `Scope:` | Who holds it - `shared` is one quest for the whole game, `ship` gives every player ship its own copy. |  |
 | `Reward:` | What COMPLETING it gives - credits, an item key, or a reputation clause. | `Pays:` |
 | `Win:` | Completing this WINS the mission. |  |
-| `Lose:` | Completing this LOSES the mission. |  |
+| `Lose:` | FAILING this loses the game. Completing it does not. |  |
 | `Citation:` | The commendation read out on the end screen. |  |
 | `Standing:` | Reputation moved on completion - `side pole delta`, comma-separated. | `Earns:` |
 <!-- amd:end -->
