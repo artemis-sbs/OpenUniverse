@@ -103,7 +103,9 @@ default shared UNIVERSE_SITE_CALL_DELAY = 4
     # ever seated in it, and because it was never closed either, every later arrival
     # at any site saw "somebody is already down there" and stopped.
     universe_site_first = next(iter(universe_site_dscenes), None)
-    universe_site_invite = boarding_visit(SITE_SHIP, universe_site_dscenes, universe_site_first, title=universe_site_title(universe_site_dkey))
+    # `place=` is the SITE'S KEY: what the party works out here is kept under it, so two
+    # sites that happen to share a title do not share what was learned at them.
+    universe_site_invite = boarding_visit(SITE_SHIP, universe_site_dscenes, universe_site_first, title=universe_site_title(universe_site_dkey), place=universe_site_dkey)
     set_inventory_value(SITE_SHIP, "SITE_PENDING", None)
     if universe_site_invite is None:
         log(f"site '{universe_site_dkey}': the visit would not open", "universe", "warning")
