@@ -2,7 +2,7 @@
 #
 # `universe_sites.py` owns the seam - reading a `Site:` file, binding it to the landmark's
 # object, releasing it with the cell. This owns the ARRIVAL: noticing that a crew has
-# reached one, offering the call, and handing the consoles to the `boarding` addon.
+# reached one, offering the call, and opening the visit.
 #
 # Two ways to arrive, because a site is whatever the landmark is:
 #
@@ -48,7 +48,7 @@ default shared UNIVERSE_SITE_CALL_DELAY = 4
     # Somebody is already down there. With two ships in two systems that is a live case
     # rather than a corner: the boarding module holds ONE open scene, so a second crew
     # arriving would take over the first crew's beat.
-    ->END if boarding_is_open()
+    ->END if boarding_visiting() is not None or boarding_is_open()
     ->END if get_inventory_value(SITE_OBJECT, "SITE_ASKED", False)
 
     universe_site_scenes_now = universe_site_scenes(universe_site_key)
@@ -87,32 +87,38 @@ default shared UNIVERSE_SITE_CALL_DELAY = 4
 
 # Down they go.
 === universe_site_descend
-    ->END if boarding_is_open()
+    ->END if boarding_visiting() is not None or boarding_is_open()
     universe_site_dkey = get_inventory_value(SITE_OBJECT, "SITE_KEY", None)
     ->END if universe_site_dkey is None
     universe_site_dscenes = universe_site_scenes(universe_site_dkey)
     ->END if universe_site_dscenes is None or len(universe_site_dscenes) == 0
 
-    # The cast is spawned HERE, not at load: a lifeform is a body in the world, and a
-    # site that has been read but never visited has no world to put one in.
-    universe_site_cast = universe_site_spawn_cast(universe_site_dkey)
-    ->END if universe_site_cast is None or len(universe_site_cast) == 0
-
-    # `if medical >= 1` is answered against the ANSWERING character's roles. Installed
-    # here rather than at setup because it COMPOSES with whatever resolver is already in
-    # place - OU claims one at import - so calling it late, or twice, is safe.
-    boarding_metric_install()
-
+    # THE CREW GO AS THEMSELVES, and one call owns the whole visit. `boarding_visit`
+    # opens a party made of the people already at the consoles - their name, face and
+    # `Roles:` - begins the first room, and when the scene closes it shuts the party
+    # and brings every console home.
+    #
+    # This used to begin the scene and then emit `boarding_begin`, whose only listener
+    # is the legacy away console (off by default). So the scene opened, nobody was
+    # ever seated in it, and because it was never closed either, every later arrival
+    # at any site saw "somebody is already down there" and stopped.
     universe_site_first = next(iter(universe_site_dscenes), None)
-    boarding_scene_begin(universe_site_dscenes, universe_site_first)
-
-    # Hand the consoles over. The `away` addon owns the morph, the screens and the way
-    # home; this file has no opinion about any of them.
-    signal_emit("boarding_begin", {
-        "BOARDING_SHIP": SITE_SHIP,
-        "BOARDING_ROSTER": list(universe_site_cast.values()),
-        "BOARDING_TITLE": universe_site_title(universe_site_dkey),
-    })
+    universe_site_invite = boarding_visit(SITE_SHIP, universe_site_dscenes, universe_site_first, title=universe_site_title(universe_site_dkey))
     set_inventory_value(SITE_SHIP, "SITE_PENDING", None)
-    log(f"site '{universe_site_dkey}': team down, scene={boarding_scene()}", "universe")
+    if universe_site_invite is None:
+        log(f"site '{universe_site_dkey}': the visit would not open", "universe", "warning")
+        ->END
+    # Which site this ship is at, so the end of the visit can hand it back.
+    set_inventory_value(SITE_SHIP, "SITE_VISITING", SITE_OBJECT)
+    log(f"site '{universe_site_dkey}': party open, scene={boarding_scene()}", "universe")
+    ->END
+
+
+# The visit is over: everyone is back aboard. Re-arm the site, so docking again offers
+# the call again - a crew that beamed up early can go back for what they missed.
+//shared/signal/boarding_visit_ended
+    universe_site_was = get_inventory_value(BOARDING_SHIP, "SITE_VISITING", None)
+    ->END if universe_site_was is None
+    set_inventory_value(BOARDING_SHIP, "SITE_VISITING", None)
+    set_inventory_value(universe_site_was, "SITE_ASKED", False)
     ->END

@@ -2,10 +2,14 @@
 
 A landmark carrying `Site:` is neither a prop nor an interior you fly into. It is
 somewhere the crew leaves the ship for: a colony dome, a silent outpost, a station whose
-crew stopped answering. The scene it plays is authored as a self-contained `.amd` - a
-cast under `## Boarding Party`, beats under `## Scenes`, optionally an arrival call under
-`## Hails` - and the away module (`sbs_utils.procedural.boarding`) drives it, giving every
-console its own character with its own menu.
+crew stopped answering. The scene it plays is authored as a self-contained `.amd` -
+beats under `## Scenes`, optionally an arrival call under `## Hails` - and the boarding
+module (`sbs_utils.procedural.boarding`) drives it, giving every console its own menu.
+
+**The crew go as themselves.** A site file has no cast of its own: the party is the
+people already at the consoles, with the name, face and `Roles:` the ship's crew roster
+gave them, and a job nobody aboard holds is forwarded to one console. One cast per
+ship, for the whole story - the person on the bridge is the person who boards.
 
 This is the same shape `universe_relics.py` has, for the same three reasons:
 
@@ -16,9 +20,9 @@ This is the same shape `universe_relics.py` has, for the same three reasons:
 * **Two sites can be live at once** - two ships in two systems, Model A. Nothing here may
   assume there is only one.
 
-**The content is portable, and that is the point.** The `## Boarding Party` / `## Scenes`
-vocabulary is exactly what a standalone mission uses (`LandingParty`), so a site file
-written for one plays in the other unchanged. `Site:` is the seam, not a second dialect.
+**The content is portable, and that is the point.** The `## Scenes` vocabulary is exactly
+what a standalone mission uses, so a site file written for one plays in the other
+unchanged. `Site:` is the seam, not a second dialect.
 
 Every function is prefixed `universe_` because an addon's module-level functions land in
 one flat, mission-wide MAST namespace - a leading underscore does not make one private.
@@ -26,7 +30,6 @@ one flat, mission-wide MAST namespace - a leading underscore does not make one p
 
 from sbs_utils.procedural.amd_dialogue import dialogue_scenes
 from sbs_utils.procedural.amd_doc import amd_document, amd_section
-from sbs_utils.procedural.amd_lifeforms import lifeforms_spawn
 from sbs_utils.procedural.amd_mission import amd_mission_data
 from sbs_utils.procedural.execution import log
 from sbs_utils.procedural.inventory import set_inventory_value
@@ -41,7 +44,7 @@ _UNIVERSE_SITES = {}
 # Parsed site files, by key. The record is what a hail, a quest or a comms line asks
 # about, and it must answer whether or not anyone is currently standing in the place -
 # so registering is separate from placing, exactly as it is for relics.
-# {key: {"key", "file", "scenes", "cast", "hails", "name"}}
+# {key: {"key", "file", "scenes", "hails", "name"}}
 _UNIVERSE_SITE_RECORDS = {}
 
 # Files already read, so a second landmark naming a key that is not in the file gets
@@ -109,11 +112,6 @@ def universe_site_load(key, fname, content=None):
         "key": key,
         "file": fname,
         "scenes": scenes,
-        # The CAST IS NOT SPAWNED HERE. Spawning is an arrival-time act - a lifeform is a
-        # body in the world, and a cell that has not been visited has no world to put one
-        # in. Held as the section so `universe_site_arrive` can spawn on arrival and the
-        # bodies go with the cell.
-        "cast_section": amd_section(doc, "team"),
         "hails": dialogue_scenes(amd_section(doc, "hails")) or {},
         "name": None,
     }
@@ -198,28 +196,6 @@ def universe_site_title(key):
     if rec is None:
         return str(key or "").upper()
     return str(rec.get("name") or rec.get("key") or key).upper()
-
-def universe_site_cast_section(key):
-    """The site's `## Boarding Party` section, for spawning its bodies on arrival."""
-    rec = universe_site_record(key)
-    return (rec or {}).get("cast_section")
-
-
-def universe_site_spawn_cast(key):
-    """Spawn the site's cast. Returns `{member_key: lifeform}`, or `{}`.
-
-    Deliberately NOT done at load: a lifeform is a body in the world, and a site that has
-    been read but never visited has no world to put one in. Called on arrival.
-    """
-    section = universe_site_cast_section(key)
-    if section is None:
-        return {}
-    try:
-        return lifeforms_spawn(section) or {}
-    except Exception as e:
-        log(f"site '{key}' cast would not spawn: {e}", "universe", "warning")
-        return {}
-
 
 def universe_site_release_cell(ei, ej):
     """Release every site in a cell. Called as the cell is torn down.
