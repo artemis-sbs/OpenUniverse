@@ -1,7 +1,9 @@
 # Troubleshooting - the five classic mistakes
 
-1. **Curly quotes and long dashes** from drafting in Word. The game speaks
-   plain keyboard characters only. Fix the quotes, or better, draft in a
+1. **Curly quotes and long dashes** from drafting in Word. The game draws
+   plain keyboard characters only. It swaps a curly quote or a long dash for
+   the plain one as it reads your file, so the crew sees clean text, and
+   `sbs lint` names each one so you can fix it. Better, draft in a
    plain-text editor from the start.
 
 2. **A key that doesn't match.** `Offers: bounty` needs a job whose heading
@@ -10,8 +12,13 @@
    Misspelled keys don't error - the connection just quietly never happens.
    When something is silently missing in play, check its key first.
 
-3. **No space after the `#`.** `### Name (key)` works; `###Name (key)` does
-   not. Same for the fence: it must be a line of *only* dashes.
+3. **A heading that is not quite a heading.** `### [Name](key)` works. These
+   do not, and the entry they were meant to start is simply not there:
+   `###[Name](key)` (no space after the `#`), `### Name (key)` (no square
+   brackets), `### [Name] (key)` (a space before the round bracket), and
+   anything with spaces in front of the `#`. Same for the fence: it must be
+   a line of exactly three dashes, `---`, and nothing else. `sbs lint` names
+   each of these.
 
 4. **A fact outside the fence** (or prose inside it). Facts go between the
    `---` lines; story goes below them. If a `Color:` line is showing up in
@@ -26,27 +33,30 @@ When you're lost, this is the whole shape of a universe file - every chapter
 optional, every entry the same heading / fact sheet / prose shape:
 
 ```
-# The Silver Reach              <- the title and the world's prose
-## Sides                        <- the factions (character sheets)
+# [The Silver Reach](the_silver_reach)    <- the title and the world's prose
+## [Sides](sides)                         <- the factions (character sheets)
 ### [The Lantern Combine](lantern)
 ### [The Red Veil](veil)
-## Jobs                         <- the work sides offer
+## [Jobs](jobs)                           <- the work sides offer
 ### [Convoy Escort](escort)
-## Narrative                    <- the story, chapter by chapter
+## [Narrative](narrative)                 <- the story, chapter by chapter
 ### [The Dimming: A Cold Lane](dimming_1)
-## Goals                        <- how the campaign ends
+## [Goals](goals)                         <- how the campaign ends
 ### [Break the Veil](goal_break_veil)
-## Regions                      <- the map's moods
+## [Regions](regions)                     <- the map's moods
 ### [The Veilfall](veilfall)
-## Landmarks                    <- the legendary places
+## [Landmarks](landmarks)                 <- the legendary places
 ### [The Pale Ark](pale_ark)
-## Captains                     <- the named people
+## [Captains](captains)                   <- the named people
 ### [Mara Dusk](mara)
-## Lifeforms                    <- the comms cast and passengers
+## [Lifeforms](lifeforms)                 <- the comms cast and passengers
 ### [Harbormaster Quill](quill)
-## Dialogue                     <- the words
+## [Dialogue](dialogue)                   <- the words
 ### [Veil Hail](veil_hail)
 ```
+
+Every heading, chapters included, is written `[Name](key)`. (The arrows and
+the words after them are notes on this page, not part of the file.)
 
 The rest is world-building - and that part was always your job, not the
 computer's.
