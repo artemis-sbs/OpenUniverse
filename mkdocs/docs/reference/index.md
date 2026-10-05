@@ -47,7 +47,7 @@ The built-in trait pairs: `honest`/`liar`, `fearsome`/`cowardly`,
 <!-- amd:begin fields quest --only tier,objective,done when,reward,standing -->
 | Field | Meaning | Also |
 |---|---|---|
-| `Objective:` | The sentence the player reads in the quest log. |  |
+| `Objective:` | The one-line instruction. The quest log shows it above the description when you typed one; the boards and printed documents show it either way, and use one made from `Done when:` when you leave it out. |  |
 | `Done when:` | The COMPLETION trigger - what has to happen for this quest to be done. | `Goal:` |
 | `Reward:` | What COMPLETING it gives - credits, an item key, or a reputation clause. | `Pays:` |
 | `Tier:` | Optional ordering for the quest log. |  |
