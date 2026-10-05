@@ -27,8 +27,11 @@ makes them easier to see and safer to edit.
    (`Ctrl+Shift+P`), run **Extensions: Install from VSIX…**, and pick the file
    you downloaded.
 4. **Open your mission folder** (the one with your `.amd` files) and open any
-   `.amd` file. Colors appear immediately; the smart features come online a
-   moment later.
+   `.amd` file. Colors appear immediately.
+5. **Trust the folder.** VS Code opens a new folder in Restricted Mode, with a band
+   across the top. Click `AMD: trust this folder` at the bottom right (or **Manage** on
+   the band) and choose **Trust**; the smart features come online a moment later.
+   (With an add-on older than 0.9.4 there are no colors either until you do.)
 
 !!! note "It finds Cosmos on its own"
     The smart features (error-checking, the map/graph, face previews) are powered
