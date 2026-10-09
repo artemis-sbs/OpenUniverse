@@ -95,6 +95,13 @@ def _ou_facts(data, label, value):
         data["costs"] = amd_weighted(value)
     elif label == "unlocks":
         data["unlocks"] = amd_list(value)
+    elif label == "time":
+        # A research milestone's `Time:` is a plain number of SECONDS - the game waits
+        # exactly that long (admiral.mast, admiralty_research_task). Claimed here, ahead
+        # of the field registry, because the shared `economy` trait also has a `time`,
+        # and THAT one is a duration whose bare number means minutes: a milestone that
+        # said `Also: economy` had its `Time: 40` read as 2,400 seconds.
+        data["time"] = amd_num(value)
     elif label == "command points":
         data.setdefault("admiralty", {})["command_points"] = amd_num(value)
     elif label == "fleet gas burn":
@@ -241,8 +248,13 @@ def _declare_universe_vocabulary():
         # as well as lifeform because the sections that DO the splicing - Captains, Cast,
         # Dialogue - sit under the universe root and resolve as map.
         "file": text(hint="a sibling .amd spliced into this section"),
-        "economy pace": pct(), "research pace": pct(), "relay rate": pct(),
-        "worldlet chance": pct(), "skirmish pressure": pct(),
+        # Three dials that are WORDS. They were declared as percentages, so a tool
+        # offered `40%` for them and nothing could say `Economy pace: fast` is not one.
+        "economy pace": enum("brisk", "standard", "epic"),
+        # Parsed and kept, but nothing reads it yet - the ladder runs at the times written.
+        "research pace": text(hint="not used yet"),
+        "skirmish pressure": enum("border", "none", "off"),
+        "relay rate": pct(), "worldlet chance": pct(),
         "skirmish interval": integer(hint="seconds"),
         "mia timer": integer(hint="seconds"),
         "start ore": integer(), "start gas": integer(), "start crew": integer(),
@@ -285,14 +297,20 @@ def _declare_universe_vocabulary():
     amd_register_section_names(("worldlets",), "landmark", domain="universe")
     amd_register_section_names(("admiralty",), "map", domain="universe")
     # A trade good IS an item - a thing with a weight that scatters as loot. A research
-    # milestone is an item you unlock, and what it costs and how long it takes come
-    # from the shared `economy` trait.
+    # milestone is an item you unlock. What it costs and how long it takes are declared
+    # HERE, on the item, not borrowed from the shared `economy` trait: a milestone
+    # without `Also: economy` was told `Costs:` and `Time:` are "not a field an item
+    # has", and one WITH it had its seconds read as minutes (see `time` in _ou_facts).
+    # The archetype wins a name collision with a trait, so a file that still says
+    # `Also: economy` on a milestone reads the same as one that does not.
     amd_register_section_names(("goods",), "item", domain="universe")
     amd_register_section_names(("research",), "item", domain="universe")
     amd_register_fields("item", {
         "branch": text(hint="which ladder this milestone sits on"),
         "unlocks": text(hint="storage N | extraction N% | requisition <item>"),
         "requires": ref("node", hint="the milestone before this one"),
+        "costs": weighted(hint="ore 120, gas 40"),
+        "time": integer(hint="seconds"),
     }, domain="universe")
     # Not "crew": sbs_utils owns that section name for its crew-roster archetype, and a
     # second claim raises - which aborted this whole registration (the last line, so

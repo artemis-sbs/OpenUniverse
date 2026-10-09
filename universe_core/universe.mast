@@ -219,7 +219,7 @@ default shared UNIVERSE_START_CELL = None
     # chapter. admiralty_active() stays False until the admiral addon (if loaded) enables it.
     universe_mode_configure(universe_admiralty_cfg(UNIVERSE_DOC))
     # Admiral economy addon (ADMIRAL_CONSOLE.md): parse + register its content ONLY when
-    # the admiral mastlib is loaded. A story/campaign mission omits that mastlib, so
+    # the admiral mastlib is loaded. A mission that wants no Admiral may omit that mastlib, so
     # admiral_present() is False and none of these admiral symbols are ever evaluated -
     # this if-block IS the optional-addon boundary (Phase 2b). Inactive (zero worldlets,
     # no Admiral game) unless the universe also authors an Admiralty chapter + worldlets.

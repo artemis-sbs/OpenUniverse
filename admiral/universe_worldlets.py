@@ -527,6 +527,29 @@ def admiralty_restore_platforms_all(saved, i, j):
         admiralty_restore_platforms(universe_primary_side(), saved, i, j)
 
 
+def _platforms_by_side(value):
+    """A platform snapshot ({side: [{k, w}]}, or the legacy flat list) as
+    {side: sorted [(kind, worldlet index)]}, sides with nothing left out."""
+    if isinstance(value, list):
+        value = {universe_primary_side(): value}
+    out = {}
+    if isinstance(value, dict):
+        for side, plats in value.items():
+            rows = sorted((str(p.get("k")), int(p.get("w") or 0))
+                          for p in (plats or []) if hasattr(p, "get"))
+            if rows:
+                out[str(side)] = rows
+    return out
+
+
+def admiralty_platforms_differ(now, stored):
+    """True when a cell's platforms (admiralty_snapshot_platforms_all) are not what its
+    save delta holds - something was built, lost or captured since the last look. The
+    economy tick writes the save file when this says so. Order does not matter, and
+    "nothing built" is the same as "nothing stored" (None, {} and [] are all none)."""
+    return _platforms_by_side(now) != _platforms_by_side(stored)
+
+
 def admiralty_relay_tick(side, systems, cur_i, cur_j, dt_seconds):
     """Remote income (slice 4): every OTHER system whose systems delta shows a
     Relay Gate feeds the pools at the Relay rate, drawn against that system's

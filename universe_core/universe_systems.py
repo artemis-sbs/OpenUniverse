@@ -36,6 +36,17 @@ def _ring_pos(r, rmin, rmax):
     return (math.cos(ang) * dist, r.uniform(-300.0, 300.0), math.sin(ang) * dist)
 
 
+def _deck_is_origin(i, j):
+    """True for cell (0, 0) - where every new game starts. False when the caller did
+    not say which cell this is (i / j are optional on the deck)."""
+    if i is None or j is None:
+        return False
+    try:
+        return int(i) == 0 and int(j) == 0
+    except (TypeError, ValueError):
+        return False
+
+
 def universe_system_deck(key, kind, owner, archetype=None, foe=False, difficulty=5, i=None, j=None):
     """POI descriptors for a system, drawn deterministically from its key.
 
@@ -95,10 +106,16 @@ def universe_system_deck(key, kind, owner, archetype=None, foe=False, difficulty
     # always gets one (a settled type when authored) so the Admiral's opening economy
     # exists from minute zero. (No behaviour change with the admiral addon: without
     # worldlet types admiralty_active() was already the effective gate.)
+    #
+    # "The home system" is cell (0, 0), whatever KIND it arrives here as. A side whose
+    # `Home:` is 0, 0 turns that cell into (owner, "station") in universe_system_side,
+    # so testing the kind alone gave such a universe an Admiral with nothing to build
+    # on: no worldlet at home, so no Headquarters, so no economy at all. Only that one
+    # cell is widened - every other side home is still an ordinary station system.
     if admiralty_active():
         draw = r.random() < universe_generation("worldlet", i, j)
         wkey = None
-        if kind == "home":
+        if kind == "home" or _deck_is_origin(i, j):
             wkey = universe_worldlet_home_pick()
         elif draw:
             wkey = universe_worldlet_pick(r)

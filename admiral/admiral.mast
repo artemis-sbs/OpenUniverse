@@ -48,6 +48,14 @@
     # into one key, corrupting the save when two systems were live. Platform/relay
     # snapshots are per-SIDE (the _all wrappers), so a second player side's works in
     # the same cell aren't clobbered by the primary side's empty snapshot.
+    #
+    # A cell whose PLATFORMS changed since the last pass is also written to the save
+    # file, below. The delta above only lives in memory until something calls
+    # universe_save, and until now that was a jump (or a capture, or a market deal): an
+    # Admiral who built a Headquarters and a Shipyard at home and stopped for the night
+    # came back to the ore spent, the fleet afloat, and no Headquarters. Platforms only -
+    # reserves and relay rates move every pass, and ride along with the next write.
+    adm_platforms_moved = False
     for _lc in universe_live_cells():
         _lci = _lc[0]
         _lcj = _lc[1]
@@ -59,8 +67,14 @@
         if len(_lc_res) == 0:
             continue
         universe_systems = universe_set_system_value(universe_systems, _lci, _lcj, "worldlet_reserves", _lc_res)
-        universe_systems = universe_set_system_value(universe_systems, _lci, _lcj, "admiral_platforms", admiralty_snapshot_platforms_all(_lci, _lcj))
+        _lc_plats = admiralty_snapshot_platforms_all(_lci, _lcj)
+        _lc_had = universe_system_value(universe_systems, _lci, _lcj, "admiral_platforms", None)
+        if admiralty_platforms_differ(_lc_plats, _lc_had):
+            adm_platforms_moved = True
+        universe_systems = universe_set_system_value(universe_systems, _lci, _lcj, "admiral_platforms", _lc_plats)
         universe_systems = universe_set_system_value(universe_systems, _lci, _lcj, "adm_relay", admiralty_relay_snapshot_all(_lci, _lcj))
+    if adm_platforms_moved:
+        universe_save(universe_seed, universe_i, universe_j, universe_systems)
     jump econ_loop
 
 

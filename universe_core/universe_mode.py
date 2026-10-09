@@ -4,6 +4,10 @@ Extracted from universe_worldlets.py in Phase 2b (the universe_core / admiral ma
 split) so a CORE-ONLY mission (a `story`/`campaign` universe that does NOT load the
 admiral economy addon) still has mission_mode() and admiralty_active().
 
+Loading the addon is not enough to wake it. `story` never runs the Admiral; `campaign`
+runs it only when the universe file has its own `## Admiralty` chapter (MODE_PRESETS);
+and in every Mode it needs `## Worldlets` types as well.
+
 The split's invariant: **admiralty_active() can only be True when the `admiral` addon
 is loaded** (the addon calls universe_mode_mark_admiral_present() at load) AND the
 active Mode's preset allows the RTS AND the universe authored admiral content (worldlet
@@ -16,14 +20,21 @@ from universe_sides.py; no relative sibling imports.
 
 # Mission-shape presets (the `Mode` dial). Each preset provides DEFAULTS for a few
 # dials; a dial the author sets explicitly always wins. `admiral` gates whether the RTS
-# economy runs at all (a story/campaign mission runs none even if a Worldlets/Admiralty
-# chapter is present). The economy_pace / skirmish_pressure defaults are consumed by the
-# admiral addon (universe_worldlets.admiralty_configure) when it is loaded.
+# economy runs at all:
+#   True        the Mode permits it (it still needs the admiral addon and worldlet types)
+#   False       never - a `story` mission runs none even if the chapters are present
+#   "optional"  only when the universe file has its OWN `## Admiralty` chapter. This is
+#               `campaign`: a persistent single-ship epic by default, and the same epic
+#               with an Admiral beside the bridge crew when the author writes the chapter.
+#               A `## Scenario` chapter alone does not count, and neither does a
+#               `## Worldlets` chapter alone.
+# The economy_pace / skirmish_pressure defaults are consumed by the admiral addon
+# (universe_worldlets.admiralty_configure) when it is loaded.
 MODE_PRESETS = {
     "sandbox":  {"admiral": True,  "economy_pace": "standard", "skirmish_pressure": "border"},
     "skirmish": {"admiral": True,  "economy_pace": "brisk",    "skirmish_pressure": "border"},
     "war":      {"admiral": True,  "economy_pace": "epic",     "skirmish_pressure": "border"},
-    "campaign": {"admiral": False, "economy_pace": "epic",     "skirmish_pressure": "off"},
+    "campaign": {"admiral": "optional", "economy_pace": "epic", "skirmish_pressure": "off"},
     "story":    {"admiral": False, "economy_pace": "standard", "skirmish_pressure": "off"},
 }
 
@@ -38,12 +49,18 @@ def universe_admiralty_cfg(doc):
     `## Scenario` `Mode:`, or None when neither is authored. Pure universe_section
     data (core-safe). The admiral addon reads the whole dict; core reads only `mode`.
     Returns non-None whenever EITHER chapter has content, so `Mode: story` alone
-    (a Scenario chapter, no Admiralty) still configures the Mode."""
+    (a Scenario chapter, no Admiralty) still configures the Mode.
+
+    `own_chapter` is True in the dict when the file has a `## Admiralty` chapter of its
+    own, however empty its fence is. That is what a `campaign` needs before it runs an
+    Admiral (MODE_PRESETS), and it is what makes an Admiralty chapter with an empty fence
+    count as "authored" in every Mode - it used to read the same as no chapter."""
     section = universe_section(doc, "admiralty")
     cfg = {}
     if section is not None:
         data = section.get("data") or {}
         cfg = dict(data.get("admiralty") or {})
+        cfg["own_chapter"] = True
         gen = data.get("generation") or {}
         if "worldlet" in gen:
             cfg["worldlet_chance"] = gen["worldlet"]
@@ -68,12 +85,17 @@ def universe_mode_configure(cfg):
     if cfg and cfg.get("mode") is not None:
         mode = str(cfg.get("mode")).strip().lower()
     _MODE = mode if mode in MODE_PRESETS else "sandbox"
-    _MODE_ALLOWS_ADMIRAL = bool(MODE_PRESETS[_MODE].get("admiral", True))
+    allows = MODE_PRESETS[_MODE].get("admiral", True)
+    if allows == "optional":
+        # campaign: the Admiral is the author's choice, made by writing the chapter.
+        allows = bool(cfg and cfg.get("own_chapter"))
+    _MODE_ALLOWS_ADMIRAL = bool(allows)
     _MODE_ACTIVE = False
 
 
 def universe_mode_set_admiral_active(has_content):
-    """The admiral addon enables the RTS for this load: active iff the Mode allows it,
+    """The admiral addon enables the RTS for this load: active iff the Mode allows it
+    (in a campaign: the file has its own Admiralty chapter - universe_mode_configure),
     the addon is present, and the universe authored admiral content (worldlet types).
     Called from the admiral addon's admiralty_configure."""
     global _MODE_ACTIVE

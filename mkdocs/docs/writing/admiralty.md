@@ -111,6 +111,9 @@ A small settled world. People, modest industry, and somewhere to come from.
 - **Palette** is optional - it paints the planet (base color, cloud color,
   and `bands` for a gas giant's stripes). Skip it and you get an engine default.
 - The **home system always gets one** worldlet so the player can always start.
+  The home system is where a new game begins, system `0, 0` - and that holds when
+  one of your sides has its `Home:` there too. It is the first type you wrote with
+  no `Reserve:` (or `Reserve: unlimited`), or your first type if they all run dry.
   Elsewhere they appear by chance (the `Worldlet chance` dial in step 6), or you
   pin one to a place as a [Landmark](map.md) with `Kind: worldlet`.
 
@@ -179,6 +182,14 @@ Better drills, hotter crackers. Every extractor works a quarter again as fast.
 speeds every extractor, and `requisition <item>` adds hardware to the catalog.
 Chain milestones with `Requires:` to build a ladder climbed one rung at a time.
 
+- **Time** is a plain number of **seconds**: `Time: 40` is forty seconds at the Lab.
+  Write the number alone - `Time: 2 minutes` is not read.
+- **Costs** is paid in full when the research starts, from the same stockpiles the
+  platforms are built from.
+- A milestone needs **no `Also: economy` line**. `Costs:` and `Time:` are a
+  milestone's own fields. (A file that has the line still reads the same; an older
+  build read its `Time: 40` as forty *minutes*.)
+
 ## Step 6 - tune the dials (only if you want to)
 
 The whole game above ran on defaults. When you want to reshape it, the
@@ -199,8 +210,19 @@ Skirmish pressure: border // where border raids come from (border, or none)
 Skirmish interval: 240    // seconds between border raids
 MIA timer: 300            // rescue window for a downed captain's pod, in seconds
 Relay rate: 50%           // income a Relay Gate keeps paying from a system you left
-Research pace: campaign   // how quickly the tech ladder is meant to be climbed
+Research pace: campaign   // not used yet - the ladder runs at the times you wrote
 ```
+
+`Economy pace` is one of three words (`brisk`, `standard`, `epic`) and
+`Skirmish pressure` is `border`, `none` or `off`; `sbs lint` says so when one is
+misspelled. `Research pace` is kept in the file but nothing reads it yet.
+
+!!! warning "The numbers are multiplied by 8 for now"
+    While the Admiral is being playtested, every start stockpile, the storage cap,
+    every reserve and every yield is multiplied by 8 on top of the pace (`Start ore: 300` opens a
+    standard game with 2,400). Research `Costs` and `Time` are **not** multiplied, so
+    for now the ladder is cheap next to the stockpiles. Tune your numbers against each
+    other, not against that - the multiplier is temporary.
 
 The Admiral commands from the **overseer**: a detached camera over a system-wide 2D
 map where you select objects to act (worldlet build, fleet orders, platform actions).
@@ -230,14 +252,46 @@ Mode: story
 | `sandbox` | on | standard | border | today's living universe (default) |
 | `skirmish` | on | brisk | border | a punchy 1–3 h RTS |
 | `war` | on | epic | border | a long, multi-side war |
-| `campaign` | **off** | epic | off | a persistent single-ship epic |
+| `campaign` | **your choice** | epic | off | a persistent single-ship epic, with or without an Admiral |
 | `story` | **off** | standard | off | a bounded 1–2 h narrative |
 
-`campaign`/`story` switch the **admiral economy off entirely** even if a Worldlets
-chapter is present — so a story mission can reuse the universe without the RTS. An
-unknown or omitted mode is `sandbox`. (More of the mission shape — hostile side
-relations, victory/defeat conditions, which subsystems load — folds into `Mode` in
-later phases; today it drives the admiral/economy/skirmish switches.)
+`story` switches the **admiral economy off entirely** even if the chapters are
+present — so a story mission can reuse the universe without the RTS. An unknown or
+omitted mode is `sandbox`. (More of the mission shape — hostile side relations,
+victory/defeat conditions, which subsystems load — folds into `Mode` in later phases;
+today it drives the admiral/economy/skirmish switches.)
+
+#### An Admiral alongside the bridge crew (`campaign`)
+
+A `campaign` has no Admiral unless you ask for one, and you ask by writing the
+chapters. The Admiral console is offered when **all three** of these are true:
+
+1. the universe file has its own **`## Admiralty`** chapter (an empty fence is enough;
+   a `## Scenario` chapter does not count);
+2. it has a **`## Worldlets`** chapter with at least one type;
+3. the mission loads the **`admiral`** library (below).
+
+Leave any one out and the campaign plays exactly as it does today: no console, no
+worldlets, no stockpiles. Nothing else changes for the crew - their jobs, story,
+reputation and save are the same game either way.
+
+The economy and the fleets run whether or not anybody is sitting at the Admiral
+console. With the seat empty nothing is built, so nothing is earned: the opening
+stockpiles simply wait. `campaign` keeps its own defaults for the dials you leave out
+(`Economy pace: epic`, `Skirmish pressure: off`) - write `Skirmish pressure: border`
+if the Admiral's platforms should draw raids.
+
+**In a mission of your own.** The Admiral is a separate library from the universe
+engine. A mission built on the Open Universe lists both in its `story.json`, the engine
+first:
+
+```
+"artemis-sbs.OpenUniverse.universe_core.v1.4.0.mastlib",
+"artemis-sbs.OpenUniverse.admiral.v1.4.0.mastlib"
+```
+
+The second line does nothing by itself: without the two chapters there is no Admiral,
+in any Mode.
 
 #### A mover-only Admiral (no economy)
 
