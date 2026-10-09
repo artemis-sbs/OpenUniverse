@@ -412,9 +412,9 @@ The Admiralty's tech ladder (researched at a Shipyard). Each milestone names its
 |---|---|
 | Branch | engineering |
 | Unlocks | storage 500 |
-| Also | economy |
 | Costs | ore 120, gas 40 |
 | Time | 40 |
+| Also | economy |
 
 Bigger tanks and deeper bunkers. The stockpiles can hold more before the quartermasters start turning shipments away.
 
@@ -425,9 +425,9 @@ Bigger tanks and deeper bunkers. The stockpiles can hold more before the quarter
 | Branch | engineering |
 | Unlocks | extraction 25% |
 | Requires | [Expanded Silos](#default-research-eng-silos) |
-| Also | economy |
 | Costs | ore 180, gas 90 |
 | Time | 60 |
+| Also | economy |
 
 Better drills, hotter crackers. Every extractor in the fleet's employ works a quarter again as fast.
 
@@ -438,9 +438,9 @@ Better drills, hotter crackers. Every extractor in the fleet's employ works a qu
 | Branch | engineering |
 | Unlocks | requisition tauron_focuser, requisition haplix_overcharger |
 | Requires | [Refined Extraction](#default-research-eng-refining) |
-| Also | economy |
 | Costs | ore 250, gas 120, crew 10 |
 | Time | 80 |
+| Also | economy |
 
 Weapons-grade componentry enters the catalog: the yards can now requisition serious hardware for the bridge crews.
 
