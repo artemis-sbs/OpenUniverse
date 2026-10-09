@@ -209,8 +209,8 @@ The Combine's great beacon at the heart of the home lanes - half port, half prom
 
 | Fact | Value |
 |---|---|
-| Title | the Lanternless |
 | Side | [The Red Veil](#the-silver-reach-sides-veil) |
+| Title | the Lanternless |
 | Flies | Torgoth |
 | Roams | 5, -4 |
 | Values | fearsome 40, violent 30, resourceful 20 |

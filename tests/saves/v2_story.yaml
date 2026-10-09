@@ -1,0 +1,46 @@
+---
+universe_seed: 1646407000
+current_system:
+  - 1
+  - -1
+systems:
+  "0,0":
+    visited: true
+  "1,-1":
+    visited: true
+save_version: 2
+players:
+  artemis:
+    name: Artemis
+    side: tsn
+    cell:
+      - 1
+      - -1
+    items: {}
+    installs: []
+    quests: {}
+    reputation: {}
+side_credits:
+  tsn: 500
+side_admiralty: {}
+shared_quests:
+  signal_1:
+    authored: true
+    state: 99
+    progress: 0
+    children: {}
+  signal_2:
+    authored: true
+    state: 1
+    progress: 0
+    children: {}
+  signal_3:
+    authored: true
+    state: 2
+    progress: 0
+    children: {}
+  goal_answer:
+    authored: true
+    state: 1
+    progress: 0
+    children: {}

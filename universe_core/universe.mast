@@ -297,9 +297,14 @@ default shared UNIVERSE_START_CELL = None
     # state: active steps go live now, secret steps wait for their reveal. Idempotent
     # (skips already-granted steps), and a no-op when the universe has no narrative.
     quest_grant_amd(universe_shared_id(), UNIVERSE_NARRATIVE)
+    # ...and STAMP them as the file's own. The save keeps a stamped step slim (its state,
+    # not its text) and, on a later Continue, parks one the file no longer has instead of
+    # bringing it back; a `Was:` line is read here too. See universe_helpers.py.
+    universe_story_stamp(universe_shared_id(), UNIVERSE_NARRATIVE)
     # Grant the campaign goals the same way (shared, game-wide). A goal completing
     # is what triggers the Win/Lose end (in //signal/quest_succeeded).
     quest_grant_amd(universe_shared_id(), UNIVERSE_GOALS)
+    universe_story_stamp(universe_shared_id(), UNIVERSE_GOALS)
 
     await task_schedule(universe_enter_system)
     await task_schedule(spawn_players)
@@ -343,6 +348,34 @@ default shared UNIVERSE_START_CELL = None
     # Continue restores the saved campaign; a New Game initializes fresh and
     # must NOT inherit the old save's credits/items/admiralty (restore=False).
     universe_load_players(START_MODE == "Continue")
+    # EACH SHIP BACK IN ITS OWN SYSTEM. A save used to name one system, so two ships that
+    # had gone two ways both came back in the last jumper's. Each record now says where
+    # its ship was; a ship that was somewhere else is moved there, and that system is
+    # built if nobody is in it yet - the same steps a jump takes, without the tunnel.
+    _sc_n = 0
+    for _sc in universe_saved_cells():
+        _sc_ship = to_object(_sc[0])
+        if _sc_ship is not None:
+            _sc_from = ship_cell(_sc[0])
+            if universe_cell_enter(_sc[1], _sc[2], _sc[0]):
+                await task_schedule(universe_enter_system, {"ei": _sc[1], "ej": _sc[2]})
+            if universe_cell_leave(_sc_from[0], _sc_from[1], _sc[0]):
+                # Nobody stayed where the save's one `current_system` put everybody.
+                standby_cull_clear()
+                universe_relic_release_cell(_sc_from[0], _sc_from[1])
+                universe_site_release_cell(_sc_from[0], _sc_from[1])
+                universe_clear_cell(_sc_from[0], _sc_from[1])
+            ship_set_cell(_sc[0], _sc[1], _sc[2])
+            _sc_co = universe_cell_origin(_sc[1], _sc[2])
+            _sc_ship.pos = Vec3(_sc_co.x + 2000.0 + _sc_n * 1500.0, _sc_ship.pos.y, _sc_co.z)
+            _sc_n = _sc_n + 1
+    # The "where is the story looking" pointer must name a system somebody is in.
+    if not universe_cell_live(universe_i, universe_j):
+        _sc_ps = to_object_list(role("__player__"))
+        if len(_sc_ps) > 0:
+            _sc_at = ship_cell(_sc_ps[0].id)
+            shared universe_i = _sc_at[0]
+            shared universe_j = _sc_at[1]
     # SAY WHICH SAVE, AND WHAT CAME BACK. Everything about a load is invisible from
     # inside the game: "Continue" with a missing file, a slot you did not mean, and a
     # save that loaded perfectly all look identical from the bridge. One line names the
@@ -368,9 +401,27 @@ default shared UNIVERSE_START_CELL = None
     universe_save_ready()
     universe_save_players()
     task_schedule(universe_save_loop)
+    # A campaign that was WON on an earlier evening is not won again, and nothing ends
+    # the game a second time - so the crew is told, once, what they are sitting in.
+    if START_MODE == "Continue" and universe_campaign_ended() == "won":
+        task_schedule(universe_campaign_card)
     task_schedule(universe_chatter_loop)
     task_schedule(universe_cull_loop)
     task_schedule(universe_smolder_loop)
+    ->END
+
+
+# One card, on a Continue of a campaign that has already been won. Scheduled rather than
+# sent from the start-up, for the reason the arrival card is: a console has to be seated
+# before a card has anybody to reach.
+=== universe_campaign_card
+    await delay_sim(3)
+    ->END if not UNIVERSE_ACTIVE
+    _cc_title = universe_campaign_title()
+    if _cc_title != "":
+        universe_info_card("This campaign has been won (" + _cc_title + "). The story is finished and the galaxy is still here - fly on.", "Campaign won", "#8f8", 20)
+    else:
+        universe_info_card("This campaign has been won. The story is finished and the galaxy is still here - fly on.", "Campaign won", "#8f8", 20)
     ->END
 
 
@@ -602,10 +653,13 @@ default shared UNIVERSE_START_CELL = None
         UNIVERSE_GAME_OVER = True
         universe_info_card(DATA.get("citation", "The frontier is yours."), title="VICTORY")
         signal_emit("universe_victory", DATA)
+        # REMEMBERED, so the next Continue can say so (universe_campaign_card).
+        universe_campaign_end("won", quest_get_display_name(AGENT_ID, QUEST_ID))
     if DATA.get("end_lose"):
         UNIVERSE_GAME_OVER = True
         universe_info_card(DATA.get("citation", "The frontier is lost."), title="DEFEAT")
         signal_emit("universe_defeat", DATA)
+        universe_campaign_end("lost", quest_get_display_name(AGENT_ID, QUEST_ID))
     # A finished step is saved within seconds, not at the next jump. The step that ENDS
     # the campaign is written at once: the game may stop the clock the save loop runs on.
     universe_save_request()
@@ -620,6 +674,14 @@ default shared UNIVERSE_START_CELL = None
 
 //shared/signal/quest_started if UNIVERSE_ACTIVE
     universe_save_request()
+
+# An answered hail can pay, cost, earn standing or teach the crew something, and none of
+# that reached the file until the next jump. `hail` is one signal for every change of a
+# call's state; only an answer is worth a save.
+//shared/signal/hail if UNIVERSE_ACTIVE
+    default HAIL_STATE = ""
+    if HAIL_STATE == "answered":
+        universe_save_request()
 
 
 # War-state watcher loop (Foundation Phase 3): reports eliminations + last-side-
@@ -1638,6 +1700,18 @@ default shared UNIVERSE_START_CELL = None
     # (return parked terrain first so the scoped box-delete sees it).
     if universe_cell_leave(src[0], src[1], warp_ship):
         standby_cull_clear()
+        # THE RUINS LET GO FIRST, while their objects still exist. A shut barrier is an
+        # object, and a barrier object that is destroyed OPENS its barrier (that is how a
+        # ship's beams cut one) - which now also writes it into what the ruin remembers.
+        # The engine announces a script delete as `destroyed` too, so a teardown that
+        # reached the route would open, and remember as open, every barrier in the ruin.
+        # A headless run did not show that happening (the deleted object's agent is gone
+        # before the route asks), and it is not known whether the engine can; released
+        # first, a ruin knows none of those objects any more and the question does not
+        # arise. (universe_watch_relic_cell also releases, up to five seconds late; it
+        # then finds nothing left to do.)
+        universe_relic_release_cell(src[0], src[1])
+        universe_site_release_cell(src[0], src[1])
         universe_clear_cell(src[0], src[1])
 
     # Move this ship to the destination cell's origin.

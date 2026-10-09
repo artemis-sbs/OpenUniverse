@@ -63,6 +63,15 @@ def _ou_metric(name, agent_id, side):
     # would simply never open. A wrong answer that looks like a considered one.
     if name.startswith("carrying ") or name.startswith("have "):
         return get_inventory_value(agent_id, name.split(" ", 1)[1].strip(), 0)
+    # `if learned manifest` / `if learned >= 2` - what the crew KNOWS. A fact learned in a
+    # bridge hail (`; learn manifest`) or by finishing a step (`Then: learn manifest`) is
+    # the campaign's, and it is saved. The library answers this itself whenever its own
+    # resolver is installed in front of this one; asked here as well so it is answered
+    # whichever of the two is in front, instead of falling through to the reputation
+    # read below and coming back 0 - a door that simply never opens.
+    known = _boarding_vocab.boarding_learned_guard(name, agent_id)
+    if known is not None:
+        return known
     # `standing`, a pole - and ANY other name, read as a pole. The library answers 0 for
     # a name that is not a pole; the universe has always read it as one (an axis a
     # scene's own `earns` invented), so that is asked for here.

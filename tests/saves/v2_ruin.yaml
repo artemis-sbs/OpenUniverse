@@ -1,0 +1,87 @@
+---
+universe_seed: 1646407000
+current_system:
+  - 1
+  - 0
+systems:
+  "0,0":
+    visited: true
+  "1,0":
+    visited: true
+save_version: 2
+players:
+  artemis:
+    name: Artemis
+    side: tsn
+    cell:
+      - 1
+      - 0
+    items: {}
+    installs: []
+    quests: {}
+    reputation: {}
+side_credits:
+  tsn: 530
+side_admiralty: {}
+shared_quests:
+  sv_hatch:
+    authored: true
+    state: 99
+    progress: 1
+    children: {}
+  sv_piece:
+    authored: true
+    state: 99
+    progress: 1
+    children: {}
+  sv_coupling:
+    authored: true
+    state: 99
+    progress: 1
+    children: {}
+  sv_clock:
+    authored: true
+    state: 1
+    progress: 0
+    children: {}
+    clocks:
+      fail: 52
+  sv_alarm:
+    authored: true
+    state: 1
+    progress: 0
+    started: true
+    children: {}
+  sv_hidden:
+    authored: true
+    state: 1
+    progress: 0
+    children: {}
+  sv_old:
+    authored: true
+    state: 99
+    progress: 1
+    children: {}
+  sv_win:
+    authored: true
+    state: 1
+    progress: 0
+    children: {}
+state:
+  boarding_facts:
+    "":
+      - manifest
+      - the piece is aboard
+  relics:
+    ruins:
+      hollow:
+        opened:
+          - nave_hatch
+        repaired:
+          - coupling
+        taken:
+          - hollow_cradle
+    sent:
+      - coupling_repaired
+      - hollow_taken
+      - nave_hatch_opened

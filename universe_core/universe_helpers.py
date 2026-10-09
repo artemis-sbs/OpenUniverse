@@ -23,9 +23,14 @@ from sbs_utils.procedural.inventory import get_inventory_value, set_inventory_va
 from sbs_utils.procedural.sides import to_side_id
 from sbs_utils.procedural.upgrades import upgrade_add
 from sbs_utils.procedural.persistence import (PersistentStore, STATUS_MISSING,
-                                               STATUS_NEWER)
+                                               STATUS_NEWER, persist_providers_snapshot,
+                                               persist_providers_restore,
+                                               persist_providers_dirty)
 from sbs_utils.procedural.quest import (quest_agent_quests, quest_add, quest_set_key,
                                         quest_get_state, quest_get, QuestState)
+from sbs_utils.procedural.quest_driver import (quest_restore_started, quest_clocks,
+                                               quest_clocks_restore, quest_action_settle)
+from sbs_utils.helpers import FrameContext
 from sbs_utils.agent import Agent
 import random as _random
 
@@ -42,7 +47,19 @@ UNIVERSE_SYSTEM_R = 50_000
 # name, and each record carries `name`, `side` and `cell`. Keyed by name, renaming a
 # ship in settings.yaml orphaned its jobs and standing, and the next save - which
 # rebuilt `players` from the ships that were flying - deleted them for good.
+#
+# STILL version 2 after the second half of the save work (2026-10-09). Everything that
+# added - `state`, `parked_quests`, `campaign`, and `authored` / `started` / `clocks` on
+# a quest record - is a NEW key that an older reader of version 2 leaves alone and
+# passes through, and no existing key changed what it means. A story step saved "slim"
+# (no title, text or data) is still merged onto the step the universe file grants, which
+# is all any version-2 reader ever did with one.
 UNIVERSE_SAVE_VERSION = 2
+
+# While a quest clock is running, the save is refreshed this often even when nothing
+# else asked: the file holds the time LEFT, and a number written when the clock started
+# is the full clock again.
+UNIVERSE_CLOCK_SAVE_SECONDS = 30
 
 
 def _universe_unique_key(base, taken):
@@ -423,6 +440,18 @@ def _save_session():
     if not isinstance(session, dict):
         session = {"blocked": {}, "request": False, "held": False, "notes": []}
         set_inventory_value(Agent.SHARED_ID, _SAVE_SESSION_KEY, session)
+    # The story half (added later, so read with defaults): `renames` (new step path ->
+    # the paths it used to have, from `Was:`), `parked` (saved story steps the universe
+    # file no longer has, by path), `story_open` (the saved story has been merged, so
+    # `parked` is the truth), `state_open` (the library's state providers have been
+    # handed the save, so their snapshot is the truth), `campaign` (how the campaign
+    # ended, if it has), `cells` (ship id -> the cell its record says it was in),
+    # `saved_at` (sim seconds of the last players save).
+    for key, empty in (("renames", {}), ("parked", {}), ("cells", {})):
+        if not isinstance(session.get(key), dict):
+            session[key] = dict(empty)
+    for key in ("story_open", "state_open", "campaign", "saved_at"):
+        session.setdefault(key, None)
     return session
 
 
@@ -436,6 +465,13 @@ def universe_save_reset():
     session["request"] = False
     session["notes"] = []
     session["held"] = True
+    session["renames"] = {}
+    session["parked"] = {}
+    session["cells"] = {}
+    session["story_open"] = None
+    session["state_open"] = None
+    session["campaign"] = None
+    session["saved_at"] = None
 
 
 def universe_save_ready():
@@ -495,7 +531,26 @@ def universe_save_diplomacy(diplomacy):
 def universe_save_begin(mode):
     """Open the active save for this session. Returns the saved campaign to CONTINUE, or
     None when this is a new one. Call after universe_set_active_save, before anything
-    else reads or writes the save.
+    else reads or writes the save - and BEFORE the first system is built: this is also
+    where the library's own state (what was learned, which barriers of a ruin are open,
+    which pieces were taken) is handed back, and a ruin reads it as it is built.
+
+    The rest is `_universe_save_open`, which says what each case does to the file."""
+    data = _universe_save_open(mode)
+    session = _save_session()
+    # EVERY provider is told, a new game included: "nothing was saved" is an answer, and
+    # without it a second campaign started in the same process would inherit the first
+    # one's opened doors. Restored state announces nothing - no quest signal, no reward.
+    persist_providers_restore((data or {}).get("state"))
+    session["state_open"] = True
+    ended = (data or {}).get("campaign")
+    session["campaign"] = dict(ended) if isinstance(ended, dict) else None
+    return data
+
+
+def _universe_save_open(mode):
+    """What universe_save_begin does to the file. Returns the campaign to continue, or
+    None.
 
     Continue:
       - no file: None. A new campaign; the file is created by the first save.
@@ -590,17 +645,51 @@ def _item_label(key):
 # wiping the steps (the arc reverted to nothing on Continue). Serialized fields
 # are YAML-safe (state/progress are ints, data is the AMD yaml dict). Old flat
 # saves (no `children` key) restore unchanged.
-def _serialize_quest_children(children):
+#
+# TWO KINDS OF RECORD (2026-10-09).
+#
+#   AUTHORED - a step the universe file grants (its Narrative and Goals). Stamped
+#     `authored` as it is granted (universe_story_stamp) and saved SLIM: its state, its
+#     progress, whether a `Starts when:` trigger had fired, and the time left on a
+#     running clock. Its title, text and triggers are the file's and are read from the
+#     file every time, so the save holds no step text - a hidden step's surprise is not
+#     sitting in a YAML file beside the mission - and an edit to the file is what plays.
+#   GENERATED - everything else: a cargo run, an accepted side job, a passenger, a
+#     charted location, the bridge story. Nothing re-makes these on Continue, so they
+#     are saved WHOLE, exactly as before.
+def _serialize_quest_children(children, agent_id=None, _prefix=""):
     out = {}
     for qid, q in (children or {}).items():
-        out[qid] = {
-            "display_text": q.get("display_text", ""),
-            "description": q.get("description", ""),
-            "state": int(q.get("state", 0) or 0),
-            "data": q.get("data"),
-            "progress": q.get("progress", 0),
-            "children": _serialize_quest_children(q.get("children")),
-        }
+        path = _prefix + str(qid)
+        kids = _serialize_quest_children(q.get("children"), agent_id, path + "/")
+        if q.get("authored"):
+            rec = {"authored": True,
+                   "state": int(q.get("state", 0) or 0),
+                   "progress": q.get("progress", 0) or 0}
+            data = q.get("data")
+            # Granted waiting on a `Starts when:` trigger, and not waiting any more.
+            if q.get("waits") and isinstance(data, dict) and "armed_trigger" not in data:
+                rec["started"] = True
+            rec["children"] = kids
+        else:
+            rec = {
+                "display_text": q.get("display_text", ""),
+                "description": q.get("description", ""),
+                "state": int(q.get("state", 0) or 0),
+                "data": q.get("data"),
+                "progress": q.get("progress", 0),
+                "children": kids,
+            }
+        # A RUNNING CLOCK is saved as the time left. Only for a step that is running:
+        # a finished step's clock is spent whatever its timer says.
+        if agent_id is not None and int(q.get("state", 0) or 0) == int(QuestState.ACTIVE):
+            try:
+                clocks = quest_clocks(agent_id, path)
+            except Exception:                           # noqa: BLE001
+                clocks = {}
+            if clocks:
+                rec["clocks"] = clocks
+        out[qid] = rec
     return out
 
 
@@ -608,33 +697,226 @@ def _serialize_quests(agent_id):
     tree = quest_agent_quests(agent_id)
     if tree is None:
         return {}
-    return _serialize_quest_children(tree.get("children"))
+    return _serialize_quest_children(tree.get("children"), agent_id)
 
 
-def _restore_quests(agent_id, quests, _prefix=""):
-    # Restore runs AFTER quest_grant_amd has (re)built the authored tree, so it
-    # MERGES saved progress onto that tree rather than replacing nodes: a saved
-    # node updates the granted node's state/progress in place; only a saved node
-    # the grant didn't produce is created fresh. This is what recovers an OLD
-    # flat save (parent only, no `children`) - quest_add would re-add a childless
-    # parent over the granted arc and wipe its steps; a merge leaves the granted
-    # steps intact. Recurses top-down so parents exist before their children.
-    if not isinstance(quests, dict):
-        return
-    for qid, rec in quests.items():
-        full = _prefix + qid
-        if quest_get(agent_id, full) is None:
-            quest_add(agent_id, full, rec.get("display_text", ""),
-                      rec.get("description", ""), state=rec.get("state", 0),
-                      data=rec.get("data"))
-        else:
-            quest_set_key(agent_id, full, "state", rec.get("state", 0))
-        prog = rec.get("progress", 0)
-        if prog:
-            quest_set_key(agent_id, full, "progress", prog)
-        kids = rec.get("children")
-        if kids:
-            _restore_quests(agent_id, kids, _prefix=full + "/")
+def _flatten_quests(tree, _prefix="", out=None):
+    """A saved quest tree as `[(path, record)]`, every parent before its children."""
+    out = [] if out is None else out
+    if isinstance(tree, dict):
+        for qid, rec in tree.items():
+            if not isinstance(rec, dict):
+                continue
+            path = _prefix + str(qid)
+            out.append((path, rec))
+            _flatten_quests(rec.get("children"), path + "/", out)
+    return out
+
+
+def _under_parked(path, parked):
+    """True when a step's parent (or any ancestor) has been parked."""
+    parts = path.split("/")
+    return any("/".join(parts[:n]) in parked for n in range(1, len(parts)))
+
+
+def _saved_as_authored(rec):
+    """True when a saved record is a STORY step - one the universe file grants.
+
+    Stamped `authored` since 2026-10-09. A record written before that has no stamp, and
+    is told by what its saved data holds instead: a step read from the file carries the
+    `scope` its fence (or its section) gave it, and nothing the game generates does - a
+    cargo run, a charted location and a passenger are made with data of their own."""
+    if rec.get("authored") or "display_text" not in rec:
+        return True
+    data = rec.get("data")
+    return isinstance(data, dict) and "scope" in data
+
+
+def _restore_node(agent_id, path, rec, parked=None):
+    """Put ONE saved quest record back. Returns False when it was parked instead.
+
+    Restore runs AFTER quest_grant_amd has (re)built the authored tree, so a saved
+    record is MERGED onto the step the file granted - state, progress, a start trigger
+    that had fired, the time left on a clock - and only a GENERATED record the grant
+    did not make is created fresh.
+
+    An AUTHORED record the grant did not make is a step the writer has taken out of the
+    file. It is PARKED: not shown, not deleted, and put back if the record returns. It
+    used to be re-created from the save, title and text and all, which is how a deleted
+    step came back.
+
+    Nothing here announces anything: no `Action:`, no reveal, no reward, no signal."""
+    state = int(rec.get("state", 0) or 0)
+    node = quest_get(agent_id, path)
+    if node is None:
+        # `parked` is given only for the STORY (the shared agent). A ship's own jobs
+        # are never parked: nothing re-makes them, so the save is all there is.
+        if parked is not None and (_saved_as_authored(rec) or _under_parked(path, parked)):
+            parked[path] = {k: v for k, v in rec.items() if k != "children"}
+            return False
+        if "display_text" not in rec:
+            return False                    # a slim record with no step to merge onto
+        quest_add(agent_id, path, rec.get("display_text", ""),
+                  rec.get("description", ""), state=state, data=rec.get("data"))
+    else:
+        # A `Starts when:` step that had STARTED must not be armed again. Slim records
+        # say so; an older, whole record says so by having no `armed_trigger` in its
+        # saved data while it was running.
+        started = bool(rec.get("started"))
+        if not started and state == int(QuestState.ACTIVE):
+            old = rec.get("data")
+            started = isinstance(old, dict) and "armed_trigger" not in old
+        if started:
+            quest_restore_started(agent_id, path)
+        quest_set_key(agent_id, path, "state", state)
+    prog = rec.get("progress", 0)
+    if prog:
+        quest_set_key(agent_id, path, "progress", prog)
+    if state == int(QuestState.ACTIVE):
+        quest_clocks_restore(agent_id, path, rec.get("clocks"))
+    # GAP 16: a step granted already running owes its `Action:` to the first tick, and
+    # the grant on Continue made it owe that again. A step the save knows had started
+    # (running, done or failed) ran its block on an earlier evening.
+    if state in (int(QuestState.ACTIVE), int(QuestState.COMPLETE), int(QuestState.FAILED)):
+        quest_action_settle(agent_id, path)
+    return True
+
+
+def _restore_quests(agent_id, quests, _prefix="", parked=None):
+    """Put a saved quest tree back onto an agent (see _restore_node). `parked`, when
+    given, collects the authored records the universe file no longer has."""
+    for path, rec in _flatten_quests(quests, _prefix):
+        _restore_node(agent_id, path, rec, parked)
+
+
+# --- The story the universe file grants -------------------------------------
+def universe_story_stamp(agent_id, doc, _prefix=""):
+    """Mark the quests the universe file just granted as AUTHORED, and read their
+    `Was:` lines. Call straight after `quest_grant_amd(agent_id, doc)`, with the same
+    two arguments. Returns how many were stamped.
+
+    The stamp is what lets the save tell a story step (re-made from the file on every
+    Continue, so saved slim, and PARKED when the file no longer has it) from a generated
+    job (made once, so saved whole, and re-created from the save)."""
+    if doc is None:
+        return 0
+    session = _save_session()
+    count = 0
+    for node in doc.get("children", []) or []:
+        key = node.get("key")
+        if not key:
+            continue
+        path = _prefix + str(key)
+        data = node.get("data") or {}
+        get = data.get if hasattr(data, "get") else (lambda *_a: None)
+        # A `Held by:` job belongs to a station, which is not saved at all.
+        if not get("held_by"):
+            live = quest_get(agent_id, path)
+            if live is not None:
+                setattr(live, "authored", True)
+                live_data = live.get("data")
+                if isinstance(live_data, dict) and "armed_trigger" in live_data:
+                    setattr(live, "waits", True)
+                count += 1
+            was = get("was")
+            if isinstance(was, str):
+                was = [w.strip() for w in was.split(",")]
+            olds = [(w if "/" in w else _prefix + w) for w in (was or []) if w]
+            if olds:
+                session["renames"][path] = olds
+        if node.get("children"):
+            count += universe_story_stamp(agent_id, node, path + "/")
+    return count
+
+
+def _universe_story_restore(shared_saved, old_parked):
+    """Merge the saved story onto the one the universe file granted this session.
+
+    In order: a record renamed with `Was:` takes the state saved under its old key; a
+    parked step whose record is back in the file is re-attached; then every saved record
+    is restored, and an authored one the file no longer has is parked. Says what it did
+    in the save report."""
+    session = _save_session()
+    notes = session["notes"]
+    shared = Agent.SHARED_ID
+    flat = _flatten_quests(shared_saved)
+    saved = {path: rec for path, rec in flat}
+    order = {path: n for n, (path, _rec) in enumerate(flat)}
+    waiting = {str(p): rec for p, rec in (old_parked or {}).items() if isinstance(rec, dict)}
+
+    # 1. `Was:` - the record's new key takes over what was saved under the old one. Only
+    #    while the new key has nothing of its own, so it happens once: a step saved under
+    #    the new key that has STARTED (running, done, failed, or counting) is the newer
+    #    truth. One saved untouched - hidden or on offer, the state of a record renamed
+    #    one evening and given its `Was:` line the next - gives way to the old key's.
+    def untouched(rec):
+        return (int(rec.get("state", 0) or 0) in (int(QuestState.IDLE), int(QuestState.SECRET),
+                                                  int(QuestState.POSTING))
+                and not rec.get("progress") and not rec.get("started"))
+
+    for new, olds in session["renames"].items():
+        if new in waiting or quest_get(shared, new) is None:
+            continue
+        if new in saved and not untouched(saved[new]):
+            continue
+        for old in olds:
+            src = saved if old in saved else (waiting if old in waiting else None)
+            if src is None:
+                continue
+            for path in [p for p in list(src) if p == old or p.startswith(old + "/")]:
+                saved[new + path[len(old):]] = src.pop(path)
+            notes.append(f"story step '{old}' is now '{new}' (Was:); its saved state moved")
+            break
+
+    # 2. A parked step whose record has come back.
+    back = []
+    for path in list(waiting):
+        if path in saved:
+            waiting.pop(path)                   # the live copy is the newer one
+        elif quest_get(shared, path) is not None:
+            saved[path] = waiting.pop(path)
+            back.append(path)
+    if back:
+        notes.append(f"re-attached {len(back)} parked story step(s) the universe file "
+                     f"has again: {', '.join(sorted(back))}")
+
+    # 3. Restore, parents first. What the file no longer has is parked.
+    parked = dict(waiting)
+    newly = []
+    for path in sorted(saved, key=lambda p: (p.count("/"), order.get(p, len(order)))):
+        if not _restore_node(shared, path, saved[path], parked):
+            newly.append(path)
+    if newly:
+        notes.append(f"parked {len(newly)} story step(s) the universe file no longer "
+                     f"has (kept in the save, not shown): {', '.join(sorted(newly))}")
+    session["parked"] = parked
+    session["story_open"] = True
+
+
+def universe_parked_quests():
+    """The saved story steps the universe file no longer has, by path. Sorted."""
+    return sorted(_save_session()["parked"])
+
+
+# --- How the campaign ended ---------------------------------------------------
+def universe_campaign_end(result, title=""):
+    """The campaign has ended - `"won"` or `"lost"`. Saved, so the next Continue knows:
+    a won campaign is not won a second time, and the crew is told once that it was."""
+    _save_session()["campaign"] = {"ended": str(result), "title": str(title or "")}
+    universe_save_request()
+
+
+def universe_campaign_ended():
+    """`"won"` or `"lost"` when this campaign has ended (tonight, or in the save that
+    was continued), else `""`."""
+    ended = _save_session().get("campaign")
+    return str(ended.get("ended", "")) if isinstance(ended, dict) else ""
+
+
+def universe_campaign_title():
+    """The title of the step that ended the campaign, or `""`."""
+    ended = _save_session().get("campaign")
+    return str(ended.get("title", "")) if isinstance(ended, dict) else ""
 
 
 # --- Ship identity ----------------------------------------------------------
@@ -731,9 +1013,49 @@ def universe_save_pending():
 def universe_save_flush():
     """Write the save that was asked for, if one was. Returns True when it wrote."""
     session = _save_session()
-    if not session["request"] or session["held"]:
+    if session["held"]:
         return False
+    if not session["request"]:
+        # Two more reasons to write, neither of which anybody asks for out loud:
+        # something the LIBRARY keeps changed (a fact learned, a barrier opened, a piece
+        # taken), or a quest clock is running and the time left in the file is stale.
+        if not (persist_providers_dirty() or _universe_clock_save_due(session)):
+            return False
     return universe_save_players()
+
+
+def _universe_now():
+    try:
+        return float(FrameContext.sim_seconds or 0.0)
+    except Exception:                                   # noqa: BLE001
+        return 0.0
+
+
+def _universe_clock_running(children):
+    for q in (children or {}).values():
+        if int(q.get("state", 0) or 0) == int(QuestState.ACTIVE):
+            data = q.get("data")
+            if isinstance(data, dict) and (isinstance(data.get("fail_after"), dict)
+                                           or isinstance(data.get("complete_after"), dict)):
+                return True
+        if _universe_clock_running(q.get("children")):
+            return True
+    return False
+
+
+def _universe_clock_save_due(session):
+    """True when a quest clock is running and the save is UNIVERSE_CLOCK_SAVE_SECONDS
+    old. The file holds the time LEFT, so it has to be kept roughly current."""
+    last = session.get("saved_at")
+    if last is None or _universe_now() - float(last) < UNIVERSE_CLOCK_SAVE_SECONDS:
+        return False
+    holders = [Agent.SHARED_ID] + [s.id for s in to_object_list(role("__player__"))]
+    for holder in holders:
+        tree = quest_agent_quests(holder)
+        if tree is not None and _universe_clock_running(tree.get("children")):
+            return True
+    session["saved_at"] = _universe_now()       # nothing running: look again later
+    return False
 
 
 def universe_save_players():
@@ -747,6 +1069,7 @@ def universe_save_players():
         session["request"] = True
         return False
     session["request"] = False
+    session["saved_at"] = _universe_now()
     return _universe_write(_universe_players_into) is not None
 
 
@@ -804,6 +1127,36 @@ def _universe_players_into(data):
         merged.update(live)
         data[section] = merged
     data["shared_quests"] = _serialize_quests(Agent.SHARED_ID)
+    # The STORY's own copy of the standing a shared beat paid. Every ship flying when a
+    # shared beat finishes is paid too (reputation_grant) and keeps that in its own
+    # record; this copy is what a MESSAGE reply's `if standing` reads, since a message
+    # is answered by the story and not by a ship. Left out while it is empty.
+    shared_rep = get_inventory_value(Agent.SHARED_ID, "reputation", None)
+    if isinstance(shared_rep, dict) and shared_rep:
+        data["shared_reputation"] = shared_rep
+    else:
+        data.pop("shared_reputation", None)
+    session = _save_session()
+    # Story steps the universe file no longer has. Written only once the saved story
+    # has been merged this session; until then whatever the file holds stays as it is.
+    if session.get("story_open"):
+        if session["parked"]:
+            data["parked_quests"] = {"shared": dict(session["parked"])}
+        else:
+            data.pop("parked_quests", None)
+    # What the LIBRARY keeps: campaign facts, each ruin's opened barriers, done repairs
+    # and taken pieces, a tile site's doors and people. One call; each owner writes its
+    # own. A blob under a name no loaded module claims is passed through as it was.
+    # Only once the providers have been handed this save (universe_save_begin): before
+    # that their answer is "nothing", which would be written over what is there.
+    if session.get("state_open"):
+        state = persist_providers_snapshot()
+        if state:
+            data["state"] = state
+        else:
+            data.pop("state", None)
+    if isinstance(session.get("campaign"), dict):
+        data["campaign"] = dict(session["campaign"])
 
 
 def universe_load_players(restore=True):
@@ -820,7 +1173,12 @@ def universe_load_players(restore=True):
         players = {}
     side_credits = data.get("side_credits", {})
     seen_sides = set()
-    _restore_quests(Agent.SHARED_ID, data.get("shared_quests"))
+    shared_rep = data.get("shared_reputation")
+    if isinstance(shared_rep, dict) and shared_rep:
+        set_inventory_value(Agent.SHARED_ID, "reputation", shared_rep)
+    parked_before = data.get("parked_quests")
+    _universe_story_restore(data.get("shared_quests"),
+                            parked_before.get("shared") if isinstance(parked_before, dict) else None)
     side_adm = data.get("side_admiralty", {})
     ships = to_object_list(role("__player__"))
     # Which record is whose (by name, then an unambiguous leftover - see
@@ -858,6 +1216,14 @@ def universe_load_players(restore=True):
         pdata = players.get(matched.get(ship.id))
         if not isinstance(pdata, dict):
             continue
+        # GAP 13: where THIS ship was. One `current_system` was all a save used to say,
+        # so two ships in two systems both came back in the last jumper's.
+        cell = pdata.get("cell")
+        if isinstance(cell, (list, tuple)) and len(cell) == 2:
+            try:
+                _save_session()["cells"][ship.id] = [int(cell[0]), int(cell[1])]
+            except (TypeError, ValueError):
+                pass
         for k, c in pdata.get("items", {}).items():
             set_inventory_value(ship.id, k, c)
         installs = pdata.get("installs", [])
@@ -868,6 +1234,21 @@ def universe_load_players(restore=True):
                 upgrade_add(ship.id, lbl, data={"key": k}, activate=True)
         _restore_quests(ship.id, pdata.get("quests"))
         set_inventory_value(ship.id, "reputation", pdata.get("reputation", {}))
+
+
+def universe_saved_cells():
+    """`[[ship_id, i, j], ...]` for each flying ship whose saved record puts it in a cell
+    other than the one it is in now. What universe_map_begin moves after a Continue, so
+    every ship is back in its OWN system. Empty on a new game, and for a record written
+    before records carried a cell."""
+    out = []
+    for ship_id, cell in _save_session()["cells"].items():
+        if to_object(ship_id) is None:
+            continue
+        here = ship_cell(ship_id)
+        if (int(here[0]), int(here[1])) != (cell[0], cell[1]):
+            out.append([ship_id, cell[0], cell[1]])
+    return out
 
 
 def universe_load():

@@ -75,7 +75,7 @@ Built-in goods for `recover`: `provisions`, `ore`, `gas`, `tech`,
 | `At start:` | What condition this record is in when the mission BEGINS. `posting` is listed like an available job but shows no Accept button - something else has to offer it. | `State:` |
 | `Done when:` | The COMPLETION trigger - what has to happen for this quest to be done. | `Goal:` |
 | `Starts when:` | When it ARMS - `at once`, `accepted` (the player takes it off the board), `revealed` (another quest reveals it). Not what completes it; that is `Done when:`. | `When:` |
-| `Then:` | Follow-up on COMPLETION - `reveal <quest>` to unlock another, or `signal <name>`. Those two verbs only; anything else is read as a reveal target. |  |
+| `Then:` | Follow-up on COMPLETION - `reveal <quest>` to unlock another, `signal <name>`, or `learn <fact>` (the crew now knows it: `if learned <fact>` in a later hail). Those three verbs only; anything else is read as a reveal target. |  |
 | `Scope:` | Who holds it - `shared` is one quest for the whole game, `ship` gives every player ship its own copy. |  |
 | `Reward:` | What COMPLETING it gives - credits, an item key, or a reputation clause. | `Pays:` |
 | `Win:` | Completing this WINS the mission. |  |

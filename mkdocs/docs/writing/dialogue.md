@@ -63,12 +63,26 @@ Speaker: veil
       (`if fearsome > 20`: only a feared captain gets the intimidation
       option).
     - `; <consequences>` - what choosing it does, comma-separated:
-      `costs 200 credits`, `earns veil fearsome 10`, `signal veil_paid`.
+      `costs 200 credits`, `earns veil fearsome 10`, `signal veil_paid`,
+      `learn the lamps were cut`.
 - A scene with no replies (like *Parting*) simply ends the conversation.
 
-Conditions can reference the seven trait poles, `credits`, and - in a
-captain's scene - `standing`, his personal opinion of the player. That
-vocabulary is the whole of it, and that's on purpose.
+Conditions can reference the seven trait poles, `credits`, `standing` (in a
+captain's scene, his personal opinion of the player), and what the crew has
+**learned**. That vocabulary is the whole of it, and that's on purpose.
+
+**`learn` and `learned` are how a conversation remembers.** An answer written
+`; learn the lamps were cut` records that the crew now knows it; any later
+reply or take, in any scene, can ask:
+
+```amd
+- [You cut the lamps yourselves.](veil_caught) if learned the lamps were cut
+%{learned the lamps were cut} So you have been talking to the lamplighters.
+```
+
+A fact is known or it is not, it is the whole crew's, and it is kept between
+sessions. It is the tool for "they only get this line once they have heard
+that one" - the thing reputation was being bent into doing.
 
 !!! success "In play"
     Hail a Veil station and the scene tree above *is* the conversation - with

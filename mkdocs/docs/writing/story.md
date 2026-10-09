@@ -56,6 +56,10 @@ captains who end this quietly.
   the rest are `secret`** - that's the whole pattern.
 - **Then: reveal <key>** - chains to the next beat. The chain is your table
   of contents: `dimming_1 -> dimming_2 -> dimming_3`.
+- **Then: learn <fact>** - finishing the beat is how the crew comes to know
+  something. `Then: learn the lamps were cut` and a later answer in a hail can
+  be written `if learned the lamps were cut`. The game keeps it between
+  sessions. A beat has one `Then:` line.
 - **Reward** - beats can pay credits and shift reputation, exactly like jobs.
   `Reward: earns lantern honest 15` reads: with the *lantern* side, along the
   *honest* trait, gain *15*.
@@ -89,5 +93,9 @@ long it takes - and win the lanes their peace.
 
 Skip this chapter entirely and your universe is an endless sandbox. That is a
 legitimate choice, not a missing feature.
+
+A won campaign stays won. The next time the crew picks Continue they get one
+card saying so, and then the galaxy is theirs to fly: nothing ends the game a
+second time. See [What the game remembers](saves.md).
 
 **Next: [Painting the map](map.md)** - regions and landmarks.
