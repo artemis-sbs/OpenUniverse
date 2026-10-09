@@ -1,0 +1,87 @@
+---
+universe_seed: 1646407000
+current_system:
+  - 1
+  - -1
+systems:
+  "0,0":
+    visited: true
+  "1,-1":
+    visited: true
+save_version: 1
+players:
+  Artemis:
+    items: {}
+    installs: []
+    quests: {}
+    reputation: {}
+side_credits:
+  tsn: 500
+side_admiralty: {}
+shared_quests:
+  signal_1:
+    display_text: A Voice in the Static
+    description: "Deep-range sensors keep catching the same clipped distress loop, folded into the\r\nbackground hiss on a channel nobody has used in years. The bearing points coreward,\r\nout past the last charted buoy at (1, -1). Command wants eyes on it. Engage the jump\r\ndrive on Navigation and follow the signal in."
+    state: 99
+    data:
+      scope: shared
+      state: active
+      on_reach:
+        sector:
+          - 1
+          - -1
+      objective: "Reach 1, -1"
+      objective_auto: "Reach 1, -1"
+      reveal: signal_2
+    progress: 0
+    children: {}
+  signal_2:
+    display_text: The Trail Goes Cold
+    description: "The buoy is dead - just a relay, still dutifully bouncing a loop it can no longer\r\nread. But the registry tag finally resolves against the archive: TSN Meridian, a\r\nsurvey ship logged overdue eleven years ago and quietly struck from the rolls. Her\r\nlast position was two jumps on, at (3, -2). Someone is still transmitting from a ship\r\nthat is not supposed to exist."
+    state: 1
+    data:
+      scope: shared
+      state: secret
+      on_reach:
+        sector:
+          - 3
+          - -2
+      objective: "Reach 3, -2"
+      objective_auto: "Reach 3, -2"
+      reveal: signal_3
+      reward:
+        credits: 120
+    progress: 0
+    children: {}
+  signal_3:
+    display_text: The Long Quiet
+    description: "There she is - a cold hulk adrift off the lane, no power, no life, running lights\r\ngone dark a decade ago. And a beacon that should have died with its batteries, still\r\nwhispering the same eleven-year-old words into an empty sky. Bring the science array\r\nto bear and find out what the Meridian has been calling for all this time."
+    state: 2
+    data:
+      scope: shared
+      state: secret
+      on_scan:
+        role: universe_derelict
+        count: 1
+      objective: Scan 1 derelict
+      objective_auto: Scan 1 derelict
+      reward:
+        credits: 300
+    progress: 0
+    children: {}
+  goal_answer:
+    display_text: Answer the Signal
+    description: "Follow the signal to the TSN Meridian at (3, -2) and scan the derelict to read what\r\nher beacon has been repeating into the static since before you had a commission."
+    state: 1
+    data:
+      scope: shared
+      state: active
+      on_scan:
+        role: universe_derelict
+        count: 1
+      objective: Scan 1 derelict
+      objective_auto: Scan 1 derelict
+      end_win: true
+      citation: "The Meridian's beacon finally has a listener. Whatever she was calling into the dark for eleven years, this scout answered it - and flew home with the story her crew never could."
+    progress: 0
+    children: {}

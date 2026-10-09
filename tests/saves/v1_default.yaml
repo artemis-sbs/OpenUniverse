@@ -1,0 +1,480 @@
+---
+universe_seed: 93599289
+current_system:
+  - 2
+  - 1
+systems:
+  "0,0":
+    visited: true
+    worldlet_reserves:
+      - ~
+    admiral_platforms: {}
+    adm_relay: {}
+  "1,0":
+    visited: true
+  "1,1":
+    visited: true
+  "2,1":
+    visited: true
+save_version: 1
+players:
+  Artemis:
+    items: {}
+    installs: []
+    quests:
+      side_iron_patrol:
+        display_text: "Iron Concord: Patrol Sweep"
+        description: Raiders have been probing our space. Sweep the system and drive them off.
+        state: 1
+        data:
+          tier: 1
+          on_kill:
+            hostile: true
+            count: 4
+          objective: Destroy 4 enemies
+          objective_auto: Destroy 4 enemies
+          reward:
+            credits: 375
+          side: iron
+          rep:
+            iron:
+              by_the_book: 5
+              fearsome: 5
+              honest: 5
+        progress: 0
+        children: {}
+      side_iron_escort:
+        display_text: "Iron Concord: Convoy Escort"
+        description: See our cargo safely to port. Dock at a station and the contract is fulfilled.
+        state: 1
+        data:
+          tier: 1
+          on_dock:
+            role: station
+            count: 1
+          objective: Dock station
+          objective_auto: Dock station
+          reward:
+            credits: 325
+          side: iron
+          rep:
+            iron:
+              by_the_book: 5
+              fearsome: 5
+              honest: 5
+        progress: 0
+        children: {}
+      side_verdant_supply:
+        display_text: "Verdant Pact: Supply Run"
+        description: "Our stores are thin. Gather provision crates adrift in the system and bring\r\nthem in."
+        state: 1
+        data:
+          tier: 1
+          on_collect:
+            key: provisions
+            count: 3
+          objective: Recover 3 provisions
+          objective_auto: Recover 3 provisions
+          reward:
+            credits: 325
+          side: verdant
+          rep:
+            verdant:
+              peaceful: 5
+              generous: 5
+              kind: 5
+        progress: 0
+        children: {}
+      side_verdant_escort:
+        display_text: "Verdant Pact: Convoy Escort"
+        description: See our cargo safely to port. Dock at a station and the contract is fulfilled.
+        state: 1
+        data:
+          tier: 1
+          on_dock:
+            role: station
+            count: 1
+          objective: Dock station
+          objective_auto: Dock station
+          reward:
+            credits: 325
+          side: verdant
+          rep:
+            verdant:
+              peaceful: 5
+              generous: 5
+              kind: 5
+        progress: 0
+        children: {}
+      side_verdant_survey:
+        display_text: "Verdant Pact: Survey Contract"
+        description: We need eyes on the wrecks out here. Scan the derelicts and report what you find.
+        state: 1
+        data:
+          tier: 1
+          on_scan:
+            role: universe_derelict
+            count: 2
+          objective: Scan 2 derelicts
+          objective_auto: Scan 2 derelicts
+          reward:
+            credits: 375
+          side: verdant
+          rep:
+            verdant:
+              peaceful: 5
+              generous: 5
+              kind: 5
+        progress: 0
+        children: {}
+      side_free_salvage:
+        display_text: "Free Holders: Salvage Sweep"
+        description: "There is working tech in the debris if you know where to look. Bring it back and\r\nwe will make it worth your while."
+        state: 1
+        data:
+          tier: 1
+          on_collect:
+            key: tech
+            count: 2
+          objective: Recover 2 tech
+          objective_auto: Recover 2 tech
+          reward:
+            credits: 425
+          side: free
+          rep:
+            free:
+              resourceful: 5
+              honest: 5
+              kind: 5
+        progress: 0
+        children: {}
+      side_free_rescue:
+        display_text: "Free Holders: Search and Rescue"
+        description: "A ship went dark out here. Find the wreck, recover what survives, and bring it home."
+        state: 1
+        data:
+          tier: 2
+          on_scan:
+            role: universe_derelict
+            count: 1
+          objective: Scan 1 derelict
+          objective_auto: Scan 1 derelict
+          reward:
+            credits: 575
+          side: free
+          rep:
+            free:
+              resourceful: 10
+              honest: 10
+              kind: 10
+        progress: 0
+        children: {}
+      side_free_supply:
+        display_text: "Free Holders: Supply Run"
+        description: "Our stores are thin. Gather provision crates adrift in the system and bring\r\nthem in."
+        state: 1
+        data:
+          tier: 1
+          on_collect:
+            key: provisions
+            count: 3
+          objective: Recover 3 provisions
+          objective_auto: Recover 3 provisions
+          reward:
+            credits: 325
+          side: free
+          rep:
+            free:
+              resourceful: 5
+              honest: 5
+              kind: 5
+        progress: 0
+        children: {}
+      side_mercury_bounty:
+        display_text: "Mercury Guild: Standing Bounty"
+        description: There is a price on raider hulls. Collect three and the bounty is yours.
+        state: 1
+        data:
+          tier: 1
+          on_kill:
+            hostile: true
+            count: 3
+          objective: Destroy 3 enemies
+          objective_auto: Destroy 3 enemies
+          reward:
+            credits: 350
+          side: mercury
+          rep:
+            mercury:
+              resourceful: 5
+              selfish: 5
+              fearsome: 5
+        progress: 0
+        children: {}
+      side_mercury_escort:
+        display_text: "Mercury Guild: Convoy Escort"
+        description: See our cargo safely to port. Dock at a station and the contract is fulfilled.
+        state: 1
+        data:
+          tier: 1
+          on_dock:
+            role: station
+            count: 1
+          objective: Dock station
+          objective_auto: Dock station
+          reward:
+            credits: 325
+          side: mercury
+          rep:
+            mercury:
+              resourceful: 5
+              selfish: 5
+              fearsome: 5
+        progress: 0
+        children: {}
+      side_mercury_smuggle:
+        display_text: "Mercury Guild: Run the Lanes"
+        description: "Quiet cargo, quiet questions. Recover the caches and keep this between us."
+        state: 1
+        data:
+          tier: 2
+          on_collect:
+            key: contraband
+            count: 2
+          objective: Recover 2 contraband
+          objective_auto: Recover 2 contraband
+          reward:
+            credits: 600
+          side: mercury
+          rep:
+            mercury:
+              resourceful: 10
+              selfish: 10
+              fearsome: 10
+        progress: 0
+        children: {}
+      side_ashfang_raid:
+        display_text: "Ashfang Raiders: Raid the Lanes"
+        description: "Hit them before they hit us. Five hulls, and do not be gentle about it."
+        state: 1
+        data:
+          tier: 2
+          on_kill:
+            hostile: true
+            count: 5
+          objective: Destroy 5 enemies
+          objective_auto: Destroy 5 enemies
+          reward:
+            credits: 625
+          side: ashfang
+          rep:
+            ashfang:
+              violent: 10
+              cruel: 10
+              cowardly: 10
+        progress: 0
+        children: {}
+      side_ashfang_smuggle:
+        display_text: "Ashfang Raiders: Run the Lanes"
+        description: "Quiet cargo, quiet questions. Recover the caches and keep this between us."
+        state: 1
+        data:
+          tier: 2
+          on_collect:
+            key: contraband
+            count: 2
+          objective: Recover 2 contraband
+          objective_auto: Recover 2 contraband
+          reward:
+            credits: 600
+          side: ashfang
+          rep:
+            ashfang:
+              violent: 10
+              cruel: 10
+              cowardly: 10
+        progress: 0
+        children: {}
+      side_ashfang_bounty:
+        display_text: "Ashfang Raiders: Standing Bounty"
+        description: There is a price on raider hulls. Collect three and the bounty is yours.
+        state: 1
+        data:
+          tier: 1
+          on_kill:
+            hostile: true
+            count: 3
+          objective: Destroy 3 enemies
+          objective_auto: Destroy 3 enemies
+          reward:
+            credits: 350
+          side: ashfang
+          rep:
+            ashfang:
+              violent: 5
+              cruel: 5
+              cowardly: 5
+        progress: 0
+        children: {}
+      side_choir_retrieve:
+        display_text: "Hollow Choir: Retrieve the Cache"
+        description: Something we want is scattered in the drift. Retrieve three components - discreetly.
+        state: 1
+        data:
+          tier: 2
+          on_collect:
+            key: tech
+            count: 3
+          objective: Recover 3 tech
+          objective_auto: Recover 3 tech
+          reward:
+            credits: 650
+          side: choir
+          rep:
+            choir:
+              intellectual: 10
+              liar: 10
+              selfish: 10
+        progress: 0
+        children: {}
+      side_choir_escort:
+        display_text: "Hollow Choir: Convoy Escort"
+        description: See our cargo safely to port. Dock at a station and the contract is fulfilled.
+        state: 1
+        data:
+          tier: 1
+          on_dock:
+            role: station
+            count: 1
+          objective: Dock station
+          objective_auto: Dock station
+          reward:
+            credits: 325
+          side: choir
+          rep:
+            choir:
+              intellectual: 5
+              liar: 5
+              selfish: 5
+        progress: 0
+        children: {}
+      cargo_0_0:
+        display_text: "Cargo Run to (2, 3)"
+        description: "Haul cargo from sector (0, 0) to sector (2, 3). Engage the jump drive on Navigation to make the run."
+        state: 1
+        data:
+          on_reach:
+            sector:
+              - 2
+              - 3
+          reward:
+            credits: 400
+        progress: 0
+        children: {}
+    reputation:
+      iron:
+        method: -25
+        nerve: 25
+        honesty: 25
+      verdant:
+        temperament: 25
+        generosity: 25
+        kindness: 25
+      free:
+        method: 25
+        honesty: 25
+        kindness: 25
+      mercury:
+        method: 25
+        generosity: -25
+        nerve: 25
+      ashfang:
+        temperament: -25
+        kindness: -25
+        nerve: -25
+      choir:
+        intellect: 25
+        honesty: -25
+        generosity: -25
+side_credits:
+  tsn: 500
+side_admiralty:
+  tsn:
+    pools:
+      ore: 2400
+      gas: 800
+      crew: 320
+    research: []
+    fleets: []
+    officers: {}
+    subsidy: 0.0
+shared_quests:
+  truce_1:
+    display_text: "The Long Truce: Summons"
+    description: "A coded hail from Iron Concord HQ at system (6, 4). Travel there to hear them out."
+    state: 1
+    data:
+      scope: shared
+      state: active
+      on_reach:
+        sector:
+          - 6
+          - 4
+      objective: "Reach 6, 4"
+      objective_auto: "Reach 6, 4"
+      reveal: truce_2
+    progress: 0
+    children: {}
+  truce_2:
+    display_text: "The Long Truce: Proof of Resolve"
+    description: "The Concord wants a broker for a ceasefire with the Ashfang Raiders. Thin the\r\nraiders - destroy three - to show the Concord you can hold the line."
+    state: 2
+    data:
+      scope: shared
+      state: secret
+      on_kill:
+        role: ashfang
+        count: 3
+      objective: Destroy 3 ashfang
+      objective_auto: Destroy 3 ashfang
+      reveal: truce_3
+      reward:
+        credits: 100
+    progress: 0
+    children: {}
+  truce_3:
+    display_text: "The Long Truce: The Accord"
+    description: Return to a Concord starbase to seal the accord.
+    state: 2
+    data:
+      scope: shared
+      state: secret
+      on_dock:
+        role: station
+        count: 1
+      objective: Dock station
+      objective_auto: Dock station
+      reward:
+        credits: 800
+      rep:
+        iron:
+          honest: 20
+          fearsome: 10
+    progress: 0
+    children: {}
+  goal_break_ashfang:
+    display_text: Break the Ashfang
+    description: "Shatter the Ashfang Raiders for good - destroy twenty of their ships across the\r\ngalaxy - to win the frontier its peace."
+    state: 1
+    data:
+      scope: shared
+      state: active
+      on_kill:
+        role: ashfang
+        count: 20
+      objective: Destroy 20 ashfang
+      objective_auto: Destroy 20 ashfang
+      end_win: true
+      citation: The Ashfang raiders are broken and the lanes run clear. The frontier remembers the captain who freed it.
+    progress: 0
+    children: {}

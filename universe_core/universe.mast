@@ -138,6 +138,11 @@ default shared UNIVERSE_START_CELL = None
     universe_cells_reset()
     universe_relics_clear()
     universe_sites_clear()
+    # The save's session state too - and from here until universe_save_ready() below,
+    # nothing writes the players section. Tasks scheduled on the way (the Admiralty
+    # economy, a quest signal) can ask for a save before the campaign has been restored;
+    # written then, it would put the freshly granted quests over the saved ones.
+    universe_save_reset()
     # Point the save store at THIS universe's slot before any load/save, so each universe
     # (and each mission that loads the engine) has its own saves and can hold several.
     universe_set_active_save(UNIVERSE_SELECT, SAVE_SLOT)
@@ -254,12 +259,19 @@ default shared UNIVERSE_START_CELL = None
     shared universe_terrain_value = terrain_to_value(TERRAIN_SELECT)
     # Continue loads the saved universe (seed + position + deltas); New Game
     # starts fresh from the Seed property (0 = random) and overwrites the save.
-    saved = universe_load()
+    #
+    # universe_save_begin answers both questions at once: the saved campaign to continue,
+    # or None for a new one. It is also where the save is PROTECTED. A file that is there
+    # and will not load is left exactly as it is, copied aside, and not written to for
+    # the rest of the session (the start-of-game save below used to overwrite it); a New
+    # Game clears the old campaign's sections now (its `diplomacy` used to survive into
+    # the new one).
+    saved = universe_save_begin(START_MODE)
     # Seed comes from a gui_input typein / loaded game code, so it can be a string
     # (or empty); normalize so "0 = random" works and int(universe_seed) downstream
     # (universe_system_key) never hits int("") / str+int.
     seed_value = safe_int(seed_value)
-    if START_MODE == "Continue" and saved is not None:
+    if saved is not None:
         shared universe_seed = saved.get("universe_seed", 1)
         shared universe_i = saved.get("current_system", [0, 0])[0]
         shared universe_j = saved.get("current_system", [0, 0])[1]
@@ -340,18 +352,40 @@ default shared UNIVERSE_START_CELL = None
     # line only earns its keep if it lands where a person already looks. (Not DEBUG() -
     # in MAST scope that name resolves to an int, so calling it is a runtime error.)
     log(universe_save_report(START_MODE))
+    # The one case a crew has to be TOLD about: the save is there, it will not load (or
+    # a newer build wrote it), and so nothing they do tonight is being kept. The file
+    # is untouched and the log line above names the copy.
+    if universe_save_blocked() != "":
+        universe_info_card("The saved game could not be used. It has been left untouched, and this session is NOT being saved.", "Save", "#f66")
     # The load just restored adm_fleets (a Continue) - enter_system ran before
     # it, so bring the saved navy back now. Idempotent: no-op on a New Game.
     if admiralty_active():
         for _side in universe_player_sides():
             admiralty_fleets_respawn(_side, universe_i, universe_j)
     # Baseline save so the campaign (players, credits, admiralty pools) is
-    # durable even if the crew never jumps this session.
+    # durable even if the crew never jumps this session. The campaign is whole now, so
+    # this is also where saving is switched back on.
+    universe_save_ready()
     universe_save_players()
+    task_schedule(universe_save_loop)
     task_schedule(universe_chatter_loop)
     task_schedule(universe_cull_loop)
     task_schedule(universe_smolder_loop)
     ->END
+
+
+# The save REQUEST. A quest starting, finishing or failing asks for a save
+# (universe_save_request, from the //shared/signal routes below); this one server task
+# writes it. Each save rewrites the whole file, so a burst - five steps revealed by one
+# arrival - is one write, not five. Before this a quest change reached the disk only at
+# the next jump: fail a clock step, stop for the night, and Continue brought the step
+# back Active with a full clock.
+=== universe_save_loop
+--- save_loop
+    await delay_sim(2)
+    ->END if not UNIVERSE_ACTIVE
+    universe_save_flush()
+    jump save_loop
 
 
 # Engine-network culling. Terrain is NEVER proximity-culled within a system:
@@ -569,6 +603,20 @@ default shared UNIVERSE_START_CELL = None
         UNIVERSE_GAME_OVER = True
         universe_info_card(DATA.get("citation", "The frontier is lost."), title="DEFEAT")
         signal_emit("universe_defeat", DATA)
+    # A finished step is saved within seconds, not at the next jump. The step that ENDS
+    # the campaign is written at once: the game may stop the clock the save loop runs on.
+    universe_save_request()
+    if DATA.get("end_win") or DATA.get("end_lose"):
+        universe_save_flush()
+
+
+# The other two quest changes worth a save. Server routes, like every route that
+# writes: `//signal` would run once per console and write the file that many times.
+//shared/signal/quest_failed_done if UNIVERSE_ACTIVE
+    universe_save_request()
+
+//shared/signal/quest_started if UNIVERSE_ACTIVE
+    universe_save_request()
 
 
 # War-state watcher loop (Foundation Phase 3): reports eliminations + last-side-

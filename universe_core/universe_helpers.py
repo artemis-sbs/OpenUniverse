@@ -7,6 +7,7 @@ plus the current coordinates (persistence of player-made changes comes later).
 """
 import math
 import os
+import shutil
 
 from sbs_utils import scatter
 from sbs_utils.vec import Vec3
@@ -21,7 +22,8 @@ from sbs_utils.procedural.execution import labels_get_type
 from sbs_utils.procedural.inventory import get_inventory_value, set_inventory_value
 from sbs_utils.procedural.sides import to_side_id
 from sbs_utils.procedural.upgrades import upgrade_add
-from sbs_utils.procedural.persistence import PersistentStore
+from sbs_utils.procedural.persistence import (PersistentStore, STATUS_MISSING,
+                                               STATUS_NEWER)
 from sbs_utils.procedural.quest import (quest_agent_quests, quest_add, quest_set_key,
                                         quest_get_state, quest_get, QuestState)
 from sbs_utils.agent import Agent
@@ -35,11 +37,44 @@ UNIVERSE_SYSTEM_R = 50_000
 # only deltas, so most changes need NO migration. Bump this only for a breaking
 # restructure of a stored field, and add a matching _MIGRATIONS step. Additive
 # fields are read with .get(default) and don't need a bump. See QUESTS_PLAN 8a.
-UNIVERSE_SAVE_VERSION = 1
+#
+# Version 2 (2026-10-09): `players` is keyed by a STABLE SHIP ID instead of the ship's
+# name, and each record carries `name`, `side` and `cell`. Keyed by name, renaming a
+# ship in settings.yaml orphaned its jobs and standing, and the next save - which
+# rebuilt `players` from the ships that were flying - deleted them for good.
+UNIVERSE_SAVE_VERSION = 2
+
+
+def _universe_unique_key(base, taken):
+    """`base`, or `base_2`, `base_3`... - the first that is not in `taken`."""
+    key = base
+    n = 2
+    while key in taken:
+        key = f"{base}_{n}"
+        n += 1
+    return key
+
+
+def _universe_migrate_1_to_2(data):
+    """`players: {Name: rec}` -> `players: {id: {**rec, "name": Name}}`.
+
+    The id is a slug of the name the ship had when the save was written, so it is
+    readable in the file and never changes again. A version-1 record does not know
+    its side or cell; both are filled in by the first save. Everything else in the
+    save is untouched."""
+    players = data.get("players")
+    if isinstance(players, dict):
+        out = {}
+        for name, rec in players.items():
+            rec = dict(rec) if isinstance(rec, dict) else {}
+            rec["name"] = str(name)
+            out[_universe_unique_key(_universe_save_slug(name), out)] = rec
+        data["players"] = out
+    return data
+
 
 # Ordered single-step migrations: _MIGRATIONS[v] upgrades a v save to v+1.
-# e.g. _MIGRATIONS = {1: _migrate_1_to_2}
-_MIGRATIONS = {}
+_MIGRATIONS = {1: _universe_migrate_1_to_2}
 
 
 def universe_read_optional_file(file):
@@ -365,18 +400,150 @@ def universe_save_path():
 def _universe_store():
     """The versioned save store (schema/migrate/merge/backup live in the library
     sbs_utils.procedural.persistence; this file owns only the path + schema)."""
+    # backup="version": the copy taken before an upgrade is `<file>.v1.bak`, one per
+    # version climbed from, so the next format change cannot find this one's in its way.
     return PersistentStore(universe_save_path(), version=UNIVERSE_SAVE_VERSION,
-                           migrations=_MIGRATIONS, fmt="yaml")
+                           migrations=_MIGRATIONS, fmt="yaml", backup="version")
+
+
+# --- Session state of the save ----------------------------------------------
+# Kept on the SHARED AGENT, not in this module. A module-level container outlives a
+# mission in the dev runner (one interpreter, many missions) and the mission reset has
+# no way to reach into a mission's own file to clear it; the shared agent is rebuilt by
+# that reset, so this state cannot leak into the next run and needs no ledger entry.
+_SAVE_SESSION_KEY = "universe_save_session"
+
+
+def _save_session():
+    """This mission's save state: `blocked` (save path -> why nothing may be written to
+    it), `request` (a save has been asked for and not written), `held` (the campaign is
+    still loading: do not write players), `notes` (what the load did that a person
+    would want to know)."""
+    session = get_inventory_value(Agent.SHARED_ID, _SAVE_SESSION_KEY, None)
+    if not isinstance(session, dict):
+        session = {"blocked": {}, "request": False, "held": False, "notes": []}
+        set_inventory_value(Agent.SHARED_ID, _SAVE_SESSION_KEY, session)
+    return session
+
+
+def universe_save_reset():
+    """Forget the save state of whatever ran before. Called when a universe starts,
+    BEFORE the save is opened. From here until universe_save_ready() nothing writes the
+    players section - a save taken while the campaign is still being restored would
+    write the freshly granted quests over the saved ones."""
+    session = _save_session()
+    session["blocked"] = {}
+    session["request"] = False
+    session["notes"] = []
+    session["held"] = True
+
+
+def universe_save_ready():
+    """The campaign is restored: saves may be written again."""
+    _save_session()["held"] = False
+
+
+def universe_save_blocked():
+    """Why nothing is being written to the active save this session, or "" when it is
+    being written normally."""
+    return _save_session()["blocked"].get(universe_save_path(), "")
+
+
+def _universe_block(reason):
+    blocked = _save_session()["blocked"]
+    path = universe_save_path()
+    if path not in blocked:
+        blocked[path] = reason
+        _save_report_say("SAVE NOT WRITTEN: " + reason)
+
+
+def _universe_write(change):
+    """Every write to the save goes through here: load, `change(data)`, write.
+
+    Returns the saved dict, or None when nothing was written. The store refuses to
+    write over a file that is there and will not load - `load() or {}` used to turn
+    that into an empty save, which the very next write made permanent - and once it has
+    refused, nothing else is attempted for the rest of the session."""
+    if universe_save_blocked():
+        return None
+    store = _universe_store()
+    out = store.modify(change)
+    if out is None:
+        where = os.path.basename(store.path)
+        if store.last_status == STATUS_NEWER:
+            _universe_block(f"{where} was written by a newer build "
+                            f"(version {store.last_version}; this one reads {UNIVERSE_SAVE_VERSION})")
+        else:
+            copy = store.set_aside()
+            _universe_block(f"{where} could not be loaded ({store.last_status}); it is "
+                            f"untouched and a copy is at {os.path.basename(copy or '?')}")
+    return out
 
 
 def universe_save_state(data):
     """Write the full save dict (low-level), stamped with the current version."""
+    if universe_save_blocked():
+        return
     _universe_store().save(data)
 
 
 def universe_save_diplomacy(diplomacy):
     """Persist the per-pair diplomacy deltas (merges into the save)."""
-    _universe_store().update(diplomacy=diplomacy)
+    _universe_write(lambda data: data.update(diplomacy=diplomacy))
+
+
+def universe_save_begin(mode):
+    """Open the active save for this session. Returns the saved campaign to CONTINUE, or
+    None when this is a new one. Call after universe_set_active_save, before anything
+    else reads or writes the save.
+
+    Continue:
+      - no file: None. A new campaign; the file is created by the first save.
+      - a file that loads: the campaign (migrated; the first load of an older version
+        leaves `<file>.v<N>.bak` beside it).
+      - a file that will NOT load (unreadable, or a migration step raised): None, so the
+        evening still plays - but the file is left exactly as it is, copied aside, and
+        NOTHING is saved this session. It used to be overwritten by the start-of-game
+        save, with no backup.
+      - a file from a newer build: loaded as is, and nothing is saved over it.
+    New Game:
+      None, and the old campaign's sections are cleared NOW - it used to keep its
+      `diplomacy`, which a later Continue then applied to the new campaign. The file
+      that was there is kept once as `<file>.previous.bak`."""
+    store = _universe_store()
+    data = store.load()
+    status = store.last_status
+    where = os.path.basename(store.path)
+    if str(mode) == "Continue":
+        if status == STATUS_MISSING:
+            return None
+        if data is None:
+            copy = store.set_aside()
+            why = f" - {store.last_error}" if store.last_error else ""
+            _universe_block(f"{where} could not be loaded ({status}{why}); it is untouched, "
+                            f"a copy is at {os.path.basename(copy or '?')}, and this "
+                            f"session plays as a new game that is not saved")
+            return None
+        if status == STATUS_NEWER:
+            _universe_block(f"{where} was written by a newer build (version "
+                            f"{store.last_version}; this one reads {UNIVERSE_SAVE_VERSION}); "
+                            f"playing from it, and nothing is saved over it")
+            return data
+        if store.last_backup:
+            _save_session()["notes"].append(f"upgraded from version {store.last_version} to "
+                               f"{UNIVERSE_SAVE_VERSION}, the original is "
+                               f"{os.path.basename(store.last_backup)}")
+        return data
+    if status != STATUS_MISSING:
+        try:
+            shutil.copyfile(store.path, store.path + ".previous.bak")
+            _save_session()["notes"].append(f"the campaign that was in {where} is kept as {where}.previous.bak")
+        except OSError:
+            pass
+        # A whole new file, not a merge: every section of the old campaign goes,
+        # including ones this build does not know about.
+        store.save({})
+    return None
 
 
 def universe_migrate(data):
@@ -393,7 +560,8 @@ def universe_save(seed, i, j, systems):
     Merges into the existing save so the players/side_credits sections (written
     by universe_save_players) are preserved.
     """
-    _universe_store().update(universe_seed=seed, current_system=[i, j], systems=systems)
+    _universe_write(lambda data: data.update(universe_seed=seed, current_system=[i, j],
+                                             systems=systems))
 
 
 # --- Player / economy persistence -------------------------------------------
@@ -469,10 +637,127 @@ def _restore_quests(agent_id, quests, _prefix=""):
             _restore_quests(agent_id, kids, _prefix=full + "/")
 
 
+# --- Ship identity ----------------------------------------------------------
+# A ship's record is found by a stable id kept on the ship (inventory
+# `universe_ship_key`), not by its name. The id is a slug of the name the ship had the
+# first time it was saved; after that the name is just a field in the record.
+UNIVERSE_SHIP_KEY = "universe_ship_key"
+
+
+def universe_ship_key(ship_id):
+    """The stable id this ship's saved record is filed under, or None before it has
+    one (it gets one when the campaign loads, or at its first save)."""
+    return get_inventory_value(ship_id, UNIVERSE_SHIP_KEY, None)
+
+
+def _universe_record_name(key, rec):
+    return str(rec.get("name", key)) if isinstance(rec, dict) else str(key)
+
+
+def _universe_match_ships(ships, players):
+    """Which saved record belongs to which live ship: `{ship.id: record key}`.
+
+    By NAME first. Then a ship and a record that are both left over are paired when
+    there is no doubt who is who - exactly one of each on a side - which is what a
+    rename in settings.yaml looks like. A record with no side (one written before
+    version 2) is paired only when it is the one record left and there is one ship
+    left. Anything less certain is left alone: the ship starts clean and the record
+    stays in the file. Every pairing that was not by name is noted for the report."""
+    matched = {}
+    used = set()
+    by_name = {}
+    for key, rec in players.items():
+        if isinstance(rec, dict):
+            by_name.setdefault(_universe_record_name(key, rec), key)
+    for ship in ships:
+        key = by_name.get(str(ship.name))
+        if key is not None and key not in used:
+            matched[ship.id] = key
+            used.add(key)
+    left_ships = [s for s in ships if s.id not in matched]
+    left_recs = [k for k, rec in players.items() if k not in used and isinstance(rec, dict)]
+
+    def pair(ship, key, why):
+        matched[ship.id] = key
+        used.add(key)
+        _save_session()["notes"].append(f"ship '{ship.name}' continues the saved record of "
+                           f"'{_universe_record_name(key, players[key])}' ({why})")
+
+    for side in sorted({str(s.side) for s in left_ships}):
+        side_ships = [s for s in left_ships if str(s.side) == side and s.id not in matched]
+        side_recs = [k for k in left_recs if k not in used and players[k].get("side") == side]
+        if len(side_ships) == 1 and len(side_recs) == 1:
+            pair(side_ships[0], side_recs[0], f"the only unmatched ship and record on side {side}")
+    left_ships = [s for s in left_ships if s.id not in matched]
+    left_recs = [k for k in left_recs if k not in used]
+    if len(left_ships) == 1 and len(left_recs) == 1 and not players[left_recs[0]].get("side"):
+        pair(left_ships[0], left_recs[0], "the only unmatched ship and the only unmatched record")
+        left_recs = []
+    if left_recs:
+        names = ", ".join(_universe_record_name(k, players[k]) for k in left_recs)
+        _save_session()["notes"].append(f"kept {len(left_recs)} saved ship record(s) with no ship "
+                           f"flying this session: {names}")
+    return matched
+
+
+def _universe_key_for_ship(ship, players, claimed):
+    """The record key for a live ship at SAVE time. Its own id if it has one; else the
+    record already carrying its name (a respawned ship is the same ship); else a new
+    slug of its name that no record and no other ship is using."""
+    key = universe_ship_key(ship.id)
+    if key is None:
+        for k, rec in players.items():
+            if k not in claimed and _universe_record_name(k, rec) == str(ship.name):
+                key = k
+                break
+    if key is None or key in claimed:
+        key = _universe_unique_key(_universe_save_slug(ship.name), set(players) | claimed)
+    set_inventory_value(ship.id, UNIVERSE_SHIP_KEY, key)
+    return key
+
+
+def universe_save_request():
+    """Ask for the players-and-quests section to be saved soon. Cheap, and safe to call
+    in a burst: the save rewrites the whole file, so a server task writes it once every
+    couple of seconds however many times this was called (universe_save_flush)."""
+    _save_session()["request"] = True
+
+
+def universe_save_pending():
+    """True while a requested save has not been written yet."""
+    return bool(_save_session()["request"])
+
+
+def universe_save_flush():
+    """Write the save that was asked for, if one was. Returns True when it wrote."""
+    session = _save_session()
+    if not session["request"] or session["held"]:
+        return False
+    return universe_save_players()
+
+
 def universe_save_players():
-    """Persist per-ship items/installs/quests, shared credits, and game quests."""
-    data = universe_load() or {}
-    players = {}
+    """Persist per-ship items/installs/quests, shared credits, and game quests.
+
+    Returns True when the file was written. While the campaign is still loading
+    (universe_save_reset .. universe_save_ready) it writes nothing and leaves a request
+    behind instead, so the save happens as soon as it is safe."""
+    session = _save_session()
+    if session["held"]:
+        session["request"] = True
+        return False
+    session["request"] = False
+    return _universe_write(_universe_players_into) is not None
+
+
+def _universe_players_into(data):
+    """Put the live ships, credits and quests into the save dict `data`."""
+    # Records with no ship flying this session are KEPT. `players` used to be rebuilt
+    # from the live ships alone, which deleted a ship's jobs and standing the first
+    # time it sat an evening out - or was renamed.
+    old = data.get("players")
+    players = dict(old) if isinstance(old, dict) else {}
+    claimed = set()
     side_credits = {}
     for ship in to_object_list(role("__player__")):
         items = {}
@@ -481,14 +766,21 @@ def universe_save_players():
             if c:
                 items[k] = c
         installs = get_inventory_value(ship.id, "installs", [])
-        players[ship.name] = {"items": items, "installs": list(installs),
-                              "quests": _serialize_quests(ship.id),
-                              "reputation": get_inventory_value(ship.id, "reputation", {})}
+        key = _universe_key_for_ship(ship, players, claimed)
+        claimed.add(key)
+        # Start from the record that is there, so a field this build does not know
+        # (a later build's, an addon's) rides through untouched.
+        rec = dict(players[key]) if isinstance(players.get(key), dict) else {}
+        rec.update({"name": str(ship.name), "side": ship.side,
+                    "cell": [int(c) for c in ship_cell(ship.id)],
+                    "items": items, "installs": list(installs),
+                    "quests": _serialize_quests(ship.id),
+                    "reputation": get_inventory_value(ship.id, "reputation", {})})
+        players[key] = rec
         side = ship.side
         if side:
             side_credits[side] = get_inventory_value(to_side_id(side), "credits", 0)
     data["players"] = players
-    data["side_credits"] = side_credits
     # Admiralty economy (worldlets/research - additive, no migration needed):
     # per-side stockpiles + completed research, straight off the side agent's
     # inventory so this stays self-contained (see universe_worldlets.py).
@@ -504,9 +796,14 @@ def universe_save_players():
                 "officers": dict(get_inventory_value(sid, "adm_officers", {}) or {}),
                 "subsidy": float(get_inventory_value(sid, "market_subsidy", 0.0) or 0.0),
             }
-    data["side_admiralty"] = side_adm
+    # The same rule for a side as for a ship: one that is not flying this session keeps
+    # what it had.
+    for section, live in (("side_credits", side_credits), ("side_admiralty", side_adm)):
+        kept = data.get(section)
+        merged = dict(kept) if isinstance(kept, dict) else {}
+        merged.update(live)
+        data[section] = merged
     data["shared_quests"] = _serialize_quests(Agent.SHARED_ID)
-    universe_save_state(data)
 
 
 def universe_load_players(restore=True):
@@ -519,11 +816,26 @@ def universe_load_players(restore=True):
     baseline universe_save_players then overwrites the stale sections."""
     data = (universe_load() or {}) if restore else {}
     players = data.get("players", {})
+    if not isinstance(players, dict):
+        players = {}
     side_credits = data.get("side_credits", {})
     seen_sides = set()
     _restore_quests(Agent.SHARED_ID, data.get("shared_quests"))
     side_adm = data.get("side_admiralty", {})
-    for ship in to_object_list(role("__player__")):
+    ships = to_object_list(role("__player__"))
+    # Which record is whose (by name, then an unambiguous leftover - see
+    # _universe_match_ships). A ship with no record gets a new id that no record
+    # uses, so its first save cannot land on somebody else's.
+    matched = _universe_match_ships(ships, players)
+    taken = set(players) | set(matched.values())
+    for ship in ships:
+        if ship.id not in matched:
+            fresh = _universe_unique_key(_universe_save_slug(ship.name), taken)
+            taken.add(fresh)
+            set_inventory_value(ship.id, UNIVERSE_SHIP_KEY, fresh)
+        else:
+            set_inventory_value(ship.id, UNIVERSE_SHIP_KEY, matched[ship.id])
+    for ship in ships:
         side = ship.side
         if side and side not in seen_sides:
             set_inventory_value(to_side_id(side), "credits",
@@ -543,8 +855,8 @@ def universe_load_players(restore=True):
                 set_inventory_value(sid, "adm_officers", dict(adm.get("officers") or {}))
                 set_inventory_value(sid, "market_subsidy", float(adm.get("subsidy") or 0.0))
             seen_sides.add(side)
-        pdata = players.get(ship.name)
-        if not pdata:
+        pdata = players.get(matched.get(ship.id))
+        if not isinstance(pdata, dict):
             continue
         for k, c in pdata.get("items", {}).items():
             set_inventory_value(ship.id, k, c)
@@ -560,7 +872,8 @@ def universe_load_players(restore=True):
 
 def universe_load():
     """Load the saved universe (migrated to the current version), or None.
-    Backs up once before an upgrading migration (universe_save.yaml.bak)."""
+    The first load of an older version leaves `<file>.v<N>.bak` beside it. Never
+    writes the save itself; universe_save_begin is what opens it for a session."""
     return _universe_store().load()
 
 
@@ -928,8 +1241,14 @@ def universe_save_report(mode):
     """
     path = universe_save_path()
     where = os.path.basename(path)
+    # What the load did that nobody asked it to: an upgrade, a ship that took over a
+    # renamed ship's record, records kept for ships that are not flying.
+    notes = "".join(" | " + n for n in _save_session()["notes"])
+    blocked = universe_save_blocked()
+    if blocked:
+        return _save_report_say(f"{mode}: {blocked}{notes}")
     if str(mode) != "Continue":
-        return _save_report_say(f"{mode}: ignoring any save; will overwrite {where}")
+        return _save_report_say(f"{mode}: ignoring any save; will overwrite {where}{notes}")
     if not os.path.isfile(path):
         return _save_report_say(f"Continue: NO SAVE at {where} - starting fresh (it will be created)")
     data = universe_load() or {}
@@ -949,7 +1268,7 @@ def universe_save_report(mode):
         f"Continue: loaded {where} - seed {data.get('universe_seed')}, "
         f"system {data.get('current_system')}, "
         f"{len(data.get('systems') or {})} known systems, "
-        f"{_count(shared, 1)} active / {_count(shared, 99)} complete quest steps")
+        f"{_count(shared, 1)} active / {_count(shared, 99)} complete quest steps{notes}")
 
 
 def _save_report_say(message):

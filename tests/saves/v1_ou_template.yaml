@@ -1,0 +1,330 @@
+---
+universe_seed: 1174678355
+current_system:
+  - 0
+  - 0
+systems:
+  "0,0":
+    visited: true
+  "2,2":
+    visited: true
+  "-2,3":
+    visited: true
+save_version: 1
+players:
+  Artemis:
+    items: {}
+    installs: []
+    quests: {}
+    reputation:
+      hollin:
+        honesty: 40
+        generosity: 40
+side_credits:
+  tsn: 1150
+side_admiralty: {}
+shared_quests:
+  lead_deepwell:
+    display_text: The Second Colony
+    description: "The Deepwell Assembly keeps its books at (3, 1). Go and be counted."
+    state: 1
+    data:
+      scope: shared
+      state: active
+      on_reach:
+        sector:
+          - 3
+          - 1
+      objective: "Reach 3, 1"
+      objective_auto: "Reach 3, 1"
+    progress: 0
+    children: {}
+  lead_gleaners:
+    display_text: The Breaking Yard
+    description: "The Compact says the Gleaners tow their wrecks to a yard at (-3, -2). Go and look, with shields up."
+    state: 1
+    data:
+      scope: shared
+      state: active
+      on_reach:
+        sector:
+          - -3
+          - -2
+      objective: "Reach -3, -2"
+      objective_auto: "Reach -3, -2"
+    progress: 0
+    children: {}
+  lead_tern:
+    display_text: The Third Colony
+    description: "The Tern never answered. Her last position was (1, -2). Go and see what is left of her."
+    state: 1
+    data:
+      scope: shared
+      state: active
+      on_reach:
+        sector:
+          - 1
+          - -2
+      objective: "Reach 1, -2"
+      objective_auto: "Reach 1, -2"
+    progress: 0
+    children: {}
+  lead_bone_pile:
+    display_text: What the Gleaners Keep
+    description: "There is a place at (-4, -3) the Gleaners will not talk about. Go armed."
+    state: 1
+    data:
+      scope: shared
+      state: active
+      on_reach:
+        sector:
+          - -4
+          - -3
+      objective: "Reach -4, -3"
+      objective_auto: "Reach -4, -3"
+    progress: 0
+    children: {}
+  s01_go:
+    display_text: "The Long Count: One of Five"
+    description: "The Tern carried five boats and forty-one people. A prospector has sold the Compact a fix on one boat, at (2, 2). Go and find her."
+    state: 99
+    data:
+      scope: shared
+      state: active
+      on_reach:
+        sector:
+          - 2
+          - 2
+      objective: "Reach 2, 2"
+      objective_auto: "Reach 2, 2"
+      reveal: s01_scan
+    progress: 0
+    children: {}
+  s01_scan:
+    display_text: "The Long Count: Her Log"
+    description: "The Wren is here, and so are ships with cutting gear. Get Science close enough to read her log before they strip it."
+    state: 99
+    data:
+      scope: shared
+      state: secret
+      on_scan:
+        role: universe_derelict
+        count: 1
+      objective: Scan the Wren from Science
+      objective_auto: Scan 1 derelict
+      reveal: s01_home
+    progress: 1
+    children: {}
+  s01_home:
+    display_text: "The Long Count: Enter It"
+    description: "Nine names in the Wren's log, and a course laid in for a place that is on no chart. Take the log home to Kestrel Relay and have it entered."
+    state: 99
+    data:
+      scope: shared
+      state: secret
+      on_reach:
+        sector:
+          - 0
+          - 0
+      objective: "Reach 0, 0"
+      objective_auto: "Reach 0, 0"
+      reveal: s02_go
+      reward:
+        credits: 300
+    progress: 0
+    children: {}
+  s02_go:
+    display_text: "The Long Count: Two of Five"
+    description: "The Wren's log gives the next boat's last bearing: (-2, 3), past the edge of the Fields. She was the Dunlin. Somebody out there is still answering her hails."
+    state: 99
+    data:
+      scope: shared
+      state: secret
+      on_reach:
+        sector:
+          - -2
+          - 3
+      objective: "Reach -2, 3"
+      objective_auto: "Reach -2, 3"
+      reveal: s02_clear
+    progress: 0
+    children: {}
+  s02_clear:
+    display_text: "The Long Count: Bait"
+    description: "The Dunlin is a lure, and the ships in the cloud have been waiting for someone to answer. Two of them. Break the trap."
+    state: 99
+    data:
+      scope: shared
+      state: secret
+      on_kill:
+        hostile: true
+        count: 2
+      objective: Destroy 2 enemies
+      objective_auto: Destroy 2 enemies
+      reveal: s02_home
+    progress: 2
+    children: {}
+  s02_home:
+    display_text: "The Long Count: Enter It Twice"
+    description: "The Dunlin's seats were empty and her lockers were full. Nobody starved in her. Take that home to Kestrel Relay."
+    state: 99
+    data:
+      scope: shared
+      state: secret
+      on_reach:
+        sector:
+          - 0
+          - 0
+      objective: "Reach 0, 0"
+      objective_auto: "Reach 0, 0"
+      reveal: s03_go
+      reward:
+        credits: 350
+    progress: 0
+    children: {}
+  s03_go:
+    display_text: "The Long Count: Three of Five"
+    description: "A boat does not empty itself. The Deepwell count every hull that is sold in the Verge. Go to the Assay Office at (3, 1) and ask what they paid for a boat called the Plover."
+    state: 1
+    data:
+      scope: shared
+      state: secret
+      on_reach:
+        sector:
+          - 3
+          - 1
+      objective: "Reach 3, 1"
+      objective_auto: "Reach 3, 1"
+      reveal: s03_ask
+    progress: 0
+    children: {}
+  s03_ask:
+    display_text: "The Long Count: The Plover's Price"
+    description: "The Assay Office has the Plover's bill of sale. Hail them and get it. How you ask is up to you, and they will remember it."
+    state: 2
+    data:
+      scope: shared
+      state: secret
+      on_signal:
+        name: plover_asked
+      objective: Hail the Assay Office on Comms
+      reveal: s03_home
+    progress: 0
+    children: {}
+  s03_home:
+    display_text: "The Long Count: Enter It Again"
+    description: "The Plover was sold as scrap, empty, by a seller the Deepwell would not name twice. Take the bill home to Kestrel Relay."
+    state: 2
+    data:
+      scope: shared
+      state: secret
+      on_reach:
+        sector:
+          - 0
+          - 0
+      objective: "Reach 0, 0"
+      objective_auto: "Reach 0, 0"
+      reveal: s04_go
+      reward:
+        credits: 300
+    progress: 0
+    children: {}
+  s04_go:
+    display_text: "The Long Count: Four of Five"
+    description: "The Assay Office sold the Plover on, and logged a second boat adrift at (4, -2). The Petrel. Nobody has claimed her."
+    state: 2
+    data:
+      scope: shared
+      state: secret
+      on_reach:
+        sector:
+          - 4
+          - -2
+      objective: "Reach 4, -2"
+      objective_auto: "Reach 4, -2"
+      reveal: s05_go
+    progress: 0
+    children: {}
+  s05_go:
+    display_text: "The Long Count: Five of Five"
+    description: "The last boat was the Skua, and the Petrel's beacon puts her in the Gleaners' breaking yard at (-3, -2). Go and see whether she is still a boat."
+    state: 2
+    data:
+      scope: shared
+      state: secret
+      on_reach:
+        sector:
+          - -3
+          - -2
+      objective: "Reach -3, -2"
+      objective_auto: "Reach -3, -2"
+      reveal: act1_close
+    progress: 0
+    children: {}
+  act1_close:
+    display_text: "The Long Count: Five Boats"
+    description: "Five boats, and not one body. Forty-one people left the Tern alive and went somewhere together. Take the Count home to Kestrel Relay."
+    state: 2
+    data:
+      scope: shared
+      state: secret
+      on_reach:
+        sector:
+          - 0
+          - 0
+      objective: "Reach 0, 0"
+      objective_auto: "Reach 0, 0"
+      reward:
+        credits: 1000
+    progress: 0
+    children: {}
+  door_manifest:
+    display_text: "The Tern's Manifest"
+    description: "The Compact keeps the Tern's manifest under seal, and does not break a seal for strangers. Earn their trust at Kestrel Relay, then ask."
+    state: 99
+    data:
+      scope: shared
+      state: active
+      on_signal:
+        name: manifest_seen
+      reward:
+        credits: 200
+    progress: 1
+    children: {}
+  waypoints:
+    display_text: Charted Locations
+    description: Places you have been. Select one and Engage to jump back.
+    state: 1
+    data: ~
+    progress: 0
+    children:
+      wp_0_0:
+        display_text: Kestrel Relay
+        description: Jump back to Kestrel Relay.
+        state: 1
+        data:
+          waypoint:
+            - 0
+            - 0
+        progress: 0
+        children: {}
+      wp_2_2:
+        display_text: The Wren
+        description: Jump back to The Wren.
+        state: 1
+        data:
+          waypoint:
+            - 2
+            - 2
+        progress: 0
+        children: {}
+      wp_-2_3:
+        display_text: The Dunlin
+        description: Jump back to The Dunlin.
+        state: 1
+        data:
+          waypoint:
+            - -2
+            - 3
+        progress: 0
+        children: {}
