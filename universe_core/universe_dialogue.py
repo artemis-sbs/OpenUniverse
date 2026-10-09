@@ -3,9 +3,11 @@
 Now a thin binder over the shared sbs_utils.procedural.amd_dialogue driver (promoted from
 here). The generic engine - scene parsing, `%` random lines, guarded choices, outcome
 dispatch - lives in the library; OU injects the two domain seams:
-  * metric resolver: guard left-sides `credits` / `standing` / a reputation pole.
-  * outcome handlers: `costs <n> credits` (spend), `earns <side> <pole> <±n>` (reputation);
-    `signal` is built into the shared driver.
+  * metric resolver: guard left-sides `credits` and `carrying <item>`. `standing` and the
+    reputation poles are the library's own guard words now (reputation_metric); OU hands
+    them on, and keeps its habit of reading any other name as a pole.
+  * outcome handler: `costs <n> credits` (spend). `earns <side> <pole> <±n>` is the
+    library's (reputation_earns_outcome) and `signal` is built into the shared driver.
 Speaker resolution (key -> face/color/name card) stays OU-specific in universe_captains.py
 (dialogue_speaker); the shared driver treats the speaker record opaquely.
 
@@ -23,7 +25,7 @@ from sbs_utils.procedural.amd_dialogue import (  # noqa: F401  (re-exported into
     dialogue_choices, dialogue_apply, dialogue_entry_for, _dlg_norm,
     dialogue_register_scenes,
     dialogue_set_metric_resolver, dialogue_register_outcome)
-from sbs_utils.procedural.reputation import reputation_get, reputation_adjust, reputation_standing
+from sbs_utils.procedural.reputation import reputation_metric
 from sbs_utils.procedural.inventory import get_inventory_value, set_inventory_value
 from sbs_utils.procedural.sides import to_side_id
 from sbs_utils.procedural.query import get_side
@@ -46,13 +48,12 @@ def dialogue_side_entry(scenes, side_key):
 
 # --- OU seams: reputation-aware guards + credit/reputation outcomes ----------
 def _ou_metric(name, agent_id, side):
-    """Resolve a guard's left side: `credits` (side inventory), `standing`, or a reputation
-    pole read against the speaker side/captain record."""
+    """Resolve a guard's left side: `credits` (side inventory) and `carrying <item>` are
+    the universe's own; `standing` and the reputation poles are handed to the library,
+    read against the speaker side/captain record."""
     name = str(name).strip().lower()
     if name == "credits":
         return get_inventory_value(to_side_id(get_side(agent_id)), "credits", 0)
-    if name in ("standing", "rep", "reputation"):
-        return reputation_standing(agent_id, side)
     # `if carrying clue_manifest >= 1` - what is in the hold. The items addon stores a
     # collected item on the SHIP under its own key, so this is a direct read.
     #
@@ -62,7 +63,10 @@ def _ou_metric(name, agent_id, side):
     # would simply never open. A wrong answer that looks like a considered one.
     if name.startswith("carrying ") or name.startswith("have "):
         return get_inventory_value(agent_id, name.split(" ", 1)[1].strip(), 0)
-    return reputation_get(agent_id, (side.get("key") if side else None), _dlg_norm(name))
+    # `standing`, a pole - and ANY other name, read as a pole. The library answers 0 for
+    # a name that is not a pole; the universe has always read it as one (an axis a
+    # scene's own `earns` invented), so that is asked for here.
+    return reputation_metric(name, agent_id, side, any_pole=True)
 
 
 dialogue_set_metric_resolver(_ou_metric)
@@ -80,11 +84,6 @@ def _ou_costs(agent_id, side, toks):
     set_inventory_value(sid, "credits", have - n)
 
 
-def _ou_earns(agent_id, side, toks):
-    """`earns <side> <pole...> <±n>` - shift reputation with a side along a pole."""
-    if len(toks) >= 3 and str(toks[-1]).lstrip("+-").isdigit():
-        reputation_adjust(agent_id, toks[0], _dlg_norm(" ".join(toks[1:-1])), int(toks[-1]))
-
-
+# `earns <side> <pole...> <±n>` is the library's outcome verb (registered as
+# sbs_utils.procedural.reputation imports), so it is no longer declared here.
 dialogue_register_outcome("costs", _ou_costs)
-dialogue_register_outcome("earns", _ou_earns)

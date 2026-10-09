@@ -587,8 +587,11 @@ default shared UNIVERSE_START_CELL = None
 
 
 # Apply a completed quest's declarative rep: block to the captain (universe).
+# reputation_grant, not reputation_apply: a story beat is held by the SHARED story agent,
+# and a `Standing:` filed there was one no guard could read - `if standing >= 30` asks the
+# ship. A shared quest reaches every player ship flying; a ship's own job pays that ship.
 //shared/signal/quest_succeeded if UNIVERSE_ACTIVE
-    reputation_apply(AGENT_ID, DATA.get("rep"))
+    reputation_grant(AGENT_ID, DATA.get("rep"))
     # On-change chatter: sides note a shift in your standing.
     if DATA.get("rep") is not None:
         universe_info_card("Word of your deeds spreads among the sides.", title="Comms Chatter")
