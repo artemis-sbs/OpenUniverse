@@ -55,7 +55,10 @@ default shared UNIVERSE_SITE_CALL_DELAY = 4
     # rather than a corner: the boarding module holds ONE open scene, so a second crew
     # arriving would take over the first crew's beat.
     ->END if boarding_visiting() is not None or boarding_is_open()
-    ->END if get_inventory_value(SITE_OBJECT, "SITE_ASKED", False)
+    # Not "was this site ever asked": a crew that answered "Stay aboard" was then never
+    # called again. Only a call that is still OUT - being placed, waiting, or open - is
+    # a reason not to place another (`universe_site_call_waiting` re-arms the rest).
+    ->END if universe_site_call_waiting(SITE_OBJECT)
 
     universe_site_scenes_now = universe_site_scenes(universe_site_key)
     # A WALKED site may have nothing to say and still be somewhere to go.
@@ -72,7 +75,11 @@ default shared UNIVERSE_SITE_CALL_DELAY = 4
         ->END
 
     set_inventory_value(SITE_OBJECT, "SITE_ASKED", True)
+    # ...and BEING PLACED, for the seconds below: a second ship tying up in them must
+    # not start a second call.
+    set_inventory_value(SITE_OBJECT, "SITE_CALLING", True)
     await delay_sim(UNIVERSE_SITE_CALL_DELAY)
+    set_inventory_value(SITE_OBJECT, "SITE_CALLING", False)
     # Fire and forget: the ACCEPT choice's `; signal boarding_down` is what continues this,
     # so a crew that ignores the call simply never goes down, and one that declines can
     # be asked again by re-arming below.
@@ -123,10 +130,12 @@ default shared UNIVERSE_SITE_CALL_DELAY = 4
         universe_site_invite = boarding_visit(SITE_SHIP, universe_site_dscenes, universe_site_first, title=universe_site_title(universe_site_dkey), place=universe_site_dkey)
     set_inventory_value(SITE_SHIP, "SITE_PENDING", None)
     if universe_site_invite is None:
-        log(f"site '{universe_site_dkey}': the visit would not open", "universe", "warning")
+        universe_site_say(f"the site '{universe_site_dkey}': the visit would not open")
         ->END
     # Which site this ship is at, so the end of the visit can hand it back.
     set_inventory_value(SITE_SHIP, "SITE_VISITING", SITE_OBJECT)
+    # A party nobody joins, and a ship that then lets go of the place: over.
+    universe_site_visit_watch(SITE_SHIP)
     log(f"site '{universe_site_dkey}': party open, scene={boarding_scene()}", "universe")
     ->END
 

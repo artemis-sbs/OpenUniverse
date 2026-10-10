@@ -189,6 +189,21 @@ Title: Customs House
 
 That is a **text site**: rooms and choices, no map. Docking again offers it again.
 
+| A site's call | |
+|---|---|
+| "Stay aboard" | The call is over and nothing else happens. The next time the ship docks there, the place calls again |
+| Not answered | The call waits. It is not placed a second time while it is still waiting |
+| No `## Hails` chapter | The party is offered as the ship arrives. If nobody goes down, it is withdrawn when the ship undocks (or leaves orbit, or leaves the system), and offered again on the next arrival |
+
+!!! warning "When a site does not appear, read `mast.runtime.log`"
+    A site that cannot be made says so there, once, with the site's key and its file:
+
+    - its file was not found, or has no rooms under `## [Scenes](boarding)`;
+    - it has a `## Hails` chapter and no answer ends with `; signal boarding_down`
+      (also when the signal is misspelled), so the crew could take the call and
+      never go down;
+    - it is written as a site the party walks, and no map has its key (below).
+
 ### A site the party walks
 
 The same `Site:` is a place the party **walks** when your universe's folder has a
@@ -204,8 +219,18 @@ entry: pad
 
 Nothing else joins them - no new field on the landmark, no new word in the site
 file. A landmark that says `Site: tally_yard`, and a `.tiles` file that says
-`area: tally_yard`, are one place. A site with no area of its own key stays a
-text site.
+`area: tally_yard`, are one place.
+
+**The two keys must be the same word.** A walked site keeps its scenes under
+`## [Scenes](scenes)`, where each one belongs to a thing or a person, so it has no
+first room to arrive in. If the area's key does not match (`area: yard` beside
+`Site: tally_yard`) there is no map and nothing to play as text either, and **the
+site does not exist**: no call when the ship docks, nothing to board. `sbs lint`
+reports it as `site-no-area`, and the game says so once in `mast.runtime.log`.
+
+Only a site file that also has rooms under `## [Scenes](boarding)` is played as a
+text site when it has no map. Its Props and People are then not used, and the same
+two places say so.
 
 On a map there is no first room. The party stands at the area's `entry:`, and a
 scene belongs to the thing or the person that opens it. So a walked site's file
@@ -252,7 +277,7 @@ ground can be walked. A site file written for one plays in the other unchanged.
 
 | A walked site | |
 |---|---|
-| When it ends | When the **last** of the party is back aboard (BEAM UP on the ePADD). Docking again offers it again |
+| When it ends | When the **last** of the party is back aboard (BEAM UP on the ePADD). Docking again offers it again. If nobody went down at all, it ends when the ship undocks or leaves the system |
 | What it remembers | Opened doors, things picked up, people put down, and what was learned there - through a jump away and back, and through Continue |
 | Where the files go | Anywhere in your mission's folder. The `away` starter keeps them in `ground/` |
 | The art | The `TILE_ART:` setting names the art sets, and `story.json` pins the packs that hold them. Without the packs the map is black; everything still works |

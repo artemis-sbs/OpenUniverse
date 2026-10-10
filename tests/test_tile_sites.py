@@ -67,6 +67,7 @@ from sbs_utils.procedural import boarding_props as P
 from sbs_utils.procedural import boarding_quests as Q
 from sbs_utils.procedural import crew
 from sbs_utils.procedural import docking
+from sbs_utils.procedural import hail as HAIL
 from sbs_utils.procedural import tilemap as T
 from sbs_utils.procedural.amd import amd_choice_label
 from sbs_utils.procedural.amd_dialogue import dialogue_scenes
@@ -462,7 +463,8 @@ class AUniverseWithNoTileFiles(_Base):
         self.assertIsNone(rec)
         self.assertEqual(P._PROPS, {})
         self.assertEqual(len(said), 1)
-        self.assertIn("no '## Scenes' beats", said[0])
+        self.assertIn("this site does not exist", said[0])
+        self.assertIn("area: tally_yard", said[0])
 
     def test_a_text_site_that_also_lists_props_plays_as_text_and_says_they_are_unused(self):
         said = []
@@ -475,7 +477,7 @@ class AUniverseWithNoTileFiles(_Base):
         self.assertEqual(next(iter(rec["scenes"])), "customs_counter")
         self.assertEqual(P._PROPS, {})
         self.assertEqual(len(said), 1)
-        self.assertIn("no tile area file", said[0])
+        self.assertIn("played as a site of rooms and choices", said[0])
         self.assertIn("area: mixed", said[0])
 
 
@@ -828,6 +830,237 @@ class SiteOnAWreckAndAWorldlet(_Base):
         visit = B.boarding_visiting()
         self.assertIsNotNone(visit)
         self.assertEqual(visit.get("place"), "customs")
+
+
+# --- a site that cannot be made says so where a writer reads ------------------------------
+
+# A text site with its rooms under the heading a WALKED site uses (the lesson's D2).
+TEXT_SITE_WRONG_KEY = SAMPLE.TEXT_SITE.replace("## [Scenes](boarding)", "## [Scenes](scenes)")
+# A call nobody can accept: the answer's signal is left off, then misspelled (D3).
+TEXT_SITE_NO_DOWN = SAMPLE.TEXT_SITE.replace(" ; signal boarding_down", "")
+TEXT_SITE_MISSPELLED = SAMPLE.TEXT_SITE.replace("signal boarding_down", "signal boarding_dwon")
+
+
+class ASiteThatCannotBeMadeSaysSo(_Base):
+    """Every refusal used to go to a logger with no handler: `mast.runtime.log` was
+    empty beside a site that did not exist (`agent_c5d_report.md` D1, D2, D3)."""
+    tiles = False
+
+    def load(self, key, text=None, fname=None):
+        if text is not None:
+            self.write(fname or key + ".amd", text)
+        return self.fn("universe_site_load")(key, fname or key + ".amd")
+
+    def said(self, word):
+        return [line for line in self.runtime if word in line]
+
+    def test_a_good_site_says_nothing(self):
+        self.assertIsNotNone(self.load("customs"))
+        self.assertIsNotNone(self.load("quiet_shore"))
+        self.assertEqual(self.runtime, [])
+
+    def test_a_walked_file_with_no_matching_area_does_not_exist_and_says_so_once(self):
+        """D1: `area: yard` beside `Site: tally_yard`. It is NOT played as text."""
+        self.write("ground/starter.tileset", SAMPLE.TILESET)
+        self.write("ground/tally_yard.tiles", SAMPLE.AREA.replace("area: tally_yard",
+                                                                  "area: yard"))
+        self.begin()
+        for _ in range(3):                    # the system is rebuilt on every return
+            self.assertIsNone(self.load("tally_yard"))
+        said = self.said("tally_yard")
+        self.assertEqual(len(said), 1, self.runtime)
+        self.assertIn("this site does not exist", said[0])
+        self.assertIn("area: tally_yard", said[0])
+        self.assertIn("## [Scenes](boarding)", said[0])
+        # ... and it really is not there: nothing to dock into.
+        obj = to_id(npc_spawn(1000, 0, 1000, "Tally Yard", "tsn, station, landmark",
+                              "starbase_civil", "behav_station"))
+        self.assertIsNone(self.fn("universe_site_place")("tally_yard", obj, 0, 0, "Tally Yard"))
+        self.assertFalse(has_role(obj, "boarding_site"))
+
+    def test_a_text_site_with_its_rooms_under_the_wrong_key(self):
+        """D2: `## [Scenes](scenes)` in a site with no map."""
+        self.assertIsNone(self.load("customs", TEXT_SITE_WRONG_KEY))
+        said = self.said("customs")
+        self.assertEqual(len(said), 1, self.runtime)
+        self.assertIn("## [Scenes](boarding)", said[0])
+        self.assertIn("does not exist", said[0])
+
+    def test_a_site_with_no_rooms_at_all(self):
+        text = SAMPLE.TEXT_SITE[:SAMPLE.TEXT_SITE.index("## [Scenes](boarding)")]
+        self.assertIsNone(self.load("customs", text))
+        self.assertEqual(len(self.said("has no rooms")), 1, self.runtime)
+
+    def test_a_call_no_answer_of_which_sends_a_party(self):
+        """D3: the accept answer with no `; signal boarding_down`."""
+        rec = self.load("customs", TEXT_SITE_NO_DOWN)
+        self.assertIsNotNone(rec, "the site exists: it is the call that is broken")
+        said = self.said("signal boarding_down")
+        self.assertEqual(len(said), 1, self.runtime)
+        self.assertIn("can never go down", said[0])
+
+    def test_a_call_whose_signal_is_misspelled(self):
+        self.load("customs", TEXT_SITE_MISSPELLED)
+        self.assertEqual(len(self.said("can never go down")), 1, self.runtime)
+
+    def test_a_file_that_is_not_there(self):
+        self.assertIsNone(self.load("nowhere"))
+        said = self.said("nowhere")
+        self.assertTrue(any("was not found" in line for line in said), self.runtime)
+
+    def test_a_new_game_says_it_again(self):
+        self.load("customs", TEXT_SITE_NO_DOWN)
+        self.fn("universe_sites_clear")()
+        self.load("customs")
+        self.assertEqual(len(self.said("can never go down")), 2)
+
+    def test_every_warning_in_the_file_goes_through_the_one_function(self):
+        with open(os.path.join(OU_CORE, "universe_sites.py"), encoding="utf-8") as f:
+            text = f.read()
+        loose = [line for line in text.split(chr(10))
+                 if '"universe", "warning")' in line and "log(message" not in line
+                 and "`log(" not in line and "visit watcher stopped" not in line]
+        self.assertEqual(loose, [])
+        with open(os.path.join(OU_CORE, "universe_sites.mast"), encoding="utf-8") as f:
+            self.assertNotIn('"universe", "warning")', f.read())
+
+
+# --- "Stay aboard" is not for good ------------------------------------------------------------
+
+class StayAboardThenDockAgain(_Base):
+    """`build_report_site.md` and `agent_c5d_report.md` D4: a declined call left
+    `SITE_ASKED` set, and that site never called again until its system was rebuilt."""
+
+    def setUp(self):
+        super().setUp()
+        self.begin()
+        self.house = self.station("Customs House", "customs")
+
+    def calls(self):
+        return [str(getattr(c, "scene", "")) for c in HAIL.hail_pending(self.ship)]
+
+    def answer(self, starts_with):
+        self.assertIsNotNone(HAIL.hail_accept(self.ship))
+        while HAIL.hail_advance(self.ship):
+            pass
+        labels = [amd_choice_label(c.get("label"))
+                  for c in (HAIL.hail_active(self.ship) or {}).get("choices") or []]
+        index = next(i for i, text in enumerate(labels) if text.startswith(starts_with))
+        FrameContext.context = Context(mock_sbs.sim, mock_sbs, FakeEvent(0, "test"))
+        self.assertTrue(HAIL.hail_answer(self.ship, index))
+        self.present(2)
+
+    def test_declined_it_calls_again_on_the_next_dock(self):
+        self.dock(self.house, accept=False)
+        self.assertEqual(self.calls(), ["customs_call"])
+        self.answer("Stay aboard")
+        self.assertIsNone(B.boarding_visiting())
+        self.assertEqual(self.calls(), [])
+        # The ship lets go and ties up again.
+        self.dock(self.house, accept=False)
+        self.assertEqual(self.calls(), ["customs_call"], "the site was silenced for good")
+        self.answer("Assemble a boarding party")
+        self.assertIsNotNone(B.boarding_visiting())
+        self.assertEqual(B.boarding_visiting().get("place"), "customs")
+
+    def test_a_call_still_waiting_is_not_placed_twice(self):
+        self.dock(self.house, accept=False)
+        self.dock(self.house, accept=False)          # a second `ship_docked`, unanswered
+        self.assertEqual(self.calls(), ["customs_call"])
+
+    def test_a_second_dock_in_the_seconds_before_the_call_is_placed(self):
+        self.emit("ship_docked", {"DOCK_SHIP_ID": self.ship, "DOCK_STATION_ID": self.house})
+        self.emit("ship_docked", {"DOCK_SHIP_ID": self.ship, "DOCK_STATION_ID": self.house})
+        self.present(8)
+        self.assertEqual(self.calls(), ["customs_call"])
+
+    def test_a_call_the_crew_never_picked_up_and_that_was_withdrawn(self):
+        self.dock(self.house, accept=False)
+        HAIL.hail_cancel(self.ship)
+        self.dock(self.house, accept=False)
+        self.assertEqual(self.calls(), ["customs_call"])
+
+
+# --- a visit nobody went down to ---------------------------------------------------------------
+
+class AVisitNobodyWentDownTo(_Base):
+    """`agent_c5d_report.md` D5: a site with no `## Hails` opens its party on docking; a
+    crew that flew off without going down left that visit open for good, and every other
+    site then offered nothing."""
+    site_text = SITE_NO_HAIL
+
+    def setUp(self):
+        super().setUp()
+        self.write("customs.amd", SAMPLE.TEXT_SITE.replace(
+            SAMPLE.TEXT_SITE[SAMPLE.TEXT_SITE.index("## [Hails](hails)"):
+                             SAMPLE.TEXT_SITE.index("## [Scenes](boarding)")], ""))
+        self.begin()
+        self.yard = self.station("Tally Yard", "tally_yard", cell=(2, 1))
+        self.house = self.station("Customs House", "customs", cell=(2, 1))
+
+    def tie_up(self, obj):
+        """Docked for real, as far as the ship's own state says."""
+        to_object(self.ship).data_set.set("dock_state", "docked", 0)
+        self.dock(obj, accept=False)
+        self.assertIsNotNone(B.boarding_visiting(), "a site with no call opens on docking")
+        self.present(4)
+
+    def cast_off(self):
+        to_object(self.ship).data_set.set("dock_state", "undocked", 0)
+        self.present(5)
+
+    def test_a_walked_visit_ends_when_the_ship_undocks(self):
+        self.tie_up(self.yard)
+        self.assertIsNotNone(B.boarding_visiting())
+        self.cast_off()
+        self.assertIsNone(B.boarding_visiting(), "left open with nobody down")
+        self.assertEqual(self.seen.count("boarding_visit_ended"), 1)
+        self.assertIsNone(get_inventory_value(self.ship, "SITE_VISITING", None))
+
+    def test_a_text_visit_ends_when_the_ship_undocks(self):
+        self.tie_up(self.house)
+        self.assertFalse(B.boarding_visiting().get("tile"))
+        self.cast_off()
+        self.assertIsNone(B.boarding_visiting(), "left open with nobody down")
+        self.assertEqual(self.seen.count("boarding_visit_ended"), 1)
+
+    def test_and_then_the_other_site_can_be_boarded(self):
+        self.tie_up(self.yard)
+        self.cast_off()
+        self.tie_up(self.house)
+        self.assertEqual(B.boarding_visiting().get("place"), "customs")
+
+    def test_with_somebody_down_undocking_ends_nothing(self):
+        self.tie_up(self.yard)
+        self.down(HELM)
+        self.cast_off()
+        self.assertIsNotNone(B.boarding_visiting(), "pulled off the ground by the helm")
+        # ... and a text visit somebody is in is theirs to end.
+        self.up(HELM)
+        self.assertIsNone(B.boarding_visiting())
+        self.tie_up(self.house)
+        self.down(HELM)
+        self.cast_off()
+        self.assertIsNotNone(B.boarding_visiting())
+
+    def test_while_the_ship_stays_docked_nothing_ends(self):
+        self.tie_up(self.yard)
+        self.present(30)
+        self.assertIsNotNone(B.boarding_visiting())
+
+    def test_a_text_visit_nobody_is_in_ends_with_its_system(self):
+        self.tie_up(self.house)
+        self.assertEqual(self.fn("universe_site_release_cell")(2, 1), 2)
+        self.present(1)
+        self.assertIsNone(B.boarding_visiting())
+        self.assertEqual(self.seen.count("boarding_visit_ended"), 1)
+
+    def test_the_watcher_is_dropped_with_the_game(self):
+        self.tie_up(self.yard)
+        watch = self.fn("universe_site_load").__globals__["_UNIVERSE_SITE_WATCH"]
+        self.assertEqual(len(watch), 1)
+        self.fn("universe_sites_clear")()
+        self.assertEqual(len(watch), 0)
 
 
 if __name__ == "__main__":

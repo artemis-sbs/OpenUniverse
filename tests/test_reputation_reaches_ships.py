@@ -308,6 +308,55 @@ class TheDialogueWordsReadAsBefore(Base):
         self.assertEqual(getattr(D._OUTCOME_HANDLERS.get("costs"), "__name__", None),
                          "_ou_costs")
 
+    # --- a universe's sides are the library's sides too -------------------------------
+    def sides(self):
+        doc = document_get_amd_file(os.path.join(OU, "default.amd"),
+                                    data_parser=NS["universe_amd_data"])
+        return NS["universe_sides_from_doc"](doc)
+
+    def test_a_universes_sides_are_registered_with_the_library(self):
+        """`build_report_reputation.md`, open question 1."""
+        self.assertIsNone(R.reputation_side("iron"), "registered by somebody else")
+        count = NS["universe_sides_register_reputation"](self.sides())
+        self.assertGreaterEqual(count, 6)
+        iron = R.reputation_side("iron")
+        self.assertIsNotNone(iron)
+        self.assertEqual(iron["leans"], {"by_the_book": 40, "fearsome": 30, "honest": 20})
+
+    def test_a_cast_character_with_a_side_and_no_values_is_read_against_the_sides(self):
+        """A dockmaster who says `Side: iron` and has no `Values:` of their own."""
+        NS["universe_sides_register_reputation"](self.sides())
+        quill = MastDataObject({"key": "quill", "name": "Quill", "side": "iron"})
+        R.reputation_adjust(self.a, "iron", "by_the_book", 50)
+        R.reputation_adjust(self.a, "iron", "kind", 80)       # the Concord does not care
+        want = R.reputation_standing(self.a, R.reputation_side("iron"))
+        self.assertEqual(OU_METRIC("standing", self.a, quill), want)
+        # Weighted by what the Concord values - not the plain average of what was earned.
+        plain = R.reputation_standing(self.a, {"key": "iron", "leans": {}})
+        self.assertNotEqual(want, plain)
+        self.assertTrue(D.dialogue_guard_ok("standing >= %d" % want, self.a, quill))
+        self.assertFalse(D.dialogue_guard_ok("standing >= %d" % (want + 1), self.a, quill))
+
+    def test_without_the_registration_it_was_the_plain_average(self):
+        quill = MastDataObject({"key": "quill", "name": "Quill", "side": "iron"})
+        R.reputation_adjust(self.a, "iron", "by_the_book", 50)
+        R.reputation_adjust(self.a, "iron", "kind", 80)
+        self.assertEqual(OU_METRIC("standing", self.a, quill),
+                         R.reputation_standing(self.a, {"key": "iron", "leans": {}}))
+
+    def test_a_clan_or_captain_with_values_of_their_own_is_read_as_before(self):
+        NS["universe_sides_register_reputation"](self.sides())
+        R.reputation_adjust(self.a, "ashfang", "fearsome", 60)
+        self.assertEqual(OU_METRIC("standing", self.a, self.CLAN),
+                         R.reputation_standing(self.a, self.CLAN))
+
+    def test_the_universe_registers_them_as_it_starts(self):
+        with open(os.path.join(OU_CORE, "universe.mast"), encoding="utf-8") as handle:
+            source = handle.read()
+        at = source.index("shared UNIVERSE_SIDES = universe_sides_from_doc(UNIVERSE_DOC)")
+        self.assertIn("universe_sides_register_reputation(UNIVERSE_SIDES)",
+                      source[at:at + 700])
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -23,7 +23,9 @@ from sbs_utils.procedural.inventory import get_inventory_value, set_inventory_va
 from sbs_utils.procedural.sides import to_side_id
 from sbs_utils.procedural.upgrades import upgrade_add
 from sbs_utils.procedural.persistence import (PersistentStore, STATUS_MISSING,
-                                               STATUS_NEWER, persist_providers_snapshot,
+                                               STATUS_NEWER, STATUS_UNREADABLE,
+                                               STATUS_UNMIGRATABLE,
+                                               persist_providers_snapshot,
                                                persist_providers_restore,
                                                persist_providers_dirty)
 from sbs_utils.procedural.quest import (quest_agent_quests, quest_add, quest_set_key,
@@ -526,6 +528,53 @@ def universe_save_state(data):
 def universe_save_diplomacy(diplomacy):
     """Persist the per-pair diplomacy deltas (merges into the save)."""
     _universe_write(lambda data: data.update(diplomacy=diplomacy))
+
+
+def universe_save_unusable(mode):
+    """Would a Continue find a save it cannot use? Asked FIRST, before anything of the
+    universe is built: "" when the game may start, else the sentence for the start
+    screen - which file, why, where the copy is, and what to do.
+
+    A save that is there and will not load (unreadable, or a step of an upgrade
+    raised) used to start an unsaved new game behind one card: an evening played that
+    was never going to be kept, on top of a campaign the crew thought they were
+    continuing. Now the game does not start. The file is left exactly as it is and
+    copied aside, as before; `universe_map_begin` puts the sentence on the start screen
+    and goes back to it.
+
+    - New Game: always "". Starting over on a broken slot still works, and keeps the
+      copy (`<file>.previous.bak`).
+    - Continue with no file: "". A new campaign; the first save creates it.
+    - Continue with a file from a NEWER build: "". It is played and never written over,
+      as before.
+
+    No braces and no markup in the sentence: it is shown by the start screen's own text
+    area and assigned to a MAST variable on the way.
+    """
+    if str(mode) != "Continue":
+        return ""
+    store = _universe_store()
+    data = store.load()
+    status = store.last_status
+    if status == STATUS_MISSING or data is not None:
+        return ""
+    copy = store.set_aside()
+    where = os.path.basename(store.path)
+    kept = os.path.basename(copy) if copy else None
+    why = {STATUS_UNREADABLE: "it is not a file this game can read",
+           STATUS_UNMIGRATABLE: "it is from an older version and could not be brought "
+                                "up to this one"}.get(status, "it would not load")
+    detail = f" - {store.last_error}" if store.last_error else ""
+    _save_report_say(f"NOT STARTED: Continue found {where}, and it could not be loaded "
+                     f"({status}{detail}); it is untouched"
+                     + (f", a copy is at {kept}" if kept else "")
+                     + ", and the game went back to the start screen")
+    sentence = (f"The saved game in this slot could not be loaded, so nothing was "
+                f"started. The file is {where}, and {why}. It has not been changed"
+                + (f", and a copy of it is beside it as {kept}" if kept else "")
+                + ". To play now, set Start to New Game (the copy is kept), or choose "
+                  "another Save Slot.")
+    return sentence.replace("{", "(").replace("}", ")")
 
 
 def universe_save_begin(mode):

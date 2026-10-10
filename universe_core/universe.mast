@@ -150,6 +150,25 @@ default shared UNIVERSE_START_CELL = None
     # Point the save store at THIS universe's slot before any load/save, so each universe
     # (and each mission that loads the engine) has its own saves and can hold several.
     universe_set_active_save(UNIVERSE_SELECT, SAVE_SLOT)
+    # A SAVE THAT WILL NOT LOAD STOPS HERE, AT THE START SCREEN. Asked before anything of
+    # the universe is read or built. Continue used to go on as an unsaved new game behind
+    # one card - an evening that was never going to be kept. The file is untouched and
+    # copied aside (universe_save_unusable); the sentence says which file, why, and what
+    # to do, and it is shown where the start screen already shows its text.
+    #
+    # Back to the picker with what Start changed put back: the sim is paused again,
+    # the game is not "started", and AUTO_START is off - left on, the start screen would
+    # press Start again by itself, forever. New Game on the same slot then starts.
+    universe_save_stop = universe_save_unusable(START_MODE)
+    if universe_save_stop != "":
+        UNIVERSE_ACTIVE = False
+        shared START_TEXT = universe_save_stop
+        shared AUTO_START = False
+        shared GAME_STARTED = False
+        sim_pause()
+        gui_reroute_server("show_server_menu")
+        gui_reroute_clients("client_main")
+        ->END
     # Load the selected universe from one merged AMD file (identity + sides + jobs
     # + narrative; see UNIVERSE_CHANGES.md capstone). Parsed once into UNIVERSE_DOC;
     # sides/jobs/narrative are sections of it. Legacy split-file universes have no
@@ -169,6 +188,10 @@ default shared UNIVERSE_START_CELL = None
     # Sides -> spawned as sides below. The player sides already exist from the
     # server-start create_sides signal, so foe sides' hostile relations resolve.
     shared UNIVERSE_SIDES = universe_sides_from_doc(UNIVERSE_DOC)
+    # ...and the library's sides too, with what each one values: a cast character who
+    # says `Side: iron` and has no `Values:` of their own is then read against the
+    # Concord's (universe_sides.py).
+    universe_sides_register_reputation(UNIVERSE_SIDES)
     # Generic side jobs: the universe's `jobs` section. Legacy split-file universes
     # may still carry a standalone side_quests.amd; a modern universe with no
     # ## Jobs section (and no legacy file) simply offers no side work.

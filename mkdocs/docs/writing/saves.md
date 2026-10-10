@@ -134,9 +134,23 @@ Game.
 
 ## When a save will not load
 
-If the save file is damaged, or was written by a newer build of the game, the
-evening still plays - as a new game that is **not saved** - and the crew is
-told so on a card. The file is left exactly as it was, with a copy beside it.
-Nothing is ever written over a save the game could not read.
+If the save file is damaged, **Continue does not start the game**. The start
+screen comes back, and where it shows its text it says which file could not be
+loaded, why, and where the copy is. The file is left exactly as it was, with a
+copy beside it (`<save>.unreadable.bak`, or the `<save>.v1.bak` taken before an
+upgrade that failed). Nothing is ever written over a save the game could not
+read.
+
+From there the operator chooses:
+
+| To | Do this |
+|---|---|
+| Start over in the same slot | Set **Start** to **New Game** and press Start. The damaged file is kept once more as `<save>.previous.bak` |
+| Play another campaign | Turn the **Save Slot** dial to another slot |
+| Get the campaign back | Close the game and put a good copy of the file back under its own name (`<save>.previous.bak` is the campaign as it was before the last New Game) |
+
+A save written by a **newer** build of the game is different: it loads, the
+evening plays from it, and nothing is saved over it. The crew is told so on a
+card.
 
 **Next: [The complete example](silver-reach.md).**

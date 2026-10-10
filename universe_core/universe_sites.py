@@ -60,9 +60,44 @@ _UNIVERSE_SITE_RECORDS = {}
 # told rather than silently falling back to being a prop.
 _UNIVERSE_SITE_FILES = set()
 
+# What has already been said about a site that cannot be made, so a system rebuilt on
+# every return says it once a game and not once a visit.
+_UNIVERSE_SITE_SAID = set()
+
+# Site keys whose file was read and REFUSED (no rooms, no map of its key). Asked for
+# again - the system is rebuilt on every return - the answer is the same, and nothing
+# more is said: without this the second asking read as "that file is another site's".
+_UNIVERSE_SITE_REFUSED = set()
+
+# One watcher per ship with a visit open: {ship id: tick task}. It ends a visit nobody
+# went down to when the ship lets go of the place (`universe_site_visit_watch`).
+_UNIVERSE_SITE_WATCH = {}
+
 # The role a site's object carries. A mission's own routes gate on this - it is how
 # "the crew is in orbit of something they can beam down to" is asked.
 UNIVERSE_SITE_ROLE = "boarding_site"
+
+
+def universe_site_say(message, once=None):
+    """Tell the WRITER about a site that cannot be made or cannot be entered.
+
+    In `mast.runtime.log`, which is the log a writer reads and the one a headless test
+    fails on. `log(..., "universe", "warning")` alone goes nowhere - a named category has
+    no handler unless a mission attaches one - and that is how a site that was refused
+    came to have an empty log beside it. Said ONCE a game for the same thing (``once``):
+    a system is rebuilt on every return, and its site is read again each time.
+    """
+    if once is not None:
+        if once in _UNIVERSE_SITE_SAID:
+            return False
+        _UNIVERSE_SITE_SAID.add(once)
+    try:
+        log(message, "universe", "warning")
+    except Exception:
+        pass
+    import logging
+    logging.getLogger("mast.runtime").warning("universe site: " + str(message))
+    return True
 
 
 def universe_site_record(key):
@@ -84,11 +119,17 @@ def universe_site_load(key, fname, content=None):
     rec = _UNIVERSE_SITE_RECORDS.get(key)
     if rec is not None:
         return rec
+    if key in _UNIVERSE_SITE_REFUSED:
+        return None                     # read once, refused, and said so then
     if content is None:
         if fname in _UNIVERSE_SITE_FILES:
             # The file was read and this key was not in it. Worth naming: the landmark
             # will otherwise be a place the crew can reach and find nothing in.
-            log(f"site '{key}' is not in '{fname}'", "universe", "warning")
+            universe_site_say(
+                f"the landmark's `Site: {key}` was looked for in '{fname}', and that file "
+                f"is another site's. This landmark has no site, so docking there does "
+                f"nothing. Give it a file of its own (`{key}.amd`), or name one with "
+                f"`Site file:`.", once=f"other:{key}")
             return None
         try:
             # BARE, with no import, exactly as `universe_relics.py` calls it. Every OU
@@ -98,16 +139,22 @@ def universe_site_load(key, fname, content=None):
             content = universe_read_content(fname)
         except Exception as e:
             content = None
-            log(f"site file '{fname}' would not read: {e}", "universe", "warning")
+            universe_site_say(f"the site file '{fname}' (for `Site: {key}`) would not "
+                              f"read: {e}", once=f"read:{key}")
         if not content:
-            log(f"site file '{fname}' not found for '{key}'", "universe", "warning")
+            universe_site_say(
+                f"the landmark's `Site: {key}` names the file '{fname}', and it was not "
+                f"found beside the universe file. This landmark has no site, so docking "
+                f"there does nothing. The file is `<key>.amd` unless the landmark says "
+                f"`Site file:`.", once=f"missing:{key}")
             return None
         _UNIVERSE_SITE_FILES.add(fname)
 
     try:
         doc = amd_document(content, data_parser=amd_mission_data)
     except Exception as e:
-        log(f"site file '{fname}' failed to parse: {e}", "universe", "warning")
+        universe_site_say(f"the site file '{fname}' (for `Site: {key}`) could not be "
+                          f"read as a document: {e}", once=f"parse:{key}")
         return None
 
     scenes = dialogue_scenes(amd_section(doc, "boarding")) or {}
@@ -124,7 +171,30 @@ def universe_site_load(key, fname, content=None):
         # A site with no beats is an authoring mistake, not an empty place: the crew
         # would beam down into a conversation that closes on the frame it opens.
         # (With an area there is a place to stand, so it is a place.)
-        log(f"site '{key}' has no '## Scenes' beats", "universe", "warning")
+        walked = {}
+        for name in ("scenes", "scene"):
+            walked.update(dialogue_scenes(amd_section(doc, name)) or {})
+        if walked or _universe_site_ground_sections(doc):
+            # Written as a site the party WALKS, and there is no map with its key. It is
+            # NOT played as text: a walked site's scenes belong to its things and its
+            # people, and none of them is a first room to arrive in.
+            universe_site_say(
+                f"the site '{key}' ('{fname}') is written as a place the party walks - "
+                f"its scenes are under `## [Scenes](scenes)` and it stands things on a "
+                f"map - and no .tiles file in this universe's folder says `area: {key}`. "
+                f"So this site does not exist: no call when the ship docks, and nothing "
+                f"to board. Make the area's key the site's key (`area: {key}` on the "
+                f"first lines of the .tiles file). For a site of rooms and choices with "
+                f"no map, key its rooms `boarding` instead: `## [Scenes](boarding)`.",
+                once=f"norooms:{key}")
+            _UNIVERSE_SITE_REFUSED.add(key)
+        else:
+            universe_site_say(
+                f"the site '{key}' ('{fname}') has no rooms, so this site does not "
+                f"exist: no call when the ship docks, and nothing to board. A site's "
+                f"rooms go in a chapter keyed `boarding` - `## [Scenes](boarding)` - and "
+                f"the first one is where the party arrives.", once=f"norooms:{key}")
+            _UNIVERSE_SITE_REFUSED.add(key)
         return None
 
     rec = {
@@ -144,10 +214,42 @@ def universe_site_load(key, fname, content=None):
     elif _universe_site_ground_sections(doc):
         # Things to stand on a map, and no map. Said, because the other reading - a
         # text site whose props simply never appear - has nothing in any log.
-        log(f"site '{key}' has Props or People, and no tile area file in this universe's "
-            f"folder says `area: {key}`, so it is played as a text site and they are "
-            f"not used", "universe", "warning")
+        universe_site_say(
+            f"the site '{key}' ('{fname}') has Props or People, and no .tiles file in "
+            f"this universe's folder says `area: {key}`. It has rooms under "
+            f"`## [Scenes](boarding)`, so it is played as a site of rooms and choices, "
+            f"and its Props and People are not used. For a site the party walks, make "
+            f"the area's key the site's key.", once=f"noarea:{key}")
+    if rec["hails"] and not _universe_site_hail_sends(rec["hails"]):
+        # The crew can take the call, and no answer to it ever sends anybody down.
+        universe_site_say(
+            f"the site '{key}' ('{fname}') has a call in `## Hails`, and none of its "
+            f"answers sends a party: no answer ends with `; signal boarding_down`. The "
+            f"crew can take the call and can never go down. Add it to the answer that "
+            f"accepts - `- [Assemble a boarding party]() ; signal boarding_down` - or "
+            f"take the `## Hails` chapter out, and the party is offered on arrival.",
+            once=f"nodown:{key}")
     return rec
+
+
+def _universe_site_hail_sends(hails):
+    """Whether any answer in a site's `## Hails` carries `; signal boarding_down`."""
+    from sbs_utils.procedural.amd import amd_choice
+    for node in (hails or {}).values():
+        text = node.get("description") if isinstance(node, dict) else getattr(node, "description", "")
+        for raw in str(text or "").splitlines():
+            line = raw.strip()
+            if not (line.startswith("-") and "](" in line):
+                continue
+            try:
+                outcomes = (amd_choice(line) or {}).get("outcomes") or []
+            except Exception:
+                outcomes = []
+            for outcome in outcomes:
+                if len(outcome) >= 2 and str(outcome[0]).lower() == "signal" \
+                        and str(outcome[1]).strip().lower() == "boarding_down":
+                    return True
+    return False
 
 
 # The sections of a site file that stand things on a tile map (the frozen keys
@@ -173,7 +275,8 @@ def _universe_site_ground(rec):
         rec["ground"] = boarding_ground_load(rec["doc"])
     except Exception as e:
         rec["ground"] = None
-        log(f"site '{rec['key']}': its ground would not load: {e}", "universe", "warning")
+        universe_site_say(f"the site '{rec['key']}': what stands on its map would not "
+                          f"load: {e}", once=f"ground:{rec['key']}")
         return None
     # The loader hands every scene it has seen to the props, first key wins. A party
     # that is on the ground somewhere ELSE - another ship, another system - must keep
@@ -212,7 +315,7 @@ def universe_site_ground_begin(folder=None):
     try:
         return boarding_ground_load(None, folder)
     except Exception as e:
-        log(f"the universe's tile files would not load: {e}", "universe", "warning")
+        universe_site_say(f"the universe's tile files would not load: {e}", once="tiles")
         return None
 
 
@@ -262,16 +365,131 @@ def universe_site_visit_leave():
 
 
 def _universe_site_end_visit_in(live):
-    """End a walked visit whose site is one of these (a cell's sites, being released)."""
+    """End a visit whose site is one of these (a cell's sites, being released).
+
+    A WALKED visit ends whoever is on the ground: the place is about to have no object in
+    space, and they come home. A TEXT visit ends only when nobody is in it - a call that
+    was taken and a party that never formed - because a conversation somebody is in the
+    middle of ends itself, as it always has."""
     from sbs_utils.procedural.boarding import boarding_visiting, boarding_visit_end
     from sbs_utils.procedural.inventory import get_inventory_value
     visit = boarding_visiting()
-    if not visit or not visit.get("tile"):
+    if not visit:
         return False
     at = get_inventory_value(visit.get("ship"), "SITE_VISITING", None)
     if at is None or at not in {entry.get("object") for entry in live.values()}:
         return False
+    if not visit.get("tile") and universe_site_party_down():
+        return False
     return bool(boarding_visit_end())
+
+
+def universe_site_party_down():
+    """Whether anybody is DOWN at the visit in progress: standing on its map (a walked
+    site), or in its rooms (a text site). False with no visit open."""
+    from sbs_utils.procedural.boarding import (boarding_visiting, boarding_team,
+                                               boarding_clients)
+    visit = boarding_visiting()
+    if not visit:
+        return False
+    if visit.get("tile"):
+        from sbs_utils.procedural.tilemap import tilemap_where
+        return any(tilemap_where(lf) is not None for lf in boarding_team())
+    return bool(boarding_clients())
+
+
+def universe_site_call_waiting(site_obj):
+    """Is this site's call still OUT: being placed, waiting to be answered, or open?
+
+    What `universe_site_arrive` asks before it calls. It used to ask "was this site ever
+    asked" - and a crew that answered "Stay aboard" was never called again, at that
+    site, until its system was rebuilt. A call that was declined, or closed, or timed
+    out is not out: docking again offers it again.
+    """
+    from sbs_utils.procedural.hail import hail_active, hail_pending
+    from sbs_utils.procedural.inventory import get_inventory_value
+    from sbs_utils.procedural.roles import role
+    site_id = to_id(site_obj)
+    if not site_id or not get_inventory_value(site_id, "SITE_ASKED", False):
+        return False
+    if get_inventory_value(site_id, "SITE_CALLING", False):
+        return True                     # the few seconds before the call is placed
+    hails = universe_site_hails(get_inventory_value(site_id, "SITE_KEY", None))
+    for ship in list(role("__player__")):
+        if get_inventory_value(ship, "SITE_PENDING", None) != site_id:
+            continue
+        open_now = hail_active(ship)
+        calls = ([open_now] if open_now else []) + list(hail_pending(ship) or [])
+        if any(str(getattr(c, "scene", None) or "") in hails for c in calls):
+            return True
+    # Nobody is holding this site's call any more. Re-armed.
+    set_inventory_value(site_id, "SITE_ASKED", False)
+    return False
+
+
+def universe_site_visit_watch(ship):
+    """Watch the visit this ship opened, and END it if nobody went down and the ship has
+    let go of the place - undocked, or left orbit. Started as the visit opens.
+
+    A site with no `## Hails` opens its party the moment the ship arrives. A crew that
+    never goes down and flies off used to leave that visit open for good, and every other
+    site then offered nothing ("somebody is already down there"). Leaving the SYSTEM ends
+    it too (`universe_site_release_cell`).
+
+    It ends nothing while anybody is down, and nothing until it has itself SEEN the ship
+    docked: a ship that is not docked when the visit opens never was let go of.
+    """
+    from sbs_utils.tickdispatcher import TickDispatcher
+    ship_id = to_id(ship)
+    if not ship_id:
+        return False
+    old = _UNIVERSE_SITE_WATCH.pop(ship_id, None)
+    if old is not None:
+        try:
+            old.stop()
+        except Exception:
+            pass
+    state = {"docked": False}
+    _UNIVERSE_SITE_WATCH[ship_id] = TickDispatcher.do_interval(
+        lambda t, _ship=ship_id, _state=state: _universe_site_watch_tick(t, _ship, _state),
+        2.0)
+    return True
+
+
+def _universe_site_watch_tick(t, ship_id, state):
+    """One look. NEVER RAISES: a raising interval pauses the sim."""
+    try:
+        from sbs_utils.procedural.boarding import boarding_visiting, boarding_visit_end
+        from sbs_utils.procedural.inventory import get_inventory_value
+        from sbs_utils.procedural.query import to_object
+        visit = boarding_visiting()
+        ship = to_object(ship_id)
+        if (not visit or visit.get("ship") != ship_id or ship is None
+                or get_inventory_value(ship_id, "SITE_VISITING", None) is None):
+            _universe_site_watch_stop(t, ship_id)       # over some other way
+            return
+        docked = str(ship.data_set.get("dock_state", 0) or "undocked") != "undocked"
+        if docked:
+            state["docked"] = True
+            return
+        if not state["docked"] or universe_site_party_down():
+            return
+        _universe_site_watch_stop(t, ship_id)
+        boarding_visit_end()
+    except Exception as e:
+        _universe_site_watch_stop(t, ship_id)
+        try:
+            log(f"a site's visit watcher stopped: {e}", "universe", "warning")
+        except Exception:
+            pass
+
+
+def _universe_site_watch_stop(t, ship_id):
+    _UNIVERSE_SITE_WATCH.pop(ship_id, None)
+    try:
+        t.stop()
+    except Exception:
+        pass
 
 
 def universe_site_place(key, obj, ei, ej, name=None):
@@ -374,7 +592,7 @@ def universe_site_release_cell(ei, ej):
     try:
         _universe_site_end_visit_in(live)
     except Exception as e:
-        log(f"a site's visit would not end with its system: {e}", "universe", "warning")
+        universe_site_say(f"a site's visit would not end with its system: {e}")
     return len(live)
 
 
@@ -392,3 +610,11 @@ def universe_sites_clear():
     _UNIVERSE_SITES.clear()
     _UNIVERSE_SITE_RECORDS.clear()
     _UNIVERSE_SITE_FILES.clear()
+    _UNIVERSE_SITE_SAID.clear()
+    _UNIVERSE_SITE_REFUSED.clear()
+    for task in list(_UNIVERSE_SITE_WATCH.values()):
+        try:
+            task.stop()
+        except Exception:
+            pass            # already dropped by the reset
+    _UNIVERSE_SITE_WATCH.clear()

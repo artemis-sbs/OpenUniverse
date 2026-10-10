@@ -176,6 +176,33 @@ def universe_parse_sides(content):
 
 
 
+def universe_sides_register_reputation(sides):
+    """Tell the library which sides this universe has, and what each one values.
+
+    The library keeps a registry of sides (`reputation_side_register`) that a standalone
+    mission fills from its `## Sides`. A universe parses its sides itself, so the
+    registry stayed empty - and a cast character who says `Side: iron` and has no
+    `Values:` of their own was read against a side that "values nothing": their
+    `standing` was the plain average of what a ship had earned with the Iron Concord
+    instead of the Concord's own weighting.
+
+    A clan or a captain with `Values:` of their own is still regarded personally; this
+    is only what answers for a speaker who has a side and nothing else.
+
+    Returns:
+        int: how many sides were registered.
+    """
+    from sbs_utils.procedural.reputation import reputation_side_register
+    count = 0
+    for side in sides or []:
+        key = side.get("key")
+        if not key:
+            continue
+        reputation_side_register(key, side.get("leans") or {})
+        count += 1
+    return count
+
+
 def _sides_from_nodes(nodes):
     sides = []
     for n in nodes:
