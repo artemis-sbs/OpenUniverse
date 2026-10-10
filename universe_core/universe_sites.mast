@@ -6,10 +6,16 @@
 #
 # Two ways to arrive, because a site is whatever the landmark is:
 #
-#   * DOCK with it - a colony, an outpost, a station that stopped answering.
+#   * DOCK with it - a colony, an outpost, a station that stopped answering, a derelict.
 #   * ORBIT it - a worldlet.
 #
 # Both end in the same place, so the difference is one route each and nothing else.
+#
+# TWO KINDS OF PLACE, and the file does not choose between them here either. A site
+# whose key is also the key of a tile area (`area: <key>` in a `.tiles` file in the
+# universe's folder) is WALKED: the party stands on that map, and it is over when the
+# last of them is back aboard. Any other site is the text visit: a first room, and it is
+# over when the scene closes. `universe_site_area(key)` is the whole question.
 #
 # THE FILE SAYS WHEN THE TEAM GOES DOWN. The arrival call is a `## Hails` scene, and the
 # choice that accepts carries `; signal boarding_down`:
@@ -52,7 +58,8 @@ default shared UNIVERSE_SITE_CALL_DELAY = 4
     ->END if get_inventory_value(SITE_OBJECT, "SITE_ASKED", False)
 
     universe_site_scenes_now = universe_site_scenes(universe_site_key)
-    ->END if universe_site_scenes_now is None or len(universe_site_scenes_now) == 0
+    # A WALKED site may have nothing to say and still be somewhere to go.
+    ->END if (universe_site_scenes_now is None or len(universe_site_scenes_now) == 0) and universe_site_area(universe_site_key) is None
 
     # Which site the answer belongs to. Held on the SHIP because that is what the hail
     # was offered to, and because two ships can each have a different call pending.
@@ -91,7 +98,8 @@ default shared UNIVERSE_SITE_CALL_DELAY = 4
     universe_site_dkey = get_inventory_value(SITE_OBJECT, "SITE_KEY", None)
     ->END if universe_site_dkey is None
     universe_site_dscenes = universe_site_scenes(universe_site_dkey)
-    ->END if universe_site_dscenes is None or len(universe_site_dscenes) == 0
+    universe_site_darea = universe_site_area(universe_site_dkey)
+    ->END if (universe_site_dscenes is None or len(universe_site_dscenes) == 0) and universe_site_darea is None
 
     # THE CREW GO AS THEMSELVES, and one call owns the whole visit. `boarding_visit`
     # opens a party made of the people already at the consoles - their name, face and
@@ -102,10 +110,17 @@ default shared UNIVERSE_SITE_CALL_DELAY = 4
     # is the legacy away console (off by default). So the scene opened, nobody was
     # ever seated in it, and because it was never closed either, every later arrival
     # at any site saw "somebody is already down there" and stopped.
-    universe_site_first = next(iter(universe_site_dscenes), None)
     # `place=` is the SITE'S KEY: what the party works out here is kept under it, so two
     # sites that happen to share a title do not share what was learned at them.
-    universe_site_invite = boarding_visit(SITE_SHIP, universe_site_dscenes, universe_site_first, title=universe_site_title(universe_site_dkey), place=universe_site_dkey)
+    if universe_site_darea is not None:
+        # A WALKED SITE. No first room: the party stands at the area's `entry:` and a
+        # scene belongs to the thing or the person that opens it. Its side stories are
+        # handed out as each person arrives. Nothing here ends it - the last of the
+        # party coming home does (`boarding_came_back`, at the foot of this file).
+        universe_site_invite = boarding_visit(SITE_SHIP, universe_site_dscenes, None, title=universe_site_title(universe_site_dkey), area=universe_site_darea, place=universe_site_dkey, stories=universe_site_stories(universe_site_dkey))
+    else:
+        universe_site_first = next(iter(universe_site_dscenes), None)
+        universe_site_invite = boarding_visit(SITE_SHIP, universe_site_dscenes, universe_site_first, title=universe_site_title(universe_site_dkey), place=universe_site_dkey)
     set_inventory_value(SITE_SHIP, "SITE_PENDING", None)
     if universe_site_invite is None:
         log(f"site '{universe_site_dkey}': the visit would not open", "universe", "warning")
@@ -124,3 +139,37 @@ default shared UNIVERSE_SITE_CALL_DELAY = 4
     set_inventory_value(BOARDING_SHIP, "SITE_VISITING", None)
     set_inventory_value(universe_site_was, "SITE_ASKED", False)
     ->END
+
+
+# A WALKED site has no scene to close, so it ends when the LAST of the party is back
+# aboard: each console that beams up sends this, and the one that leaves the map empty
+# ends the visit - which sends `boarding_visit_ended`, above, and that re-arms the site.
+#
+# `//shared/signal`: it ENDS a visit, so it runs once, on the server, however many
+# consoles are connected. The whole test is in `universe_site_visit_leave` (it does
+# nothing for a text visit, for a visit this file did not open, or while anybody is
+# still on the ground). At the END of the file, after every other label.
+//shared/signal/boarding_came_back
+    universe_site_visit_leave()
+    ->END
+
+
+# A DERELICT is docked with like a station, and it is nobody's: the station brain asks
+# for an ally, and a wreck has no side to be one. This is that brain without the
+# question and without the dockyard - no fuel, no torpedoes, no repair. All it does is
+# say the ship has tied up, once per docking (`ship_docked`, the same signal a station
+# sends, so quests and the route at the top of this file hear it the same way).
+=== universe_site_dock_with_derelict
+metadata: ``` yaml
+distance: 600
+```
++++ enable
+    yield fail if DOCKING_NPC_ID == 0
+
++++ undocking
+    set_inventory_value(DOCKING_PLAYER_ID, "_docked_fired", False)
+
++++ docked
+    if not get_inventory_value(DOCKING_PLAYER_ID, "_docked_fired", False):
+        set_inventory_value(DOCKING_PLAYER_ID, "_docked_fired", True)
+        signal_emit("ship_docked", {"DOCK_SHIP_ID": DOCKING_PLAYER_ID, "DOCK_STATION_ID": DOCKING_NPC_ID})

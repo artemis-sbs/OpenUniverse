@@ -138,6 +138,10 @@ default shared UNIVERSE_START_CELL = None
     universe_cells_reset()
     universe_relics_clear()
     universe_sites_clear()
+    # A universe with places the party WALKS: its tile files and their art are read now,
+    # once, while the crew is still on the start screen. Does nothing at all - no call
+    # into the tile world, no log line - for a universe whose folder has no `.tiles`.
+    universe_site_ground_begin()
     # The save's session state too - and from here until universe_save_ready() below,
     # nothing writes the players section. Tasks scheduled on the way (the Admiralty
     # economy, a quest signal) can ask for a save before the campaign has been restored;
@@ -1418,10 +1422,24 @@ default shared UNIVERSE_START_CELL = None
             universe_relic_build(_lm_relic[0], _lm_relic[1], lmpos[0], lmpos[1], lmpos[2], ei, ej, lm.name)
             task_schedule(universe_watch_relic_cell, {"ei": ei, "ej": ej})
         elif lm.kind == "derelict":
-            terrain_spawn(lmpos[0], lmpos[1], lmpos[2], lm.name, "wreck, universe_derelict, landmark", universe_landmark_art(lm), "behav_wreck")
+            _lm_obj = terrain_spawn(lmpos[0], lmpos[1], lmpos[2], lm.name, "wreck, universe_derelict, landmark", universe_landmark_art(lm), "behav_wreck")
+            # Site: on a wreck binds too (it used to be read and dropped, in silence).
+            # A wreck is nobody's, so it gets a docking brain that asks for no ally.
+            _lm_site = universe_landmark_site(lm)
+            if _lm_site is not None:
+                universe_site_load(_lm_site[0], _lm_site[1])
+                if universe_site_place(_lm_site[0], _lm_obj, ei, ej, lm.name) is not None:
+                    docking_set_docking_logic(role("__player__"), role("boarding_site") & role("universe_derelict"), universe_site_dock_with_derelict)
         elif lm.kind == "worldlet":
             # A hand-placed worldlet (Type: names the ## Worldlets entry).
-            universe_worldlet_spawn(lm.wtype, lmpos[0], 0.0, lmpos[2], 2000)
+            _lm_obj = universe_worldlet_spawn(lm.wtype, lmpos[0], 0.0, lmpos[2], 2000)
+            # Site: on a worldlet binds too: the crew ORBITS it (`ship_orbiting`, which
+            # universe_sites.mast has always listened for and nothing ever sent here).
+            _lm_site = universe_landmark_site(lm)
+            if _lm_site is not None and _lm_obj is not None:
+                universe_site_load(_lm_site[0], _lm_site[1])
+                if universe_site_place(_lm_site[0], _lm_obj, ei, ej, lm.name) is not None:
+                    docking_set_docking_logic(role("__player__"), role("boarding_site") & role("worldlet"), docking_dock_with_gas_giant)
         else:
             _lm_obj = npc_spawn(lmpos[0], lmpos[1], lmpos[2], lm.name, lm.side + ", station, landmark", universe_landmark_art(lm), "behav_station")
             # Site: this landmark is somewhere the crew BEAMS DOWN to. Bound to the
@@ -1438,7 +1456,9 @@ default shared UNIVERSE_START_CELL = None
                 # never dockable - the dock verb would never fire for a landmark and the crew
                 # would arrive at a place they cannot enter. Scoped to `boarding_site` on purpose:
                 # making every OU station dockable would quietly change the economy.
-                docking_set_docking_logic(role("__player__"), role("boarding_site"), docking_dock_with_friendly_station)
+                # (`& role("station")`: a wreck or a worldlet that is a site has a brain
+                # of its own, above, and this line must not hand it the station's.)
+                docking_set_docking_logic(role("__player__"), role("boarding_site") & role("station"), docking_dock_with_friendly_station)
         # Terrain envelope: a landmark can author `Terrain: <kind> [color]` to wrap
         # itself in cover (a nebula pocket / asteroid field), guaranteeing the ruin
         # sits in terrain regardless of the cell's rolled kind. Regenerated each visit

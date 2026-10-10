@@ -24,6 +24,15 @@ This is the same shape `universe_relics.py` has, for the same three reasons:
 what a standalone mission uses, so a site file written for one plays in the other
 unchanged. `Site:` is the seam, not a second dialect.
 
+**A site the party WALKS is the same word.** When the universe's folder holds a tile
+area file whose header says `area: <the site's key>`, the party beams down onto that
+map instead of into a first room, and the site file's `## Props`, `## People` and
+`## Hostiles` are what stands on it - the vocabulary of a standalone tile-map mission
+(`boarding_ground_load`), unchanged. A site with no area of its own key is the text site
+it always was. The tile files and the art load ONCE, as the universe starts
+(`universe_site_ground_begin`); a site's own things are declared when its file is read.
+Both are keyed, so a system rebuilt on return finds its doors as the crew left them.
+
 Every function is prefixed `universe_` because an addon's module-level functions land in
 one flat, mission-wide MAST namespace - a leading underscore does not make one private.
 """
@@ -44,7 +53,7 @@ _UNIVERSE_SITES = {}
 # Parsed site files, by key. The record is what a hail, a quest or a comms line asks
 # about, and it must answer whether or not anyone is currently standing in the place -
 # so registering is separate from placing, exactly as it is for relics.
-# {key: {"key", "file", "scenes", "hails", "name"}}
+# {key: {"key", "file", "scenes", "hails", "name", "doc", "stories"}}
 _UNIVERSE_SITE_RECORDS = {}
 
 # Files already read, so a second landmark naming a key that is not in the file gets
@@ -102,9 +111,19 @@ def universe_site_load(key, fname, content=None):
         return None
 
     scenes = dialogue_scenes(amd_section(doc, "boarding")) or {}
-    if not scenes:
+    # A SITE THE PARTY WALKS: the universe's folder holds a tile area with this site's
+    # key. Nothing else says so - no field, no second word.
+    area = universe_site_area(key)
+    if area is not None:
+        # On a map a scene belongs to the thing or the person that opens it, and a
+        # tile-map file heads them `## [Scenes](scenes)`. The text key still counts.
+        for name in ("scenes", "scene"):
+            for scene_key, node in (dialogue_scenes(amd_section(doc, name)) or {}).items():
+                scenes.setdefault(scene_key, node)
+    if not scenes and area is None:
         # A site with no beats is an authoring mistake, not an empty place: the crew
         # would beam down into a conversation that closes on the frame it opens.
+        # (With an area there is a place to stand, so it is a place.)
         log(f"site '{key}' has no '## Scenes' beats", "universe", "warning")
         return None
 
@@ -114,9 +133,145 @@ def universe_site_load(key, fname, content=None):
         "scenes": scenes,
         "hails": dialogue_scenes(amd_section(doc, "hails")) or {},
         "name": None,
+        # KEPT, because a walked site is more than its scenes: its props, its people and
+        # the quests that belong to one of the party are sections of the same document.
+        "doc": doc,
+        "stories": amd_section(doc, "side_stories"),
     }
     _UNIVERSE_SITE_RECORDS[key] = rec
+    if area is not None:
+        _universe_site_ground(rec)
+    elif _universe_site_ground_sections(doc):
+        # Things to stand on a map, and no map. Said, because the other reading - a
+        # text site whose props simply never appear - has nothing in any log.
+        log(f"site '{key}' has Props or People, and no tile area file in this universe's "
+            f"folder says `area: {key}`, so it is played as a text site and they are "
+            f"not used", "universe", "warning")
     return rec
+
+
+# The sections of a site file that stand things on a tile map (the frozen keys
+# `boarding_ground_load` reads).
+_UNIVERSE_SITE_GROUND_KEYS = ("props", "prop", "objects", "people", "hostiles", "hostile")
+
+
+def _universe_site_ground_sections(doc):
+    return [k for k in _UNIVERSE_SITE_GROUND_KEYS if amd_section(doc, k) is not None]
+
+
+def _universe_site_ground(rec):
+    """Declare and place what a walked site's file stands on its map.
+
+    `boarding_ground_load` is keyed: a prop or a person already declared is left exactly
+    as it is, so this runs once per site per game however often its system is rebuilt,
+    and an opened door stays open. (That is also why prop and people keys must be unique
+    across a universe's site files: the second file's `door` would be the first file's.
+    `sbs lint` says so - `site-key-collision`.)
+    """
+    from sbs_utils.procedural.boarding_ground import boarding_ground_load
+    try:
+        rec["ground"] = boarding_ground_load(rec["doc"])
+    except Exception as e:
+        rec["ground"] = None
+        log(f"site '{rec['key']}': its ground would not load: {e}", "universe", "warning")
+        return None
+    # The loader hands every scene it has seen to the props, first key wins. A party
+    # that is on the ground somewhere ELSE - another ship, another system - must keep
+    # hearing its own site's scenes while this one's file is read.
+    try:
+        from sbs_utils.procedural.boarding import boarding_visiting
+        from sbs_utils.procedural.boarding_props import boarding_props_scenes
+        visit = boarding_visiting()
+        if visit and visit.get("tile"):
+            here = _UNIVERSE_SITE_RECORDS.get(str(visit.get("place") or ""))
+            if here is not None and here.get("scenes"):
+                boarding_props_scenes(here["scenes"])
+    except Exception:
+        pass
+    return rec["ground"]
+
+
+def universe_site_ground_begin(folder=None):
+    """Load the universe's tile world, once, as the universe starts: every `*.tileset`
+    and `*.tiles` in the mission's folder, and the art the `TILE_ART` setting names.
+
+    At the START rather than on first arrival, so the hitch of reading the art is paid
+    while the crew is still looking at a loading screen, not as they dock.
+
+    A universe with no `.tiles` file makes no call into the tile world at all and logs
+    nothing: this returns None. Otherwise it returns what `boarding_ground_load` reports.
+    Nothing is put ON the ground here - that is each site's own file, read on arrival.
+    """
+    from sbs_utils.procedural.boarding_ground import boarding_ground_files, boarding_ground_load
+    try:
+        _tilesets, areas = boarding_ground_files(folder)
+    except Exception:
+        return None
+    if not areas:
+        return None
+    try:
+        return boarding_ground_load(None, folder)
+    except Exception as e:
+        log(f"the universe's tile files would not load: {e}", "universe", "warning")
+        return None
+
+
+def universe_site_area(key):
+    """The tile area a site's party walks - the site's own key - or None for a text site.
+
+    It is a walked site when an area with the SAME KEY is loaded: a `.tiles` file in the
+    universe's folder whose header says `area: <key>`. No field on the landmark and no
+    word in the site file says it; the map being there is what says it.
+    """
+    key = str(key).strip() if key else ""
+    if not key:
+        return None
+    from sbs_utils.procedural.tilemap import tilemap_area
+    return key if tilemap_area(key) is not None else None
+
+
+def universe_site_stories(key):
+    """A site's `## Side Stories` section - quests that each belong to ONE of the party -
+    ready for `boarding_visit(stories=...)`. None when the file has none."""
+    rec = universe_site_record(key)
+    return (rec or {}).get("stories")
+
+
+def universe_site_visit_leave():
+    """Somebody came back aboard. If that was the last of a walked site's party, the
+    visit is over: END it, and say whether it was.
+
+    A text visit ends itself when its scene closes. A walked one has no scene to close,
+    so "everybody is home" is what ends it - and docking again offers the place again.
+
+    Only for a visit one of THIS file's sites opened (the ship carries `SITE_VISITING`):
+    a boarded ship's deck, or a mission's own landing party, is not this file's to end.
+    """
+    from sbs_utils.procedural.boarding import (boarding_visiting, boarding_visit_end,
+                                               boarding_team)
+    from sbs_utils.procedural.inventory import get_inventory_value
+    from sbs_utils.procedural.tilemap import tilemap_where
+    visit = boarding_visiting()
+    if not visit or not visit.get("tile"):
+        return False
+    if get_inventory_value(visit.get("ship"), "SITE_VISITING", None) is None:
+        return False
+    if any(tilemap_where(lf) is not None for lf in boarding_team()):
+        return False                    # somebody is still down there
+    return bool(boarding_visit_end())
+
+
+def _universe_site_end_visit_in(live):
+    """End a walked visit whose site is one of these (a cell's sites, being released)."""
+    from sbs_utils.procedural.boarding import boarding_visiting, boarding_visit_end
+    from sbs_utils.procedural.inventory import get_inventory_value
+    visit = boarding_visiting()
+    if not visit or not visit.get("tile"):
+        return False
+    at = get_inventory_value(visit.get("ship"), "SITE_VISITING", None)
+    if at is None or at not in {entry.get("object") for entry in live.values()}:
+        return False
+    return bool(boarding_visit_end())
 
 
 def universe_site_place(key, obj, ei, ej, name=None):
@@ -175,7 +330,8 @@ def universe_site_object(key, ei=None, ej=None):
 
 
 def universe_site_scenes(key):
-    """The beats a site plays, ready for `boarding_scene_begin`."""
+    """The beats a site plays, ready for `boarding_scene_begin` - or, at a walked site,
+    the scenes its props and people name."""
     rec = universe_site_record(key)
     return (rec or {}).get("scenes") or {}
 
@@ -212,6 +368,13 @@ def universe_site_release_cell(ei, ej):
     live = _UNIVERSE_SITES.pop((int(ei), int(ej)), None)
     if not live:
         return 0
+    # A PARTY STILL ON THE GROUND HERE comes home: the place they are standing in is
+    # about to have no object in space, and a walked visit ends no other way. What they
+    # opened and took stays as it is (the ground is keyed, not rebuilt).
+    try:
+        _universe_site_end_visit_in(live)
+    except Exception as e:
+        log(f"a site's visit would not end with its system: {e}", "universe", "warning")
     return len(live)
 
 

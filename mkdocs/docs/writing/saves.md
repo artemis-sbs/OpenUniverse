@@ -22,6 +22,7 @@ writes it as things happen - not only when the crew jumps.
 | A beat that had started | A `Starts when: signal x` beat that started is not made to wait for `x` again |
 | What the crew has learned | `; learn` in a hail and `Then: learn` on a beat |
 | What was done in a ruin | Opened barriers, finished repairs, the piece that was taken |
+| What was done at a site the party walks | Opened doors, things picked up, people put down, and what was learned there |
 | Charted locations, cleared guards, captured stations, market stock | As before |
 | That the campaign was won | See the end of this page |
 
@@ -29,6 +30,8 @@ writes it as things happen - not only when the crew jumps.
 |---|---|
 | A hail nobody answered | A beat whose `Action:` calls the crew does not call again on Continue. End an evening at a point where nothing is waiting on the comms |
 | Ordinary loot in a ruin | It is there again on the next visit |
+| A hidden thing at a walked site that was revealed and not picked up | A prop with `Hidden until:` is hidden again on Continue. Send its signal again (the scene that told the crew about it can be read again), or do not hide what the crew must be able to come back for |
+| What a party member was carrying | A key in a pack is gone on Continue. The door it opened stays open |
 | Enemies that were not destroyed | They are there again |
 | Where a ship was inside its system | It arrives at the system's edge |
 

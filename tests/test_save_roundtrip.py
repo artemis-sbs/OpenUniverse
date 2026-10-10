@@ -18,6 +18,11 @@ are never rewritten, and every test works on a copy in a temp folder.
   tests/saves/v2_ruin.yaml         a universe with a ruin: a barrier opened, the piece
                                    taken, a fact learned in a hail, a clock half run
 
+A WALKED SITE (a landmark's `Site:` with a tile area of the same key) has no fixture: its
+files are written into the temp mission folder from `tests/site_sample.py`, the site is
+loaded by the functions `universe_map_begin` and the landmark loop call, and its door,
+its keycard and its loader go through the same save file.
+
 The story a Continue merges onto is GRANTED here the way universe_map_begin grants it
 (quest_grant_amd, then universe_story_stamp) - from the real universe file where a test
 edits one, else from the steps the save itself holds ("the file still has every step").
@@ -36,6 +41,7 @@ OU_CORE = os.path.abspath(os.path.join(_HERE, "..", "universe_core"))
 FIXTURES = os.path.join(_HERE, "saves")
 SBS = os.path.abspath(os.path.join(_HERE, "..", "..", "sbs_utils"))
 sys.path.insert(0, SBS)
+sys.path.insert(0, _HERE)           # site_sample.py: a walked site's files, as text
 
 from sbs_utils.fs import test_set_exe_dir
 test_set_exe_dir()
@@ -1343,6 +1349,185 @@ class Fixtures(Evenings):
         self.assertEqual(after["state"], before["state"])
         self.assertEqual(quest_states(after["shared_quests"]),
                          quest_states(before["shared_quests"]))
+
+
+class WalkedSite(Evenings):
+    """A walked site through the save: open its door, take its keycard, put its loader
+    down, stop, Continue, and build the site again. No format change - the two ground
+    providers were already in `state`; this is the first mission that reaches them."""
+
+    file = story_file()
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        story = MastStory()
+        story.basedir = OU_CORE
+        cls.errors = cls.errors + story.compile("import universe_sites.py\n",
+                                                "save_site", story)
+        cls.site_story = story
+
+    def setUp(self):
+        super().setUp()
+        import site_sample
+        from sbs_utils.procedural import tilemap
+        self.addCleanup(tilemap.tilemap_clear_tilesets)
+        os.makedirs(os.path.join(self.mission, "ground"), exist_ok=True)
+        for name, text in (("ground/starter.tileset", site_sample.TILESET),
+                           ("ground/tally_yard.tiles", site_sample.AREA),
+                           ("tally_yard.amd", site_sample.SITE)):
+            path = os.path.join(self.mission, *name.split("/"))
+            with open(path, "w", encoding="utf-8", newline="\n") as f:
+                f.write(text)
+            self.addCleanup(os.remove, path)
+
+    def build_the_site(self):
+        """The start of the universe, then the landmark loop reaching the site."""
+        self.fn("universe_sites_clear")()
+        self.assertEqual(self.fn("universe_site_ground_begin")()["areas"], 1)
+        rec = self.fn("universe_site_load")("tally_yard", "tally_yard.amd")
+        self.assertIsNotNone(rec)
+        from sbs_utils.procedural.boarding_ground import boarding_ground_unplaced
+        self.assertEqual(boarding_ground_unplaced(), [])
+        return rec
+
+    def party(self):
+        """One of the crew standing on the map, the way a beamed-down console is."""
+        from sbs_utils.gui import GuiClient
+        from sbs_utils.procedural import tilemap
+        from sbs_utils.procedural.lifeform import lifeform_spawn
+        cid = 0x8000000000000051
+        GuiClient(cid)
+        body = lifeform_spawn("Kovac", "", "boarding,engineering").id
+        boarding.boarding_invite(self.live["Artemis"], [], title="Tally Yard",
+                                 area="tally_yard")
+        boarding.boarding_assign(cid, body)
+        tilemap.tilemap_place(body, "tally_yard", 4, 3)
+        return cid, body
+
+    def play_the_site(self):
+        from sbs_utils.procedural import boarding_combat, boarding_props, tilemap
+        cid, body = self.party()
+        tilemap.tilemap_place(body, "tally_yard", 7, 5)
+        self.assertEqual(boarding_props.boarding_interact(cid, "yard_keycard")[0], "picked")
+        tilemap.tilemap_place(body, "tally_yard", 16, 6)
+        self.assertEqual(boarding_props.boarding_interact(cid, "yard_door")[0], "opened")
+        self.assertEqual(boarding_combat._hostile_hit(
+            boarding_combat.boarding_hostile("yard_loader"), "full"), "down")
+        boarding.boarding_learn("the count is short", place="tally_yard")
+
+    def site_state(self):
+        from sbs_utils.procedural import boarding_combat, boarding_props, tilemap
+        door = boarding_props.boarding_prop("yard_door")
+        card = boarding_props.boarding_prop("yard_keycard")
+        loader = boarding_combat.boarding_hostile("yard_loader")
+        return {"door open": boarding_props.boarding_prop_is_open("yard_door"),
+                "door walkable": tilemap.tilemap_is_open("tally_yard", 16, 5),
+                "keycard on the map": card["id"] is not None,
+                "loader": boarding_combat.boarding_hostile_state("yard_loader"),
+                "loader on the map": loader["id"] is not None,
+                "keeper": boarding_combat.boarding_hostile_state("yard_keeper"),
+                "facts": boarding.boarding_facts("tally_yard")}
+
+    FRESH = {"door open": False, "door walkable": False, "keycard on the map": True,
+             "loader": "idle", "loader on the map": True, "keeper": "calm", "facts": []}
+    PLAYED = {"door open": True, "door walkable": True, "keycard on the map": False,
+              "loader": "down", "loader on the map": False, "keeper": "calm",
+              "facts": ["the count is short"]}
+
+    def test_a_fresh_site_is_shut_and_writes_nothing(self):
+        self.evening(mode="New Game")
+        self.build_the_site()
+        fresh = self.site_state()
+        fresh["loader"] = "idle" if fresh["loader"] != "down" else "down"
+        self.assertEqual(fresh, self.FRESH)
+        self.assertFalse(self.fn("universe_save_flush")(), "nothing changed")
+        self.assertNotIn("state", self.fn("universe_load")())
+
+    def test_what_the_party_did_is_in_the_save_without_anybody_asking(self):
+        self.evening(mode="New Game")
+        self.build_the_site()
+        self.play_the_site()
+        self.assertTrue(self.fn("universe_save_flush")(), "the library said it changed")
+        self.assertEqual(self.fn("universe_load")()["state"], {
+            "boarding_facts": {"tally_yard": ["the count is short"]},
+            "boarding_props": {"opened": ["yard_door"], "taken": ["yard_keycard"]},
+            "boarding_hostiles": {"down": ["yard_loader"]}})
+
+    def test_it_is_as_it_was_left_after_continue_and_says_nothing(self):
+        self.evening(mode="New Game")
+        self.build_the_site()
+        self.play_the_site()
+        self.save()
+        self.evening()                               # stop, and Continue
+        from sbs_utils.procedural import boarding_props
+        self.assertIsNone(boarding_props.boarding_prop("yard_door"), "nothing built yet")
+        heard = []
+        from sbs_utils.procedural.signal import signal_observe, signal_unobserve
+        watch = lambda name, data=None: heard.append(name)
+        signal_observe(watch)
+        self.addCleanup(signal_unobserve, watch)
+        self.build_the_site()                        # the system the ship is in is built
+        self.assertEqual(self.site_state(), self.PLAYED)
+        for news in ("boarding_prop_opened", "quest_signal", "boarding_interacted"):
+            self.assertNotIn(news, heard)
+
+    def test_a_second_save_after_continue_is_the_same_state(self):
+        self.evening(mode="New Game")
+        self.build_the_site()
+        self.play_the_site()
+        before = self.save()["state"]
+        self.evening()
+        self.build_the_site()
+        self.assertEqual(self.save()["state"], before)
+
+    def test_a_site_not_visited_tonight_keeps_what_the_save_said(self):
+        self.evening(mode="New Game")
+        self.build_the_site()
+        self.play_the_site()
+        before = self.save()["state"]
+        self.evening()                               # an evening spent somewhere else
+        self.assertEqual(self.save()["state"], before)
+        self.evening()
+        self.build_the_site()
+        self.assertEqual(self.site_state(), self.PLAYED)
+
+    def test_a_new_game_finds_it_shut_again(self):
+        self.evening(mode="New Game")
+        self.build_the_site()
+        self.play_the_site()
+        self.save()
+        self.evening(mode="New Game")
+        self.build_the_site()
+        state = self.site_state()
+        self.assertEqual((state["door open"], state["keycard on the map"],
+                          state["loader on the map"], state["facts"]),
+                         (False, True, True, []))
+
+    def test_KNOWN_LIMIT_a_revealed_prop_not_taken_is_hidden_again(self):
+        """`Hidden until:` is the story's signal to send again - documented in
+        writing/saves.md. Pinned so that changing it is a decision."""
+        import site_sample
+        from sbs_utils.procedural import boarding_props
+        from sbs_utils.procedural.amd_doc import amd_content_cache_clear
+        from sbs_utils.procedural.signal import signal_emit
+        hidden = site_sample.SITE.replace("Item: yard_key\n",
+                                          "Item: yard_key\nHidden until: yard_card_seen\n")
+        with open(os.path.join(self.mission, "tally_yard.amd"), "w", encoding="utf-8",
+                  newline="\n") as f:
+            f.write(hidden)
+        amd_content_cache_clear()
+        self.evening(mode="New Game")
+        self.build_the_site()
+        self.assertIsNone(boarding_props.boarding_prop("yard_keycard")["id"])
+        signal_emit("yard_card_seen")
+        self.assertIsNotNone(boarding_props.boarding_prop("yard_keycard")["id"])
+        self.save()
+        self.evening()
+        amd_content_cache_clear()
+        self.build_the_site()
+        self.assertIsNone(boarding_props.boarding_prop("yard_keycard")["id"],
+                          "revealed, not taken: hidden again after Continue")
 
 
 if __name__ == "__main__":
