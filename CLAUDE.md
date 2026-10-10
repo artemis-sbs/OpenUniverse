@@ -125,7 +125,10 @@ python -m cosmos_dev.mission_runner ../OpenUniverse --gui --map universe --use-w
   library edits take effect). Without it the packaged `.sbslib` shadows your edits.
 - The `sbslib not found ...v1.4.0.sbslib` warning in dev is **expected** —
   `--use-working-tree` supplies sbs_utils; only a `v1.4.0_dev` sbslib exists locally.
-- Clean the shared save between probes: `rm missions/common_data/universe_save.yaml*`.
+- A run from this folder reads and writes the REAL save
+  (`missions/common_data/saves/universe_save_<universe>_<slot>.yaml`). Probe from a
+  copy under `missions/_sandbox/<group>/` instead, whose saves land in
+  `missions/_sandbox/<group>/common_data/saves/`.
 
 ### Rebuilding LM mastlibs (when LM addons change)
 The universe loads LM addons from `missions/__lib__/` as **mastlibs**, not from
@@ -211,9 +214,36 @@ fleets, the six orders, veterancy), `universe_research.py` (tech ladder),
 ---
 
 ## Persistence
-- Delta save at **`missions/common_data/universe_save.yaml`** (a *shared* location,
-  not per-mission). Versioned with a `save_version` + `_MIGRATIONS` ladder — bump +
-  add a migration when you change the save shape.
+- Delta save at **`<missions>/common_data/saves/universe_save_<universe>_<slot>.yaml`**
+  (beside the mission folder, keyed by `UNIVERSE_SELECT` + `SAVE_SLOT`, so the folder
+  name does not matter and two missions with one title share a save). All of it is in
+  `universe_core/universe_helpers.py`; the generic store is
+  `sbs_utils/procedural/persistence.py`.
+- **`save_version: 2`** (2026-10-09). Top-level keys: `universe_seed`,
+  `current_system`, `systems`, `players`, `side_credits`, `side_admiralty`,
+  `shared_quests`, `diplomacy`. `players` is keyed by a **stable ship id** (a slug of
+  the name the ship had when first saved; kept on the ship as inventory
+  `universe_ship_key`), and each record holds `name`, `side`, `cell`, `items`,
+  `installs`, `quests`, `reputation`. On Continue a ship finds its record by name,
+  then by being the only unmatched ship and record on its side (a rename in
+  `settings.yaml`); a record with no ship flying is kept, never dropped.
+- **Keys this build does not know are kept verbatim**, top-level and per ship, so an
+  additive section needs no version bump. A breaking change bumps
+  `UNIVERSE_SAVE_VERSION` and adds a step to `_MIGRATIONS`; the first load of an older
+  file leaves `<file>.v<N>.bak` beside it.
+- **Every write goes through `_universe_write`.** A file that is there and will not
+  load (or that a newer build wrote) is never written over: it is copied aside
+  (`.unreadable.bak`, or the `.v<N>.bak` when a migration raised) and the session
+  plays unsaved. `universe_save_begin(START_MODE)` opens the save for a session; a New
+  Game writes a whole new file and keeps the old one once as `.previous.bak`.
+- **Do not call `universe_save_players()` from a quest route - call
+  `universe_save_request()`.** Each save rewrites the whole file; `universe_save_loop`
+  writes a requested one every 2 sim-seconds. Nothing writes `players` between
+  `universe_save_reset()` and `universe_save_ready()` (the campaign is still loading).
+- Tests: `python -m unittest tests.test_save_roundtrip` (fixtures in `tests/saves/`
+  are generated version-1 saves; never run this mission from its real folder to make
+  one - it writes slot 1 of the real saves folder. Copy it under
+  `data/missions/_sandbox/<group>/` first).
 
 ## Branches & push workflow
 - All three repos (OU, LM, **sbs_utils**) work on **`v1.4.0_dev`**; `main` is the
