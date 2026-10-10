@@ -1377,7 +1377,7 @@ default shared UNIVERSE_START_CELL = None
         # empty by scanning the contact.
         random.seed(key + 13)
         mpos = Vec3.rand_in_sphere(4000, 9000, False, True)
-        marker = terrain_spawn(mpos.x + co.x, co.y, mpos.z + co.z, "Unknown Contact", "universe_empty_marker", "unknown", "behav_asteroid")
+        marker = terrain_spawn(mpos.x + co.x, co.y, mpos.z + co.z, "Unknown Contact", "#,universe_empty_marker", "unknown", "behav_asteroid")
         marker.data_set.set("name_tag", "Unknown Contact")
         marker.data_set.set("long_description", "Empty system. Scan detects no stations, vessels, or significant terrain.")
 
