@@ -233,8 +233,10 @@ fleets, the six orders, veterancy), `universe_research.py` (tech ladder),
   file leaves `<file>.v<N>.bak` beside it.
 - **Every write goes through `_universe_write`.** A file that is there and will not
   load (or that a newer build wrote) is never written over: it is copied aside
-  (`.unreadable.bak`, or the `.v<N>.bak` when a migration raised) and the session
-  plays unsaved. `universe_save_begin(START_MODE)` opens the save for a session; a New
+  (`.unreadable.bak`, or the `.v<N>.bak` when a migration raised). Continue on such a
+  file does not start the map: `universe_save_unusable(START_MODE)` sends the server
+  back to the start screen with the reason in `START_TEXT` (a save from a NEWER build
+  is the exception: it plays and is never written). `universe_save_begin(START_MODE)` opens the save for a session; a New
   Game writes a whole new file and keeps the old one once as `.previous.bak`.
 - **Do not call `universe_save_players()` from a quest route - call
   `universe_save_request()`.** Each save rewrites the whole file; `universe_save_loop`
