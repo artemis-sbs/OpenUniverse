@@ -1300,7 +1300,7 @@ default shared UNIVERSE_START_CELL = None
         if arrival_region.music is not None:
             music_schedule(arrival_region.music)
 
-    # The antimatter veil (slice 4): a Kind: antimatter region is survivable
+    # The antimatter veil (slice 4): a Space: antimatter region is survivable
     # only briefly - tinted nebula volume for the eye, continuous heat/system
     # damage for the teeth (universe_regions.region_veil_tick). The chart's
     # amber wash is the wall; this is what ignoring it costs.

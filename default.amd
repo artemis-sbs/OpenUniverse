@@ -214,7 +214,7 @@ no raiders, ports everywhere.
 ---
 Center: 0, 7
 Radius: 1
-Kind: antimatter
+Space: antimatter
 Skybox: sky-neb2-rvb
 ---
 A curtain of raw antimatter shear across the northern lanes. Lovely to look at,

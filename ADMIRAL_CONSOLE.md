@@ -289,7 +289,7 @@ volumetric.**
 - **On the maps:** hard hatched band on the galaxy/system map with a clear
   edge - the *information* is the wall as much as the damage is.
 - **In OU generation:** a region-level line, e.g. `Antimatter: veil from -2,6
-  to 4,6` or a `## Regions` entry with `Kind: antimatter`, so authors can
+  to 4,6` or a `## Regions` entry with `Space: antimatter`, so authors can
   fence off part of a galaxy (story gates: "the Reach beyond the Veil").
 - **Name:** keep *antimatter* for the substance, call the terrain a
   **veil** or **shear**. ("The antimatter veil" reads well on a science scan.)
@@ -628,7 +628,7 @@ fort; skirmish raids prefer it); **border skirmishes** (pressure = foe-owned cel
 in the Chebyshev ring; raids once the first fleet exists; `Skirmish pressure: off`
 disables); **MIA captains** (a destroyed fleet drops its officer in a pod; a player
 ship within 1500 rescues before `MIA timer:` lapses; fates persist); **antimatter
-veil** (a `Kind: antimatter` region is survivable only briefly - continuous heat +
+veil** (a `Space: antimatter` region is survivable only briefly - continuous heat +
 system_damage, tinted nebula, amber chart wash); **Relay Gate** (a gated system
 feeds income at `Relay rate:` while the flag is elsewhere; remote depletion
 simulated).

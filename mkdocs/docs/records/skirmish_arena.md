@@ -86,7 +86,7 @@ The dead space between two capitals, where the Accord broke. Neither admiral hol
 | Center | 0, 6 |
 | Radius | 1 |
 | Color | `#aa33ff` |
-| Kind | antimatter |
+| Space | antimatter |
 | Skybox | sky-neb2-rvb |
 
 A wound left by a scuttled antimatter core - a curtain of raw shear that cooks a hull from the inside within minutes. It splits the northern approach in two: the admiral who routes around it flanks; the one who forgets it is there loses a fleet to the dark, not to the enemy.

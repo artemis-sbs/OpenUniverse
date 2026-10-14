@@ -4,7 +4,7 @@ square in i,j space) plus a Skybox and Music. On arrival the system's region set
 the sky + music (universe.mast); cells no region claims keep the default. This
 gives the galaxy *geography* - the Ashen Reach vs. the Verdant Belt - as content.
 
-A region with `Kind: antimatter` is an **antimatter veil** (ADMIRAL_CONSOLE.md
+A region with `Space: antimatter` (formerly `Kind:`, which still reads) is an **antimatter veil** (ADMIRAL_CONSOLE.md
 section 8): its systems are survivable only briefly - every player ship inside
 takes continuous heat + system damage (region_veil_tick, driven from
 universe.mast's veil loop). The veil is a story fence: crossing it is possible,
@@ -41,8 +41,10 @@ def universe_parse_regions(doc):
                 # Local generation overrides (same friendly knobs as the root
                 # `generation:` block) - the system-kind mix inside this region.
                 "generation": data.get("generation"),
-                # Kind: antimatter -> a veil region (unsurvivable to linger).
-                "kind": str(data.get("kind") or "").strip().lower() or None,
+                # Space: antimatter -> a veil region (unsurvivable to linger). Kept as
+                # the record's `kind`, which the veil, the map and the navy all read;
+                # `Kind:` is the older spelling and still reads.
+                "kind": str(data.get("space") or data.get("kind") or "").strip().lower() or None,
                 # Optional veil tuning (per-second rates; defaults below).
                 "heat": data.get("heat"),
                 "damage": data.get("damage"),

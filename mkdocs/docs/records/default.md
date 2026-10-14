@@ -198,7 +198,7 @@ The green-world trade lanes of the Verdant Pact - calm, open, prosperous. A have
 |---|---|
 | Center | 0, 7 |
 | Radius | 1 |
-| Kind | antimatter |
+| Space | antimatter |
 | Skybox | sky-neb2-rvb |
 
 A curtain of raw antimatter shear across the northern lanes. Lovely to look at, lethal to linger in - hulls cook from the inside within minutes. Whatever the Reach beyond it hides, it stays hidden for a reason.
