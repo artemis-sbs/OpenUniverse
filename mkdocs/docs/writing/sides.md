@@ -74,6 +74,10 @@ respect exactly one thing: a captain more dangerous than they are.
 - **Flies** - the ships they fly: one race (`Torgoth`), an even mix
   (`Kralien, Torgoth`), or weighted (`60% Kralien, 40% Arvonian`). Races:
   `Kralien`, `Torgoth`, `Arvonian`, `Ximni`. Skip it for a random mix.
+- **Fleet** - optional: the prefab the side's fleets are built by, when they should
+  be something other than the standard raider fleet. One line (`Fleet: fleet/raider`)
+  or a nested `Prefab:` / `Count:` / `Data:` block, as for a landmark's `Guards:`.
+  `Flies:` still picks each ship's race.
 
 !!! success "In play"
     Your sides now hold home systems, their colors mark the map, their fleets

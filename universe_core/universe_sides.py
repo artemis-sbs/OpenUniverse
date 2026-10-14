@@ -230,6 +230,10 @@ def _sides_from_nodes(nodes):
             # archetype to `coil` (universe_charge_look), so a side that says
             # nothing still charges up in its own Color:.
             "jump_charge": data.get("jump_charge"),
+            # Fleet: the PREFAB this side's fleets are built by - one line
+            # (`Fleet: fleet/raider`) or a nested Prefab / Count / Data block.
+            # None is LM's prefab_fleet_raider, as every side flew before.
+            "fleet": data.get("fleet"),
         }))
     return sides
 
@@ -314,6 +318,34 @@ def sides_pick_race(side):
     return str(makeup)
 
 
+
+
+def universe_side_fleet_spawn(side, data):
+    """Send one of a side's fleets: its `Fleet:` prefab, else prefab_fleet_raider.
+
+    ``data`` is what the caller always handed prefab_fleet_raider (race, difficulty,
+    ship_roles, START_*). A `Data:` block under `Fleet:` wins over it - except
+    `ship_roles`, which is ADDED to, because the clear and capture watchers find this
+    fleet by the roles the caller gives it. `Count: 2` sends two, spaced apart.
+    Returns what the last prefab made (an id, or its task while it builds).
+    """
+    from sbs_utils.procedural.prefab import amd_prefab_spec, prefab_create, prefab_data
+    spec = amd_prefab_spec(side.get("fleet")) if side is not None else None
+    name = spec["prefab"] if spec else "prefab_fleet_raider"
+    args = prefab_data(spec["args"]) if spec else {}
+    count = spec["count"] if spec else 1
+    where = f"fleet of side {side.get('key') if side is not None else '?'}"
+    made = None
+    for n in range(count):
+        d = dict(data)
+        extra_roles = args.get("ship_roles")
+        d.update(args)
+        if extra_roles and data.get("ship_roles"):
+            d["ship_roles"] = data["ship_roles"] + ", " + extra_roles
+        if n:
+            d["START_X"] = d.get("START_X", 0) + n * 1500
+        made = prefab_create(name, d, where=where)
+    return made
 
 
 def sides_get(sides, key):

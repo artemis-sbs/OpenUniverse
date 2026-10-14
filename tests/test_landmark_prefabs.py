@@ -33,15 +33,26 @@ for _m in ("spawn", "inventory", "query"):
     MastGlobals.import_python_module("sbs_utils.procedural." + _m)
 
 _HERE = os.path.dirname(os.path.abspath(__file__))
-_spec = importlib.util.spec_from_file_location(
-    "universe_landmarks", os.path.join(_HERE, "..", "universe_core", "universe_landmarks.py"))
-UL = importlib.util.module_from_spec(_spec)
-_spec.loader.exec_module(UL)
+def _load(name):
+    spec = importlib.util.spec_from_file_location(
+        name, os.path.join(_HERE, "..", "universe_core", name + ".py"))
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
+UL = _load("universe_landmarks")
+
+def _side_module():
+    """universe_sides.py, with the shared-namespace names it borrows filled in."""
+    mod = _load("universe_sides")
+    return mod
+
 
 STORY = '''
 ->END
 
-=== prefab_test_fleet
+=== prefab_fleet_raider
 metadata: ``` yaml
 type: prefab/fleet/raider
 race: kralien
@@ -123,6 +134,27 @@ class LandmarkPrefabFields(unittest.TestCase):
         self.assertEqual(get_inventory_value(n, "size_x"), 9000)
         self.assertEqual(get_inventory_value(n, "cluster_color"), "red")
         self.assertEqual(get_inventory_value(n, "density"), 2)
+
+    def test_a_side_with_no_fleet_flies_the_raider_fleet(self):
+        US = _side_module()
+        US.universe_side_fleet_spawn(MastDataObject({"key": "iron"}), {
+            "race": "kralien", "fleet_difficulty": 2, "ship_roles": "iron, raider",
+            "START_X": 0, "START_Y": 0, "START_Z": 0})
+        (g,) = self._guards()
+        self.assertEqual(get_inventory_value(g, "ship_roles"), "iron, raider")
+
+    def test_a_side_names_its_fleet_and_keeps_the_watched_roles(self):
+        US = _side_module()
+        side = MastDataObject({"key": "iron", "fleet": {
+            "Prefab": "fleet/raider", "Count": 2,
+            "Data": {"Fleet difficulty": 7, "Ship roles": "elite"}}})
+        US.universe_side_fleet_spawn(side, {"race": "kralien", "fleet_difficulty": 2,
+                                            "ship_roles": "iron, raider",
+                                            "START_X": 0, "START_Y": 0, "START_Z": 0})
+        guards = self._guards()
+        self.assertEqual(len(guards), 2)
+        self.assertEqual(get_inventory_value(guards[0], "fleet_difficulty"), 7)
+        self.assertEqual(get_inventory_value(guards[0], "ship_roles"), "iron, raider, elite")
 
     def test_no_guards_written_is_none(self):
         self.assertFalse(UL.universe_landmark_guards_create(MastDataObject({"key": "x"}),

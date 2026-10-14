@@ -1354,7 +1354,7 @@ default shared UNIVERSE_START_CELL = None
                 # capture the station (universe_capture_watch).
                 random.seed(key + 7)
                 gpos = Vec3.rand_in_sphere(4000, 9000, False, True)
-                prefab_spawn(prefab_fleet_raider, {"race": sides_pick_race(sides_get(UNIVERSE_SIDES, owner)), "fleet_difficulty": DIFFICULTY, "ship_roles": owner + ", raider", "START_X": gpos.x + co.x, "START_Y": gpos.y + co.y, "START_Z": gpos.z + co.z})
+                universe_side_fleet_spawn(sides_get(UNIVERSE_SIDES, owner), {"race": sides_pick_race(sides_get(UNIVERSE_SIDES, owner)), "fleet_difficulty": DIFFICULTY, "ship_roles": owner + ", raider", "START_X": gpos.x + co.x, "START_Y": gpos.y + co.y, "START_Z": gpos.z + co.z})
                 task_schedule(universe_capture_watch, {"cap_station": station_id, "cap_side": owner})
             else:
                 await task_schedule(docking_standard_player_station)
@@ -1363,7 +1363,7 @@ default shared UNIVERSE_START_CELL = None
                 if captured and owner is not None and universe_hostile_to_players(owner):
                     random.seed(key + 9)
                     rpos = Vec3.rand_in_sphere(15000, 25000, False, True)
-                    prefab_spawn(prefab_fleet_raider, {"race": sides_pick_race(sides_get(UNIVERSE_SIDES, owner)), "fleet_difficulty": DIFFICULTY, "ship_roles": owner + ", raider", "START_X": rpos.x + co.x, "START_Y": rpos.y + co.y, "START_Z": rpos.z + co.z})
+                    universe_side_fleet_spawn(sides_get(UNIVERSE_SIDES, owner), {"race": sides_pick_race(sides_get(UNIVERSE_SIDES, owner)), "fleet_difficulty": DIFFICULTY, "ship_roles": owner + ", raider", "START_X": rpos.x + co.x, "START_Y": rpos.y + co.y, "START_Z": rpos.z + co.z})
                     task_schedule(universe_recapture_watch, {"cap_station": station_id, "cap_side": owner})
     elif kind == "enemy":
         # Skip enemies in a sector the players have already cleared (persisted).
@@ -1384,7 +1384,7 @@ default shared UNIVERSE_START_CELL = None
                 ship_roles = owner + ", raider"
             for n in range(count):
                 pos = Vec3.rand_in_sphere(near, far, False, True)
-                prefab_spawn(prefab_fleet_raider, {"race": sides_pick_race(enemy_side), "fleet_difficulty": DIFFICULTY, "ship_roles": ship_roles, "START_X": pos.x + co.x, "START_Y": pos.y + co.y, "START_Z": pos.z + co.z})
+                universe_side_fleet_spawn(enemy_side, {"race": sides_pick_race(enemy_side), "fleet_difficulty": DIFFICULTY, "ship_roles": ship_roles, "START_X": pos.x + co.x, "START_Y": pos.y + co.y, "START_Z": pos.z + co.z})
             task_schedule(universe_watch_enemy_cleared, {"ei": ei, "ej": ej})
     elif kind == "anomaly":
         random.seed(key + 4)

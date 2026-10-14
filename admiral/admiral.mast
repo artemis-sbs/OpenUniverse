@@ -121,7 +121,7 @@
             raid = skirmish_tick(_side, UNIVERSE_SIDES, universe_seed, _skc[0], _skc[1], DANGER, 10)
             if raid is not None:
                 raid_side = sides_get(UNIVERSE_SIDES, raid.side)
-                prefab_spawn(prefab_fleet_raider, {"race": sides_pick_race(raid_side), "fleet_difficulty": raid.difficulty, "ship_roles": raid.side + ", raider, skirmish", "START_X": raid.x, "START_Y": raid.y, "START_Z": raid.z})
+                universe_side_fleet_spawn(raid_side, {"race": sides_pick_race(raid_side), "fleet_difficulty": raid.difficulty, "ship_roles": raid.side + ", raider, skirmish", "START_X": raid.x, "START_Y": raid.y, "START_Z": raid.z})
                 universe_info_card("ALERT - " + sides_name(UNIVERSE_SIDES, raid.side) + " skirmish raid inbound on " + raid.target + ".", "Admiralty Operations", "#f66")
     jump skirmish_loop
 

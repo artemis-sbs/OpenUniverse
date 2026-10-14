@@ -183,7 +183,8 @@ def universe_amd_data(text):
 def _declare_universe_vocabulary():
     from sbs_utils.procedural.amd_schema import (
         amd_register_fields, amd_register_section_names,
-        text, integer, pct, csv, enum, ref, color, coord2, weighted, makeup, field)
+        text, integer, pct, csv, enum, ref, color, coord2, weighted, makeup, field,
+        prefab_spec)
 
     # `Earns:` is a REPUTATION nudge, not a reward - it belongs to the Open Universe,
     # which is the only place it is authored and the only thing that reads it. It used
@@ -208,6 +209,11 @@ def _declare_universe_vocabulary():
         # `Values:` comes from the shared `reputation` trait, which every side has.
         "offers": csv(hint="patrol, escort, strike"),
         "flies": makeup(hint="60% Kralien, 40% Arvonian"),
+        # What this side's fleets ARE - the prefab that builds them. `Flies:` still
+        # picks each ship's race; this picks the fleet. Unwritten: LM's fleet/raider.
+        "fleet": field(prefab_spec(hint="fleet/raider  |  nested Prefab / Count / Data"),
+                       doc="The prefab this side's fleets are built by. Unwritten, the "
+                           "raider fleet every side flies by default."),
         # How this side's drives LOOK winding up for a jump. Names an `## Effects`
         # record, or one of the built-in charge looks (coil / arc / preburn /
         # implode / pulse). Omit it and the side still charges up - the archetype
