@@ -211,7 +211,7 @@ Named, hand-placed stations and wrecks pinned to a system (like side homes) - th
 
 | Fact | Value |
 |---|---|
-| Kind | derelict |
+| Prefab | derelict |
 | At | -4, 6 |
 
 A vast Hollow Choir wreck adrift in the deep dark, said to hold forbidden charts.
@@ -220,7 +220,7 @@ A vast Hollow Choir wreck adrift in the deep dark, said to hold forbidden charts
 
 | Fact | Value |
 |---|---|
-| Kind | station |
+| Prefab | station |
 | Side | tsn |
 | Art | starbase_science |
 | At | 3, 3 |
@@ -231,7 +231,7 @@ An old TSN research post, still broadcasting on a forgotten frequency.
 
 | Fact | Value |
 |---|---|
-| Kind | station |
+| Prefab | station |
 | Side | tsn |
 | Art | starbase_civil |
 | At | 2, 1 |
@@ -285,12 +285,13 @@ Quiet cargo, quiet questions. Rare, and not strictly legal.
 
 ## Worldlets {: #default-worldlets}
 
-The resource bodies of this galaxy (the Admiral console's economy). Each type names what it yields per minute per extractor, how much it holds before running dry (Reserve: unlimited for settled worlds), and its look (the behav_planet surface palette). Placement: procedural via the POI deck (Worldlet chance, in Admiralty) or hand-placed as a Landmark with Kind: worldlet. Driven by universe_worldlets.py.
+The resource bodies of this galaxy (the Admiral console's economy). Each type names what it yields per minute per extractor, how much it holds before running dry (Reserve: unlimited for settled worlds), and its look (the behav_planet surface palette). Placement: procedural via the POI deck (Worldlet chance, in Admiralty) or hand-placed as a Landmark with Prefab: worldlet. Driven by universe_worldlets.py.
 
 ### Cinder World {: #default-worldlets-cinder}
 
 | Fact | Value |
 |---|---|
+| Prefab | worldlet |
 | Palette | base #8c2f1c, emissive #48180c, clouds #776655 |
 | Also | economy |
 | Yields | ore 8 |
@@ -302,6 +303,7 @@ A cracked, mineral-rich ember of a world. Miners love it; nobody else does.
 
 | Fact | Value |
 |---|---|
+| Prefab | worldlet |
 | Palette | base #2c4a8c, clouds #b8c4e0, bands 3.7 |
 | Also | economy |
 | Yields | gas 10 |
@@ -313,6 +315,7 @@ A banded gas giant, its high winds rich in fuel-grade volatiles.
 
 | Fact | Value |
 |---|---|
+| Prefab | worldlet |
 | Palette | base #2f6e3a, clouds #ffffff |
 | Also | economy |
 | Yields | crew 2, ore 2, gas 2 |

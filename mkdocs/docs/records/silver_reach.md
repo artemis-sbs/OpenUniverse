@@ -187,7 +187,7 @@ The Combine's home lanes - calm, bright, and busy. The safest miles in the Reach
 
 | Fact | Value |
 |---|---|
-| Kind | derelict |
+| Prefab | derelict |
 | At | 1, -2 |
 
 A colony ship a century adrift, lanterns long cold. Every spacer in the Reach has a story about what still walks her corridors.
@@ -196,7 +196,7 @@ A colony ship a century adrift, lanterns long cold. Every spacer in the Reach ha
 
 | Fact | Value |
 |---|---|
-| Kind | station |
+| Prefab | station |
 | Side | lantern |
 | Art | starbase_science |
 | At | -4, 2 |

@@ -68,7 +68,7 @@ Follow the signal to the TSN Meridian at (3, -2) and scan the derelict to read w
 
 | Fact | Value |
 |---|---|
-| Kind | derelict |
+| Prefab | derelict |
 | At | 3, -2 |
 
 A Terran survey ship eleven years adrift, running lights long cold and hull scarred by whatever ended her survey - and one stubborn beacon still whispering into the static, patient as the dark it hangs in.
