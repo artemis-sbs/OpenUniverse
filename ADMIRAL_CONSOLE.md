@@ -443,7 +443,7 @@ the GUI) and each slice ships something a bridge crew notices.
 
 - **AMD shape: reuse the location machinery we already have.** Correct
   instinct - the universe AMD already places things:
-  - *Hand-placed worldlets* are **Landmarks** (`Kind: worldlet`,
+  - *Hand-placed worldlets* are **Landmarks** (`Prefab: worldlet`,
     `Type: cinder`, `At: i, j`) - the Drifting-Cathedral pattern, no new
     chapter needed for placement.
   - *Procedural worldlets* ride the existing POI deck + region overrides
@@ -596,7 +596,7 @@ default.amd (Officers followed in slice 3).
 **Slice 1 - the economy exists** (browser-verified 2026-07-01) - Worldlet
 types/tuning parse via the friendly reader (universe_amd.py); worldlets spawn via
 the POI deck (authored 30%, home system guaranteed a settled type) and as
-`Kind: worldlet` landmarks; side ore/gas/crew pools ride the side agent like
+`Prefab: worldlet` landmarks; side ore/gas/crew pools ride the side agent like
 credits; the Admiral console has the ticker, tabs (Map live), worldlet
 select/inspect, HQ + Extractor builds with costs/prereqs/build-times, a build
 queue line, and the extraction tick. Inert for universes with no Admiralty chapter.
@@ -1016,7 +1016,7 @@ friendly fact-sheet rules as every other chapter; all numbers provisional.
 The resource bodies of this galaxy. Each type names what it yields per
 minute per extractor, how much it holds before running dry, and its look
 (the behav_planet surface palette). Placement: procedural via the POI deck
-(Worldlet chance dial), or hand-placed as a Landmark with Kind: worldlet.
+(Worldlet chance dial), or hand-placed as a Landmark with Prefab: worldlet.
 
 ### Cinder World (cinder)
 ---

@@ -204,7 +204,7 @@ LANDMARKS = """
 ### [Tally Yard](tally_yard_station)
 ---
 At: 0, 0
-Kind: station
+Prefab: station
 Side: tsn
 Art: starbase_industry
 Site: tally_yard
@@ -214,7 +214,7 @@ A counting yard on the edge of the lane.
 ### [Customs House](customs_house)
 ---
 At: 0, 0
-Kind: station
+Prefab: station
 Side: tsn
 Art: starbase_civil
 Site: customs

@@ -231,14 +231,14 @@ Side and Art. Driven by universe_landmarks.py.
 ### [The Drifting Cathedral](cathedral)
 ---
 At: -4, 6
-Kind: derelict
+Prefab: derelict
 ---
 A vast Hollow Choir wreck adrift in the deep dark, said to hold forbidden charts.
 
 ### [Tycho Station](tycho)
 ---
 At: 3, 3
-Kind: station
+Prefab: station
 Side: tsn
 Art: starbase_science
 ---
@@ -247,7 +247,7 @@ An old TSN research post, still broadcasting on a forgotten frequency.
 ### [Ferrow Landing](ferrow)
 ---
 At: 2, 1
-Kind: station
+Prefab: station
 Side: tsn
 Art: starbase_civil
 Site: quiet_shore
@@ -298,11 +298,12 @@ names what it yields per minute per extractor, how much it holds before
 running dry (Reserve: unlimited for settled worlds), and its look (the
 behav_planet surface palette). Placement: procedural via the POI deck
 (Worldlet chance, in Admiralty) or hand-placed as a Landmark with
-Kind: worldlet. Driven by universe_worldlets.py.
+Prefab: worldlet. Driven by universe_worldlets.py.
 
 ### [Cinder World](cinder)
 ---
 Landmark
+Prefab: worldlet
 Also: economy
 Yields: ore 8
 Reserve: 4000
@@ -313,6 +314,7 @@ A cracked, mineral-rich ember of a world. Miners love it; nobody else does.
 ### [Veiled Giant](veiled_giant)
 ---
 Landmark
+Prefab: worldlet
 Also: economy
 Yields: gas 10
 Reserve: 6000
@@ -323,6 +325,7 @@ A banded gas giant, its high winds rich in fuel-grade volatiles.
 ### [Haven World](haven)
 ---
 Landmark
+Prefab: worldlet
 Also: economy
 Yields: crew 2, ore 2, gas 2
 Reserve: unlimited

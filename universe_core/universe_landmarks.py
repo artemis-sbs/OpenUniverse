@@ -1,8 +1,14 @@
 """Landmarks for the Open Universe - named, hand-placed stations / wrecks / beacons
 pinned to a system (like side homes), as discovery anchors and quest hooks. A
-`## Landmarks` section authors them; on entering their system universe.mast spawns
-each by kind at a deterministic position. universe_section comes from
+`## Landmarks` section authors them; on entering their system universe.mast creates
+each through its `Prefab:` at a deterministic position. universe_section comes from
 universe_sides.py (shared namespace).
+
+`Prefab:` replaced `Kind:` (2026-10-14). Open Universe's own `derelict`, `station` and
+`worldlet` prefabs live in universe_prefabs.mast and override the library defaults of
+the same name; any other prefab a mission or LM provides works too. `Guards:` and
+`Terrain:` take a prefab as well - a one-line name, or a nested Prefab / Count / Data
+block - and the older `<race> [difficulty]` / `<kind> [color]` phrases still read.
 """
 import math
 import random
@@ -22,11 +28,19 @@ def universe_parse_landmarks(doc):
                 "name": n.get("display_text"),
                 "desc": (n.get("description") or "").strip(),
                 "at": at if (at and len(at) == 2) else None,
-                "kind": (data.get("kind") or "station"),
+                # WHAT it is: a prefab type or label name. No default - a landmark that
+                # names none creates nothing, and lint says so (landmark-no-prefab).
+                "prefab": (str(data.get("prefab")).strip().lower()
+                           if data.get("prefab") else None),
                 "side": data.get("side") or universe_primary_side(),
+                # The side as WRITTEN. Only an authored side is handed to the prefab, so a
+                # wreck or a nebula is not quietly put on the primary side.
+                "side_written": data.get("side"),
+                # Data: the prefab's own arguments, one nested line each.
+                "args": data.get("data") if hasattr(data.get("data"), "items") else {},
                 "art": data.get("art"),
                 "roles": data.get("roles"),
-                # Kind: worldlet landmarks name their worldlet type (Type: cinder).
+                # Prefab: worldlet landmarks name their worldlet type (Type: cinder).
                 "wtype": data.get("type"),
                 # Guards: an optional complication fleet contesting this landmark -
                 # `Guards: <race> [difficulty]` (e.g. "skaraan" or "torgoth 3").
@@ -62,6 +76,143 @@ def universe_parse_landmarks(doc):
                 "cutscene": data.get("cutscene"),
             }))
     return out
+
+
+def universe_landmark_prefab_data(lm, pos, ei=None, ej=None):
+    """The variables a landmark hands its prefab: position (exact - a landmark is
+    authored to a point), name, the side and roles as written, art, the worldlet type,
+    the record and the cell it is in, then its `Data:` block, which wins."""
+    from sbs_utils.procedural.prefab import prefab_data
+    data = {"START_X": pos[0], "START_Y": pos[1], "START_Z": pos[2], "START_EXACT": True,
+            "AMD_RECORD": lm, "AMD_KEY": lm.get("key"),
+            "UNIVERSE_EI": ei, "UNIVERSE_EJ": ej}
+    name = lm.get("name")
+    if name:
+        data["NAME"] = name
+        data["name"] = name
+        data["display_text"] = name
+    if lm.get("side_written"):
+        data["side_value"] = lm.get("side_written")
+    if lm.get("roles"):
+        data["roles_value"] = lm.get("roles")
+    if lm.get("art"):
+        data["art"] = lm.get("art")
+    if lm.get("wtype"):
+        data["worldlet_type"] = lm.get("wtype")
+    data.update(prefab_data(lm.get("args"), where=f"landmark {lm.get('key')}"))
+    return data
+
+
+def universe_landmark_create(lm, pos, ei=None, ej=None):
+    """Create a landmark through its `Prefab:`; returns what was created, or None (a
+    `point`, a landmark naming no prefab, or one that does not resolve - logged)."""
+    from sbs_utils.procedural.prefab import prefab_create
+    spec = lm.get("prefab")
+    if not spec:
+        from sbs_utils.procedural.execution import log
+        log(f"landmark '{lm.get('key')}' names no Prefab: - nothing created",
+            "universe", "warning")
+        return None
+    return prefab_create(spec, universe_landmark_prefab_data(lm, pos, ei, ej),
+                         where=f"landmark {lm.get('key')}")
+
+
+def _universe_spec(value, legacy, legacy_words=()):
+    """A Guards:/Terrain: value as a prefab spec, its `Data:` already normalized. A value
+    whose first word is no prefab - or is one of ``legacy_words``, which the older phrase
+    owns even where a prefab of that name exists - is read by ``legacy(spec) -> spec``."""
+    from sbs_utils.procedural.prefab import amd_prefab_spec, prefab_resolve, prefab_data
+    spec = amd_prefab_spec(value)
+    if spec is None:
+        return None
+    if not hasattr(value, "items") and (
+            spec["prefab"] in legacy_words
+            or prefab_resolve(spec["prefab"], warn=False) is None):
+        spec = legacy(spec)
+        if spec is None:
+            return None
+    spec["args"] = prefab_data(spec.get("args"))
+    return spec
+
+
+def universe_landmark_guards_spec(lm, default_difficulty=5):
+    """A landmark's `Guards:` as a prefab spec ``{"prefab", "count", "args"}``, or None.
+
+    `Guards: fleet/raider` (a prefab), the nested Prefab / Count / Data block, or the
+    older `Guards: <race> [difficulty]`, which is `fleet/raider` with that race."""
+    def legacy(spec):
+        g = universe_landmark_guards(lm, default_difficulty)
+        return {"prefab": "fleet/raider", "count": 1,
+                "args": {"race": g["race"], "fleet_difficulty": g["difficulty"]}}
+    if not lm.get("guards"):
+        return None
+    spec = _universe_spec(lm.get("guards"), legacy)
+    if spec is not None and spec["prefab"] == "fleet/raider":
+        spec["args"].setdefault("fleet_difficulty", default_difficulty)
+    return spec
+
+
+def universe_landmark_guards_create(lm, pos, default_difficulty=5):
+    """Spawn a landmark's guards at ``pos``; True if any prefab started.
+
+    Every guard carries `raider, landmark_guards` (the watch scopes the clear to those)
+    unless the `Data:` block names its own `ship_roles`."""
+    from sbs_utils.procedural.prefab import prefab_create
+    spec = universe_landmark_guards_spec(lm, default_difficulty)
+    if spec is None:
+        return False
+    started = False
+    for n in range(max(1, int(spec["count"] or 1))):
+        data = {"ship_roles": "raider, landmark_guards",
+                "START_X": pos[0] + n * 1500, "START_Y": pos[1], "START_Z": pos[2]}
+        data.update(spec["args"])
+        if prefab_create(spec["prefab"], data, where=f"guards of {lm.get('key')}") is not None:
+            started = True
+    return started
+
+
+def universe_landmark_terrain_spec(lm):
+    """A landmark's `Terrain:` as a prefab spec, or None.
+
+    `Terrain: terrain/nebula/sphere`, the nested block, or the older `<kind> [color]`:
+    `nebula [color]` and `asteroids` are LM's sphere prefabs with the cover-sized
+    settings this envelope has always used."""
+    def legacy(spec):
+        t = universe_landmark_terrain(lm)
+        if t is None:
+            return None
+        if t["kind"] == "nebula":
+            return {"prefab": "terrain/nebula/sphere", "count": 1,
+                    "args": {"SIZE_X": 9000, "density_scale": 2.5, "density": 2,
+                             "height": 8000, "cluster_color": t["color"] or "blue",
+                             "selectable": False}}
+        if t["kind"] == "asteroid":
+            # The LM prefab takes a DIAMETER (SIZE_X // 2 is the radius).
+            return {"prefab": "terrain/asteroid/sphere", "count": 1,
+                    "args": {"SIZE_X": 16000, "density_scale": 2.0, "density": 2,
+                             "height": 2000, "selectable": True}}
+        return None
+    if not lm.get("terrain"):
+        return None
+    # `nebula` and `asteroids` are the OLD phrase here, never the library's one-object
+    # `nebula` landmark prefab - that one needs an Art: and is not cover.
+    return _universe_spec(lm.get("terrain"), legacy,
+                          legacy_words=("nebula", "nebulas", "nebulae", "asteroid", "asteroids"))
+
+
+def universe_landmark_terrain_create(lm, pos):
+    """Wrap a landmark in its `Terrain:` envelope at ``pos``; True if it started."""
+    from sbs_utils.procedural.prefab import prefab_create
+    spec = universe_landmark_terrain_spec(lm)
+    if spec is None:
+        return False
+    data = {"START_X": pos[0], "START_Y": pos[1], "START_Z": pos[2]}
+    # Normalized args are lower case; SIZE_X is the prefab's own spelling.
+    args = dict(spec["args"] or {})
+    if "size_x" in args:
+        args["SIZE_X"] = args.pop("size_x")
+    data.update(args)
+    return prefab_create(spec["prefab"], data, where=f"terrain of {lm.get('key')}") is not None
 
 
 def universe_landmark_guards(lm, default_difficulty=5):
@@ -174,9 +325,10 @@ def universe_landmark_cutscene_for(landmarks, i, j):
 
 
 def universe_landmark_art(lm):
-    """The art for a landmark: the authored Art, else a kind default (grid-backed
-    station / a wreck)."""
+    """The art for a landmark: the authored Art, else its prefab's usual one (a wreck
+    for a derelict, a grid-backed station otherwise). The OU prefabs default the same
+    way; this is for callers that need the art without creating anything."""
     a = lm.get("art")
     if a:
         return a
-    return "wreck" if lm.get("kind") == "derelict" else "starbase_science"
+    return "wreck" if lm.get("prefab") == "derelict" else "starbase_science"

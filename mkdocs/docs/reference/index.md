@@ -105,7 +105,7 @@ Smaller overlapping regions must be written first - they win.
 | Fact | Meaning |
 |---|---|
 | `At:` | The system it sits in, `col, row`. |
-| `Kind:` | `station` or `derelict`. |
+| `Prefab:` | What it is: `station`, `derelict`, `worldlet`, or any prefab type or label name. Replaced `Kind:`. |
 | `Side:` | *(station)* the owning side key. |
 | `Art:` | *(station)* the station model. |
 

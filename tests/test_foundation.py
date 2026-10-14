@@ -445,7 +445,7 @@ _RELIC_LM_DOC = """# [Test](test)
 ### [The Ossuary](giants_house)
 ---
 At: 2, -1
-Kind: derelict
+Prefab: derelict
 Relic: ossuary
 Relic file: ossuary.amd
 Cutscene: arrive_ossuary
@@ -455,7 +455,7 @@ An ancient thing, hollow.
 ### [Just A Wreck](plain_wreck)
 ---
 At: 3, 3
-Kind: derelict
+Prefab: derelict
 ---
 """
 
@@ -585,7 +585,7 @@ _SITE_LM_DOC = """# [Test](test)
 ### [Quiet Shore](quiet_shore)
 ---
 At: 4, 2
-Kind: station
+Prefab: station
 Site: shore
 Site file: shore.amd
 ---
@@ -593,7 +593,7 @@ Site file: shore.amd
 ### [Just A Station](plain_station)
 ---
 At: 5, 2
-Kind: station
+Prefab: station
 ---
 """
 

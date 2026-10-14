@@ -115,7 +115,7 @@ A small settled world. People, modest industry, and somewhere to come from.
   one of your sides has its `Home:` there too. It is the first type you wrote with
   no `Reserve:` (or `Reserve: unlimited`), or your first type if they all run dry.
   Elsewhere they appear by chance (the `Worldlet chance` dial in step 6), or you
-  pin one to a place as a [Landmark](map.md) with `Kind: worldlet`.
+  pin one to a place as a [Landmark](map.md) with `Prefab: worldlet`.
 
 ## Step 4 - give the fleets captains
 

@@ -131,8 +131,8 @@ long it takes - and win the lanes their peace.
 // side that names none still winds up - its Character: picks a look and its own
 // Color: tints it.
 //
-// The kind line is the bare word `Effect`. NOT `Kind: effect` - `Kind:` means a
-// landmark to the schema, and the record would be typed as one.
+// The kind line is the bare word `Effect` on the fence's first line. `Kind: effect`
+// is not a kind line - it is just a field nothing reads.
 
 ### [Lantern spool-up](lantern_charge)
 ---
@@ -194,7 +194,7 @@ the Reach.
 ### [The Pale Ark](pale_ark)
 ---
 At: 1, -2
-Kind: derelict
+Prefab: derelict
 ---
 A colony ship a century adrift, lanterns long cold. Every spacer in the
 Reach has a story about what still walks her corridors.
@@ -202,7 +202,7 @@ Reach has a story about what still walks her corridors.
 ### [Lighthouse Station](lighthouse)
 ---
 At: -4, 2
-Kind: station
+Prefab: station
 Side: lantern
 Art: starbase_science
 ---

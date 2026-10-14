@@ -61,7 +61,7 @@ the locations of legend your dialogue and story can point at.
 ### [The Pale Ark](pale_ark)
 ---
 At: 1, -2
-Kind: derelict
+Prefab: derelict
 ---
 A colony ship a century adrift, lanterns long cold. Every spacer in the
 Reach has a story about what still walks her corridors.
@@ -69,7 +69,7 @@ Reach has a story about what still walks her corridors.
 ### [Lighthouse Station](lighthouse)
 ---
 At: -4, 2
-Kind: station
+Prefab: station
 Side: lantern
 Art: starbase_science
 ---
@@ -77,12 +77,38 @@ The Combine's great beacon at the heart of the home lanes - half port,
 half promise.
 ```
 
-`Kind:` is `station` or `derelict`; a station can name a `Side:` (a side key)
-and an `Art:` (its model). `At:` pins it to a system.
+`Prefab:` says what the landmark is: `station`, `derelict` or `worldlet` (Open
+Universe's own), or any prefab the mission or Legendary Missions provides, named by
+its type (`npc/station/industry`) or its label. A station can name a `Side:` (a side
+key) and an `Art:` (its model). `At:` pins it to a system. `Prefab:` replaced the
+older `Kind:`.
+
+Anything the prefab takes as an argument goes in a `Data:` block under it, one
+indented line each:
+
+```
+### [Kessel Deep](kessel)
+---
+At: 3, 3
+Prefab: npc/station/industry
+Data:
+  Race value: kralien
+---
+```
 
 Landmarks can also carry `Guards:` (a fleet that contests them, once) and
 `Terrain:` (a nebula or asteroid envelope, so the place sits in cover whatever
-the cell rolled).
+the cell rolled). Both are prefabs too - `Guards: torgoth 3` and
+`Terrain: nebula blue` still read, and the long form names any prefab:
+
+```
+Guards:
+  Prefab: fleet/raider
+  Count: 2
+  Data:
+    Race: torgoth
+    Fleet difficulty: 3
+```
 
 ## A landmark you fly INTO
 
@@ -94,7 +120,7 @@ when the crew arrives and torn down with the cell.
 ### [Torgoth Megastation](giants_house)
 ---
 At: 2, -1
-Kind: derelict
+Prefab: derelict
 Relic: voice
 Relic file: relics/voice.amd
 Cutscene: arrive_voice
@@ -138,7 +164,7 @@ is at each console beams down as the person they have been all evening.
 ### [Customs House](customs_house)
 ---
 At: 0, 0
-Kind: station
+Prefab: station
 Site: customs
 ---
 A customs post that waves everybody through.

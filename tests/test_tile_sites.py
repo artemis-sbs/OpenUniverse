@@ -133,6 +133,7 @@ HARNESS_STORY = "\n".join([
     "import universe_relics.py",
     "import universe_sites.py",
     "import universe_sites.mast",
+    "import universe_prefabs.mast",
     "gui_text('$text:harness;')",
     "await gui()",
     "",
@@ -726,7 +727,7 @@ Universe
 ### [The Tern](the_tern)
 ---
 At: 0, 0
-Kind: derelict
+Prefab: derelict
 Site: tally_yard
 ---
 A wreck.
@@ -734,7 +735,7 @@ A wreck.
 ### [Grey Moon](grey_moon)
 ---
 At: 0, 0
-Kind: worldlet
+Prefab: worldlet
 Type: rock
 Site: customs
 ---
@@ -743,7 +744,7 @@ A moon.
 ### [Assay Office](assay_office)
 ---
 At: 0, 0
-Kind: station
+Prefab: station
 Side: tsn
 Site: quiet_shore
 ---
@@ -752,7 +753,7 @@ A station.
 ### [Plain Wreck](plain_wreck)
 ---
 At: 0, 0
-Kind: derelict
+Prefab: derelict
 ---
 Just a wreck.
 """

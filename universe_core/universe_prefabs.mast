@@ -1,0 +1,85 @@
+# Open Universe's landmark prefabs. A landmark says WHAT it is with `Prefab:`; these
+# three are what `derelict`, `station` and `worldlet` mean in a universe, and they
+# override the library defaults of the same type (which only spawn the object). Each
+# reads the landmark record (AMD_RECORD) and the cell it stands in (UNIVERSE_EI/EJ),
+# both handed over by universe_landmark_create, and binds a `Site:` if the record has one.
+#
+# A mission can override any of them again with its own label of the same type.
+
+=== prefab_universe_derelict
+metadata: ``` yaml
+type: prefab/derelict
+display_text: Derelict (Open Universe)
+```
+    default art = "wreck"
+    default name = ""
+    default roles_value = ""
+    default AMD_RECORD = None
+    default UNIVERSE_EI = None
+    default UNIVERSE_EJ = None
+    _lm_roles = "wreck, universe_derelict, landmark"
+    if roles_value:
+        _lm_roles = _lm_roles + ", " + roles_value
+    _lm_obj = terrain_spawn(START_X, START_Y, START_Z, name, _lm_roles, art, "behav_wreck")
+    # A wreck is nobody's, so its site gets a docking brain that asks for no ally.
+    if AMD_RECORD is not None and UNIVERSE_EI is not None:
+        _lm_site = universe_landmark_site(AMD_RECORD)
+        if _lm_site is not None:
+            universe_site_load(_lm_site[0], _lm_site[1])
+            if universe_site_place(_lm_site[0], _lm_obj, UNIVERSE_EI, UNIVERSE_EJ, name) is not None:
+                docking_set_docking_logic(role("__player__"), role("boarding_site") & role("universe_derelict"), universe_site_dock_with_derelict)
+    yield result to_id(_lm_obj)
+
+
+=== prefab_universe_station
+metadata: ``` yaml
+type: prefab/station
+display_text: Station (Open Universe)
+```
+    default art = "starbase_science"
+    default name = ""
+    default side_value = universe_primary_side()
+    default roles_value = ""
+    default AMD_RECORD = None
+    default UNIVERSE_EI = None
+    default UNIVERSE_EJ = None
+    _lm_roles = side_value + ", station, landmark"
+    if roles_value:
+        _lm_roles = _lm_roles + ", " + roles_value
+    _lm_obj = npc_spawn(START_X, START_Y, START_Z, name, _lm_roles, art, "behav_station")
+    # Site: somewhere the crew BEAMS DOWN to. Bound here rather than authored because the
+    # cell chose this origin a moment ago; binding only tags and registers.
+    if AMD_RECORD is not None and UNIVERSE_EI is not None:
+        _lm_site = universe_landmark_site(AMD_RECORD)
+        if _lm_site is not None:
+            universe_site_load(_lm_site[0], _lm_site[1])
+            universe_site_place(_lm_site[0], _lm_obj, UNIVERSE_EI, UNIVERSE_EJ, name)
+            # A site has to be REACHABLE, and OU only makes stations dockable inside its
+            # capture flows - so a site station gets the friendly-station brain, scoped
+            # to `boarding_site` so the rest of the economy is untouched.
+            docking_set_docking_logic(role("__player__"), role("boarding_site") & role("station"), docking_dock_with_friendly_station)
+    yield result to_id(_lm_obj)
+
+
+=== prefab_universe_worldlet
+metadata: ``` yaml
+type: prefab/worldlet
+display_text: Worldlet (Open Universe)
+```
+    # `Type:` on the landmark names the `## Worldlets` entry (worldlet_type).
+    default worldlet_type = None
+    default radius = 2000
+    default AMD_RECORD = None
+    default UNIVERSE_EI = None
+    default UNIVERSE_EJ = None
+    default name = ""
+    _lm_obj = universe_worldlet_spawn(worldlet_type, START_X, 0.0, START_Z, radius)
+    ->END if _lm_obj is None
+    # Site: on a worldlet the crew ORBITS it (`ship_orbiting`).
+    if AMD_RECORD is not None and UNIVERSE_EI is not None:
+        _lm_site = universe_landmark_site(AMD_RECORD)
+        if _lm_site is not None:
+            universe_site_load(_lm_site[0], _lm_site[1])
+            if universe_site_place(_lm_site[0], _lm_obj, UNIVERSE_EI, UNIVERSE_EJ, name) is not None:
+                docking_set_docking_logic(role("__player__"), role("boarding_site") & role("worldlet"), docking_dock_with_gas_giant)
+    yield result to_id(_lm_obj)

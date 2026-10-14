@@ -78,7 +78,7 @@ her beacon has been repeating into the static since before you had a commission.
 ### [TSN Meridian](meridian)
 ---
 At: 3, -2
-Kind: derelict
+Prefab: derelict
 ---
 A Terran survey ship eleven years adrift, running lights long cold and hull scarred
 by whatever ended her survey - and one stubborn beacon still whispering into the
