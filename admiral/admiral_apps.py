@@ -296,7 +296,9 @@ def admiral_app_info_draw(client_id):
             # under it until one, so the stock came out heading-sized (engine-seen).
             lines += ["", "### Admiralty", ""] + [_ticker_line(p) for p in parts]
     gui_row("row-height: 1fr; padding: 4px, 8px, 0, 10px;")
-    gui_text_area(chr(10).join(lines))
+    # paragraphs=False: a ticker entry that is not a gauge is a plain line, and markdown
+    # paragraph rules would run the stocks together into one sentence.
+    gui_text_area(chr(10).join(lines), paragraphs=False)
 
 
 def _ticker_line(part):
