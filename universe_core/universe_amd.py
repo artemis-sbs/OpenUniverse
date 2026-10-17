@@ -300,7 +300,15 @@ def _declare_universe_vocabulary():
     # `## Sides` still parses; `## Sides` is the word.
     amd_register_section_names(("sides",), "side", domain="universe")
     amd_register_section_names(("captains",), "lifeform", domain="universe")
-    amd_register_section_names(("worldlets",), "landmark", domain="universe")
+    # A worldlet TYPE (what a kind of world yields) takes a landmark's fields, but nothing
+    # places it - a placed world is a Landmarks record with `Prefab: worldlet` and `Type:`.
+    # catalog=True stops lint asking it for a Prefab:. (An sbs_utils older than the flag
+    # just gets the plain registration.)
+    try:
+        amd_register_section_names(("worldlets",), "landmark", domain="universe",
+                                   catalog=True)
+    except TypeError:
+        amd_register_section_names(("worldlets",), "landmark", domain="universe")
     amd_register_section_names(("admiralty",), "map", domain="universe")
     # A trade good IS an item - a thing with a weight that scatters as loot. A research
     # milestone is an item you unlock. What it costs and how long it takes are declared

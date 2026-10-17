@@ -333,7 +333,7 @@ default shared UNIVERSE_START_CELL = None
     quest_grant_amd(universe_shared_id(), UNIVERSE_GOALS)
     universe_story_stamp(universe_shared_id(), UNIVERSE_GOALS)
 
-    await task_schedule(universe_enter_system)
+    await task_schedule(universe_enter_system, {"arrive_quiet": START_MODE == "Continue"})
     await task_schedule(spawn_players)
     # Model A: register each player ship as an occupant of the start cell so the
     # per-ship jump lifecycle knows it's occupied (New Game -> (0,0); Continue ->
@@ -375,6 +375,10 @@ default shared UNIVERSE_START_CELL = None
     # Continue restores the saved campaign; a New Game initializes fresh and
     # must NOT inherit the old save's credits/items/admiralty (restore=False).
     universe_load_players(START_MODE == "Continue")
+    # The arrival the Continue's first system entry held back, now that the saved story
+    # is restored: a step still Active that points here finishes, a Done one stays done.
+    if START_MODE == "Continue":
+        signal_emit("universe_arrived", {"ARRIVE_I": universe_i, "ARRIVE_J": universe_j})
     # EACH SHIP BACK IN ITS OWN SYSTEM. A save used to name one system, so two ships that
     # had gone two ways both came back in the last jumper's. Each record now says where
     # its ship was; a ship that was somewhere else is moved there, and that system is
@@ -1510,8 +1514,14 @@ default shared UNIVERSE_START_CELL = None
     # audience to resolve.
     task_schedule(universe_arrival_card, {"ei": ei, "ej": ej})
 
-    # Tell the quest driver we've arrived (completes on_reach cargo runs).
-    signal_emit("universe_arrived", {"ARRIVE_I": ei, "ARRIVE_J": ej})
+    # Tell the quest driver we've arrived (completes on_reach cargo runs). Not while a
+    # Continue rebuilds the saved system: the story is not restored yet, so a step the
+    # save says is Done is still freshly granted, and arriving finished it AGAIN - a
+    # `Win:` reached here ended the campaign on every Continue. universe_map_begin
+    # announces that arrival itself, once the save is back.
+    default arrive_quiet = False
+    if not arrive_quiet:
+        signal_emit("universe_arrived", {"ARRIVE_I": ei, "ARRIVE_J": ej})
     ->END
 
 

@@ -30,7 +30,6 @@ bank the yield, spend it on platforms and fleets. A dry worldlet stops producing
 
 ### [Cinder World](cinder)
 ---
-Prefab: worldlet
 Also: economy
 Yields: ore 8
 Reserve: 4000
@@ -40,7 +39,6 @@ A cracked, mineral-rich ember of a world. Miners love it; nobody else does.
 
 ### [Veiled Giant](veiled_giant)
 ---
-Prefab: worldlet
 Also: economy
 Yields: gas 10
 Reserve: 6000
@@ -50,7 +48,6 @@ A banded gas giant, its high winds rich in fuel-grade volatiles.
 
 ### [Haven World](haven)
 ---
-Prefab: worldlet
 Also: economy
 Yields: crew 2, ore 2, gas 2
 Reserve: unlimited
