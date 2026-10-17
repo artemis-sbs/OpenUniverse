@@ -27,7 +27,14 @@ Combine's convoy rolls. She keeps accounts, and she always collects.
 ```
 
 `standing` here means the captain's *personal* opinion of the player - cross
-Mara enough times and the `Rival when:` line makes it a vendetta.
+Mara enough times and she is a rival.
+
+!!! warning "`Rival when:` and `Flies:` do nothing yet"
+    Both lines are accepted, and the game does not act on either: nothing happens
+    when `Rival when:` comes true, and a captain has no ship. A rival is written
+    with guards on `standing` in the captain's own Dialogue - a cold greeting, and
+    the answers a friend gets withheld. See
+    [Reputation](../reference/reputation.md#standing-with-a-captain).
 
 ## The cast (Lifeforms)
 

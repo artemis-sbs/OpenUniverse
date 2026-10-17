@@ -55,7 +55,9 @@ Speaker: veil
   Write two or three so the character doesn't repeat like a recording.
 - **A take can be conditional:** `%{standing < -20} You again. Bold.` plays
   only when its condition holds - so the same hail can read differently to a
-  hated rival, a stranger, and a friend. First matching take wins.
+  hated rival, a stranger, and a friend. When more than one take can be said,
+  the game picks one of them at random - so guard every take, or none. A take
+  with no guard can always be said.
 - **`- [Label](next_scene)` lines are the player's replies.** The label is
   the line the player speaks; the `(key)` is the scene it leads to. Two
   optional clauses:
@@ -67,9 +69,12 @@ Speaker: veil
       `learn the lamps were cut`.
 - A scene with no replies (like *Parting*) simply ends the conversation.
 
-Conditions can reference the seven trait poles, `credits`, `standing` (in a
-captain's scene, his personal opinion of the player), and what the crew has
-**learned**. That vocabulary is the whole of it, and that's on purpose.
+Conditions can reference the seven trait poles, `credits`, `standing` (the
+ship's standing with the speaker's side - or, in a captain's scene, his
+personal opinion of the ship), and what the crew has **learned**. That
+vocabulary is the whole of it, and that's on purpose. A condition is one
+comparison: a word, a sign, a number. [Reputation](../reference/reputation.md)
+has every word and every threshold.
 
 **`learn` and `learned` are how a conversation remembers.** An answer written
 `; learn the lamps were cut` records that the crew now knows it; any later

@@ -48,7 +48,9 @@ A worldlet is a **Landmark** - a place on the map - that *also* yields. `Also: e
 is where `Yields:` and `Reserve:` come from, and any other landmark that produces
 something can claim the same words. (Records in a `## Worldlets` chapter are read as
 landmarks whether or not they say so; writing it out is clearer once a file has more
-than one kind of thing in it.)
+than one kind of thing in it. A type in `## Worldlets` is a kind of world, not a placed
+one, so it needs no `Prefab:` line and lint does not ask for one. Only a world pinned
+to a place, a Landmark with `Prefab: worldlet` and `Type:`, has one.)
 
 - **Yields** is per minute, per Extractor: `ore 8` means one Extractor here pulls
   8 ore a minute.

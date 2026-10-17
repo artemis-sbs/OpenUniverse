@@ -71,6 +71,8 @@ nav:
 
   - Reference:
     - reference/index.md
+    - Reputation: reference/reputation.md
+    - Battles and fleets: reference/battles.md
 
 markdown_extensions:
   - attr_list

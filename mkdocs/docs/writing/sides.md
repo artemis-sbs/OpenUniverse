@@ -44,7 +44,7 @@ respect exactly one thing: a captain more dangerous than they are.
 
 - **Color** - the side's color on the galaxy map. Any web color like
   `#cc2244`.
-- **Archetype** - the side's genre role, one word: `military`, `trader`,
+- **Character** - the side's genre role, one word: `military`, `trader`,
   `settler`, `mercenary`, `pirate`, or `cult`. This flavors their chatter,
   their stations, and their fleets.
 - **Disposition** - `neutral` (will talk) or `foe` (shoots first). A `foe`
@@ -69,7 +69,8 @@ respect exactly one thing: a captain more dangerous than they are.
     not add to 100). A side warms to captains who act like it - the Veil
     respects `fearsome` deeds, the Combine respects `honest` ones. This one
     line is the engine of the whole reputation game, and it is pure
-    characterization.
+    characterization. [Reputation](../reference/reputation.md) has how
+    standing is worked out from it, what moves it, and what it changes.
 
 - **Flies** - the ships they fly: one race (`Torgoth`), an even mix
   (`Kralien, Torgoth`), or weighted (`60% Kralien, 40% Arvonian`). Races:
@@ -77,7 +78,8 @@ respect exactly one thing: a captain more dangerous than they are.
 - **Fleet** - optional: the prefab the side's fleets are built by, when they should
   be something other than the standard raider fleet. One line (`Fleet: fleet/raider`)
   or a nested `Prefab:` / `Count:` / `Data:` block, as for a landmark's `Guards:`.
-  `Flies:` still picks each ship's race.
+  `Flies:` still picks each ship's race. How many ships a fleet holds, and where
+  a `foe` side's fleets wait, is on [Battles and fleets](../reference/battles.md).
 
 !!! success "In play"
     Your sides now hold home systems, their colors mark the map, their fleets

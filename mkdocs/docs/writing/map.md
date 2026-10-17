@@ -96,7 +96,9 @@ Data:
 ---
 ```
 
-Landmarks can also carry `Guards:` (a fleet that contests them, once) and
+Landmarks can also carry `Guards:` (a fleet that contests them, once - its size,
+the Threat card, and every way to get it wrong are on
+[Battles and fleets](../reference/battles.md#guards-on-a-landmark)) and
 `Terrain:` (a nebula or asteroid envelope, so the place sits in cover whatever
 the cell rolled). Both are prefabs too - `Guards: torgoth 3` and
 `Terrain: nebula blue` still read, and the long form names any prefab:
@@ -177,6 +179,19 @@ A customs post that waves everybody through.
 
 How the crew arrives depends on what the landmark is: they **dock** with a
 station or a derelict, and **orbit** a worldlet.
+
+What the one line binds, in short:
+
+| | |
+|---|---|
+| The place | Whatever the landmark's `Prefab:` made, each time the system is built. A site has no position of its own |
+| The file | `<key>.amd` beside your universe file, or the `Site file:`. One site file can be used by any universe |
+| What kind of site | A **text site** (rooms and choices) unless a `.tiles` map in your folder says `area:` and the same key, which makes it a **walked site** |
+| When it is offered | When the ship docks or orbits: first its call from `## Hails`, if it has one, then the party |
+| Who goes | The people at the consoles, as themselves. One party at a time, in the whole game |
+| When it ends | A text site: an answer with empty brackets `()`. A walked site: the last of the party beams up. Either: the ship jumps out of the system, and everybody is back at a console |
+| What is learned there | A fact learned at a site (`; learn ...` in its scenes) belongs to that site: another site cannot ask for it. A fact learned on the bridge, in a hail or by `Then: learn`, is known everywhere, sites included |
+| What it remembers | Through a jump away and back, and through Continue. See [What the game remembers](saves.md) |
 
 The site is a file of its own, with two sections:
 

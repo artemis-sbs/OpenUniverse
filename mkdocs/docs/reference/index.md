@@ -5,6 +5,10 @@ of a universe file and the facts each accepts. Every chapter and every fact is
 optional unless noted. For the full AMD format (including the YAML form used
 by other addons), see `AMD_AUTHORS_GUIDE.md` in the missions folder.
 
+Two topics have a whole page of their own: [Reputation](reputation.md) (standing,
+deeds and the thresholds) and [Battles and fleets](battles.md) (Difficulty, Danger,
+guards and the ship budget).
+
 ## The root (`#` heading)
 
 | Fact | Meaning |
@@ -13,7 +17,7 @@ by other addons), see `AMD_AUTHORS_GUIDE.md` in the missions folder.
 | `Axis: a / b` | Replace the built-in trait pairs (one line per pair). Authoring *any* axis replaces *all* seven. |
 | `Job tiers: N, M` | Standing needed for tier-2 / tier-3 side work. |
 | `Foe deals at: N` | Standing at which a `foe` side will deal with you. |
-| `Alliance at: N` | Standing at which a side counts as an ally. |
+| `Alliance at: N` | Standing at which a side the crew has a ceasefire with accepts an alliance. |
 | `Max reward: X` | Pay multiplier at maximum standing (`2.0` = double). |
 | `Ceasefire free at: N` | Standing at which a ceasefire costs nothing. |
 | `Ceasefire per point: N` | Credits per point of standing below that. |
@@ -108,6 +112,11 @@ Smaller overlapping regions must be written first - they win.
 | `Prefab:` | What it is: `station`, `derelict`, `worldlet`, or any prefab type or label name. Replaced `Kind:`. |
 | `Side:` | *(station)* the owning side key. |
 | `Art:` | *(station)* the station model. |
+| `Guards:` | A fleet that contests it, once: a kind of ship and an optional tier, `torgoth 7`. See [Battles and fleets](battles.md#guards-on-a-landmark). |
+| `Terrain:` | Cover around it: `nebula blue`, `asteroids`, or a prefab. |
+| `Relic:` / `Relic file:` | It is a ruin the ship flies into; the relic's key and its file. |
+| `Site:` / `Site file:` | It is a place the crew beams down to; the site's key and its file. See [Painting the map](../writing/map.md#a-landmark-you-beam-down-to). |
+| `Cutscene:` | Played once, the first time anyone arrives in this system. |
 
 ## `## Goods`
 
@@ -124,7 +133,7 @@ Smaller overlapping regions must be written first - they win.
 | `Values:` | Personal trait poles, `pole N` weights. |
 | `Flies:` | Their ship's race. |
 | `Roams:` | The system where they can be hailed, `col, row`. |
-| `Rival when:` | Personal-standing guard that turns them hostile, e.g. `standing < -20`. |
+| `Rival when:` | Accepted, but nothing reads it today: nothing happens when it comes true. Write a rival with guards on `standing` instead (see [Reputation](reputation.md#standing-with-a-captain)). |
 
 ## `## Lifeforms` (the cast)
 
@@ -146,13 +155,14 @@ Smaller overlapping regions must be written first - they win.
 | `Speaker:` | Side, captain, or cast key - whose face the scene wears. |
 | `When: comms` | This scene opens when the speaker is hailed. |
 | `% line` | One alternate take (one is played at random). |
-| `%{guard} line` | A take that plays only when the guard holds; first match wins. |
+| `%{guard} line` | A take that plays only when the guard holds. When several takes can be said, one is picked at random - guard every take, or none. |
 | `- [Label](scene_key)` | A player reply, leading to the next scene. |
 | `... if <guard>` | Reply offered only when the guard holds. |
 | `... ; <outcomes>` | On choosing: `costs N credits`, `earns <who> <pole> <delta>`, `signal <name>` - comma-separated. |
 
-Guards may reference trait poles (`fearsome > 20`), `credits`, and - for a
-captain's scene - `standing` (the player's personal standing with them).
+Guards may reference trait poles (`fearsome > 20`), `credits`, `learned <fact>`,
+and `standing`: the ship's standing with the speaker's side, or - for a captain
+with `Values:` of their own - the ship's personal standing with them.
 
 ## Splitting a chapter into files
 

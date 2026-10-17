@@ -21,7 +21,10 @@ Loot max: 2           // most loot caches per system
 ```
 
 A trade-opera galaxy might run `Enemy mix: 5%` and `Station mix: 25%`; a war
-story the reverse. [Regions](map.md) override any of these locally.
+story the reverse. [Regions](map.md) override any of these locally. How many
+ships an enemy system then holds is Difficulty's business, and the Danger
+setting multiplies every `Enemy mix:`: see
+[Battles and fleets](../reference/battles.md).
 
 ## The reputation economy
 
@@ -35,6 +38,11 @@ Ceasefire per point: 20  // credits per missing point below that
 Alliance at: 60          // standing at which a side becomes an ally
 Max reward: 2.0          // pay multiplier at maximum standing
 ```
+
+These go in the root fence, at the top of the file. Lint does not know them yet
+and warns on each one ("is not a field a map has"); the game reads them all the
+same. What each threshold opens is on the [Reputation](../reference/reputation.md)
+page.
 
 ## Your own virtues
 
