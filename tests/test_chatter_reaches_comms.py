@@ -50,7 +50,7 @@ class Chatter(unittest.TestCase):
 
         def tap(contactID, playerID, otherID, faceDesc, titleText, titleColor,
                 bodyText, bodyColor, tagset, name="unset"):
-            self.sent.append({"contact": contactID, "player": playerID,
+            self.sent.append({"contact": contactID, "player": playerID, "title": titleText,
                               "text": bodyText, "tag": tagset, "name": name})
         mock_sbs.send_comms_message_to_player_ship = tap
 
@@ -69,17 +69,26 @@ class Chatter(unittest.TestCase):
         US.universe_chatter_card(side, "Deepwell sends its regards.")
         self.assertEqual(len(self.sent), 1)
         self.assertEqual(self.sent[0]["player"], self.ship)
-        self.assertEqual(self.sent[0]["name"], "Deepwell Assembly")
+        # The tab is the ship's own channel (named for the ship); the title is the side.
+        self.assertEqual((self.sent[0]["name"], self.sent[0]["title"]), ("Artemis", "Deepwell Assembly"))
 
     def test_a_line_with_no_side_is_the_ships_channel_under_its_title(self):
         US.universe_comms("Sensors flag a derelict nearby.", title="Sensors")
         self.assertEqual(len(self.sent), 1)
-        self.assertEqual((self.sent[0]["player"], self.sent[0]["name"]), (self.ship, "Sensors"))
+        self.assertEqual((self.sent[0]["player"], self.sent[0]["name"], self.sent[0]["title"]),
+                         (self.ship, "Artemis", "Sensors"))
 
     def test_nothing_for_an_empty_line(self):
         US.universe_chatter_card(self.side, "")
         US.universe_comms("")
         self.assertEqual(self.sent, [])
+
+    def test_the_same_line_is_not_repeated_soon(self):
+        US.universe_chatter_card(self.side, "Hollin looks after its own.")
+        US.universe_chatter_card(self.side, "Hollin looks after its own.")
+        US.universe_chatter_card(self.side, "Keep it civil.")
+        self.assertEqual([m["text"] for m in self.sent],
+                         ["Hollin looks after its own.", "Keep it civil."])
 
     def test_a_big_beat_is_an_incoming_hail(self):
         US.universe_hail("The frontier is yours.", title="VICTORY")

@@ -1304,12 +1304,6 @@ default shared UNIVERSE_START_CELL = None
     owner = res[0]
     kind = res[1]
     universe_kind = kind
-    # Ambient: a side greeting on arrival in their space (flavor only).
-    if owner is not None:
-        arrival_side = sides_get(UNIVERSE_SIDES, owner)
-        arrival_chatter = universe_chatter_line(arrival_side)
-        if arrival_chatter:
-            universe_chatter_card(arrival_side, arrival_chatter)
     # Remember we've been here (drives the galaxy-map fog of war).
     universe_systems = universe_set_system_flag(universe_systems, ei, ej, "visited")
 
@@ -1525,6 +1519,16 @@ default shared UNIVERSE_START_CELL = None
             _wp_name = _wp_lms[0].name if len(_wp_lms) > 0 else "Home Port"
             if universe_add_waypoint(universe_shared_id(), ei, ej, _wp_name):
                 universe_info_card("Location charted: " + _wp_name + ". Jump back anytime from the Quests tab (Engage).", "Navigation", "#8cf")
+
+    # Ambient: a side greeting on arrival in their space (flavor only). AFTER the
+    # station is spawned: the line comes from the side's station, so it files under the
+    # contact the crew hails. Sent before, there was no station yet and it fell back to
+    # the ship's own channel.
+    if owner is not None:
+        arrival_side = sides_get(UNIVERSE_SIDES, owner)
+        arrival_chatter = universe_chatter_line(arrival_side)
+        if arrival_chatter:
+            universe_chatter_card(arrival_side, arrival_chatter)
 
     # Say where we are - every arrival, not just the first. Scheduled rather than shown
     # here because the arriving ship is not IN this cell yet: universe_jump_to generates

@@ -26,6 +26,7 @@ from sbs_utils.procedural.comms import comms_info_card, comms_message, comms_rec
 from sbs_utils.procedural.hail import hail_offer
 from sbs_utils.procedural.query import to_object_list
 from sbs_utils.procedural.space_objects import closest
+from sbs_utils.procedural.inventory import get_inventory_value, set_inventory_value
 from sbs_utils.mast.mast_node import MastDataObject
 from sbs_utils.helpers import FrameContext
 from sbs_utils.procedural.query import to_object
@@ -305,7 +306,34 @@ def universe_comms(line, title=None, color=None, time=None):
     if not line:
         return
     for ship in universe_comms_ships():
-        comms_receive_internal(line, ship, from_name=(title or "Comms"), title_color=color)
+        # The ship's own channel: the engine names the TAB after the first sender, so
+        # the sender is the ship itself and the TITLE names the speaker (Sensors,
+        # Navigation, an officer) - otherwise the tab took whoever spoke first.
+        comms_receive_internal(line, ship, from_name=ship.name, title=(title or "Comms"),
+                               title_color=color)
+
+
+
+
+#: A chatter line is not repeated to the same ship inside this many sim seconds. As a
+#: card it faded; in the waterfall it stays, and the 45 s ambient loop drawing from a
+#: two-line pool filled the thread with copies (and arrival sent its line twice).
+UNIVERSE_CHATTER_REPEAT_SECONDS = 600
+
+
+
+
+def _universe_chatter_fresh(ship, line):
+    """True if `line` has not gone to `ship` lately; records it when it has not."""
+    now = float(FrameContext.sim_seconds or 0.0)
+    sent = get_inventory_value(ship.id, "universe_chatter_sent", None) or {}
+    last = sent.get(line)
+    if last is not None and now - float(last) < UNIVERSE_CHATTER_REPEAT_SECONDS:
+        return False
+    sent = dict(sent)
+    sent[line] = now
+    set_inventory_value(ship.id, "universe_chatter_sent", sent)
+    return True
 
 
 
@@ -322,6 +350,8 @@ def universe_chatter_card(side, line, time=10):
     key = side.get("key") if side is not None else None
     stations = role("station") & role(key) if key else set()
     for ship in universe_comms_ships():
+        if not _universe_chatter_fresh(ship, line):
+            continue
         home = closest(ship, stations) if stations else None
         if home is not None:
             home_obj = to_object(home.id)
@@ -330,8 +360,8 @@ def universe_chatter_card(side, line, time=10):
         if home_obj is not None:
             comms_message(line, home_obj, ship, None, face, None, color, True)
         else:
-            comms_receive_internal(line, ship, from_name=(name or "Comms"), face=face,
-                                   title_color=color)
+            comms_receive_internal(line, ship, from_name=ship.name, title=(name or "Comms"),
+                                   face=face, title_color=color)
 
 
 

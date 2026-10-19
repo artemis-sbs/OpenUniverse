@@ -198,8 +198,8 @@ def officer_card(key, line, time=12):
     # Into the comms waterfall, under the officer's name - where the comms officer
     # reads. (An info-panel card before: Comms does not look there.)
     for ship in to_object_list(role("__player__")):
-        comms_receive_internal(line, ship, from_name=title, face=_officer_face(key),
-                               title_color="#8cf")
+        comms_receive_internal(line, ship, from_name=ship.name, title=title,
+                               face=_officer_face(key), title_color="#8cf")
 
 
 # --- Officer voices (dialogue cast) ------------------------------------------------
