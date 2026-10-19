@@ -372,6 +372,25 @@ def universe_reposition_players():
         p.pos = Vec3(2000.0 * math.cos(ang), 0.0, 2000.0 * math.sin(ang))
 
 
+
+def universe_start_beside_home_side(sides, i, j):
+    """Put the crew beside the home side's station, when an authored side owns the start
+    system. -> the station's id, or None (no owner, or no station of theirs here), in
+    which case where spawn_players put them stands.
+
+    spawn_players (LM) picks a station of the CREW's side; a home landmark that is a
+    station is one, and it sits 8,000-30,000 from the system's middle - so the crew began
+    beside the landmark with the home side's own station off every map.
+    """
+    owner = sides_home_owner(sides, i, j)        # universe_sides.py (one namespace)
+    stations = to_object_list(role("station") & role(owner)) if owner is not None else []
+    if not stations:
+        return None
+    home = stations[0]
+    for p in to_object_list(role("__player__")):
+        p.pos = home.pos.rand_offset(3500, 5300, ring=True)
+    return home.id
+
 # --- Persistence (procedural + delta) ---------------------------------------
 # The base universe regenerates from the seed; only player-made changes are stored,
 # under data/missions/common_data. The active save is keyed by the loaded UNIVERSE + a

@@ -335,6 +335,16 @@ default shared UNIVERSE_START_CELL = None
 
     await task_schedule(universe_enter_system, {"arrive_quiet": START_MODE == "Continue"})
     await task_schedule(spawn_players)
+    # START BESIDE THE HOME SIDE. LM's spawn_players puts each ship beside a random
+    # station of the CREW's side - a home landmark, if it is a station - and its comment
+    # leaves the rest to the mission. When an authored side owns the home system, its
+    # station is the home port the story starts at; without this the crew began ~25,000
+    # out, beside the landmark, with the home side's station off every map (Class 5,
+    # Lecture 3: "Comms at once: select Hollin Compact"). A campaign that CONTINUES keeps
+    # its place - `saved`, not START_MODE: the start setting reads Continue by default,
+    # and a Continue with no save is a new game.
+    if saved is None:
+        universe_start_beside_home_side(UNIVERSE_SIDES, universe_i, universe_j)
     # Model A: register each player ship as an occupant of the start cell so the
     # per-ship jump lifecycle knows it's occupied (New Game -> (0,0); Continue ->
     # the restored current cell).
