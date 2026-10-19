@@ -100,6 +100,23 @@ def universe_file(display):
     `universe:`. Labels that predate the merge name a split `sides:` file instead;
     fall back to that so old universes keep loading.
     """
+    if not any(l.get_inventory_value("display") == display or l.get_inventory_value("key") == display
+               for l in universe_registry()):
+        # NO UNIVERSE BY THAT TITLE. Falling through to the legacy `sides.amd` loaded the
+        # shipped Default universe's split file - which only OpenUniverse's own folder has -
+        # so a mission whose `UNIVERSE_SELECT` and `display:` differ by one letter got an
+        # AMD error and no station, not the empty universe its author could recognize.
+        # Say which title was asked for and which exist; the game starts with none.
+        names = [str(l.get_inventory_value("display")) for l in universe_registry()]
+        try:
+            from sbs_utils.procedural.execution import log
+            log(f"No universe is registered with the title {display!r}, so none is loaded: "
+                f"the game starts with no sides and no landmarks. Registered: "
+                f"{', '.join(names) or 'none'}. Check that UNIVERSE_SELECT and the label's "
+                f"`display:` are spelled the same.", "mast.runtime", "warning")
+        except Exception:                                # noqa: BLE001
+            pass
+        return None
     return _universe_field(display, "universe", None) or universe_sides_file(display)
 
 
