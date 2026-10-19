@@ -37,7 +37,7 @@ from sbs_utils.procedural.query import to_object_list, to_object, to_id
 from sbs_utils.procedural.space_objects import (closest_object, target, target_pos,
                                                 delete_object)
 from sbs_utils.procedural.gui import gui_row, gui_text
-from sbs_utils.procedural.comms import comms_info_card
+from sbs_utils.procedural.comms import comms_info_card, comms_receive_internal
 from sbs_utils.procedural.lifeform import lifeform_spawn, lifeform_transfer, lifeform_set_path
 from sbs_utils.procedural.standby import standby_cull_clear
 from sbs_utils.vec import Vec3
@@ -190,14 +190,16 @@ def _officer_face(key):
 
 
 def officer_card(key, line, time=12):
-    """Deliver an officer's line as an info-panel card (face/name/color) -
-    chatter never rides the text waterfall."""
+    """Deliver an officer's line into the comms waterfall (face/name/color)."""
     if not line:
         return
     o = _OFFICERS.get(key)
     title = (str(o.get("name")) + ", " + str(o.get("title"))) if o is not None else "Fleet Command"
-    comms_info_card(all_roles("console, comms"), line, title=title,
-                    color="#8cf", face=_officer_face(key), time=time, notify=True)
+    # Into the comms waterfall, under the officer's name - where the comms officer
+    # reads. (An info-panel card before: Comms does not look there.)
+    for ship in to_object_list(role("__player__")):
+        comms_receive_internal(line, ship, from_name=title, face=_officer_face(key),
+                               title_color="#8cf")
 
 
 # --- Officer voices (dialogue cast) ------------------------------------------------

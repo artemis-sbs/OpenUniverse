@@ -1259,7 +1259,7 @@ class Campaign(Evenings):
         self.assertEqual(text.count("task_schedule(universe_campaign_card)"), 1)
         card = text[text.index("=== universe_campaign_card"):]
         card = card[:card.index("\n=== ", 10)]
-        self.assertEqual(card.count("universe_info_card("), 2, "one of two is sent")
+        self.assertEqual(card.count("universe_hail("), 2, "one of two is sent")
         self.assertIn('"Campaign won"', card)
         # ...and the route that ends a campaign is what remembers it. A server route.
         route = text[text.index("//shared/signal/quest_succeeded if UNIVERSE_ACTIVE"):]

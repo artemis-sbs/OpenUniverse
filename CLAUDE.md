@@ -78,7 +78,7 @@ OpenUniverse/
     ├── __init__.mast        # imports the files below, in order
     ├── universe.mast        # @map/universe + comms/science/damage routes + Navigation console + system generation
     ├── universe_helpers.py  # generation, delta save + migration, quest-target sectors
-    ├── universe_sides.py    # sides + chatter cards + race "makeup"
+    ├── universe_sides.py    # sides + chatter (comms waterfall / hails) + race "makeup"
     ├── universe_reputation.py    # per-captain reputation + side standing/tier/ceasefire
     ├── universe_side_quests.py   # side quest pools (jobs)
     ├── universe_systems.py  # keyed POI deck (loot/derelict/outpost/mines)
@@ -203,9 +203,12 @@ fleets, the six orders, veterancy), `universe_research.py` (tech ladder),
   reacts to who you are,"** not "follow the scripted hero."
 - **Reputation** is per-captain across 7 signed axes; **diplomacy** is side-wide;
   **capture** redraws the frontier. Side jobs are gated/scaled by standing.
-- **Chatter / narrative comms use the info panel** (`comms_info_card`, the
-  HereThereBeMonsters card pattern), **not the text waterfall**. Pure mechanical
-  status (credits, capture) may stay on the waterfall.
+- **Messages: important or with replies -> an INCOMING HAIL; chatter the comms officer
+  should read and react to -> the COMMS WATERFALL** (`universe_chatter_card` sends from the
+  side's station, `universe_comms` on the ship's own channel, `universe_hail` for the big
+  beats; a closed hail is echoed into the waterfall as a timeline). **The info panel is not
+  a message surface** - that was an old wrong assumption (2026-10-19): Comms does not read
+  it. Pure mechanical status (credits, capture) goes to the log.
 - **The (future) dialogue AMD flavor must stay a sci-fi writer's movie script —
   never a scripting language.** Any new AMD syntax must be **confirmed by the user
   first** and follow **markdown-like rules** (reuse `# [text](key)`,

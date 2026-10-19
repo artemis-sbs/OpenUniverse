@@ -190,8 +190,7 @@ def universe_shared_id():
 
 
 def universe_info_card(line, title=None, color="#0cf", time=10):
-    """Deliver a non-side ambient/narrative line (sensors, comms chatter, news) as
-    an info-panel card - same surface as side chatter, no portrait."""
-    if not line:
-        return
-    comms_info_card(universe_chatter_consoles(), line, title=title, color=color, time=time, notify=True)
+    """A non-side line (sensors, comms chatter, news) into the comms waterfall, under
+    `title`. The name is older than the behavior: it used to make an info-panel card,
+    which Comms does not read (see universe_comms in universe_sides.py)."""
+    universe_comms(line, title=title, color=color)

@@ -430,7 +430,7 @@ default shared UNIVERSE_START_CELL = None
     # a newer build wrote it), and so nothing they do tonight is being kept. The file
     # is untouched and the log line above names the copy.
     if universe_save_blocked() != "":
-        universe_info_card("The saved game could not be used. It has been left untouched, and this session is NOT being saved.", "Save", "#f66")
+        universe_hail("The saved game could not be used. It has been left untouched, and this session is NOT being saved.", "Save", "#f66")
     # The load just restored adm_fleets (a Continue) - enter_system ran before
     # it, so bring the saved navy back now. Idempotent: no-op on a New Game.
     if admiralty_active():
@@ -460,9 +460,9 @@ default shared UNIVERSE_START_CELL = None
     ->END if not UNIVERSE_ACTIVE
     _cc_title = universe_campaign_title()
     if _cc_title != "":
-        universe_info_card("This campaign has been won (" + _cc_title + "). The story is finished and the galaxy is still here - fly on.", "Campaign won", "#8f8", 20)
+        universe_hail("This campaign has been won (" + _cc_title + "). The story is finished and the galaxy is still here - fly on.", "Campaign won", "#8f8")
     else:
-        universe_info_card("This campaign has been won. The story is finished and the galaxy is still here - fly on.", "Campaign won", "#8f8", 20)
+        universe_hail("This campaign has been won. The story is finished and the galaxy is still here - fly on.", "Campaign won", "#8f8")
     ->END
 
 
@@ -688,17 +688,17 @@ default shared UNIVERSE_START_CELL = None
     if DATA.get("rep") is not None:
         universe_info_card("Word of your deeds spreads among the sides.", title="Comms Chatter")
     # A campaign goal carrying Win/Lose ends the campaign when it completes. The end
-    # is announced on the info panel and broadcast as a signal so an end screen (or
+    # is announced as an incoming hail and broadcast as a signal so an end screen (or
     # any addon) can hook it; the goal's own prose is the citation.
     if DATA.get("end_win"):
         UNIVERSE_GAME_OVER = True
-        universe_info_card(DATA.get("citation", "The frontier is yours."), title="VICTORY")
+        universe_hail(DATA.get("citation", "The frontier is yours."), title="VICTORY")
         signal_emit("universe_victory", DATA)
         # REMEMBERED, so the next Continue can say so (universe_campaign_card).
         universe_campaign_end("won", quest_get_display_name(AGENT_ID, QUEST_ID))
     if DATA.get("end_lose"):
         UNIVERSE_GAME_OVER = True
-        universe_info_card(DATA.get("citation", "The frontier is lost."), title="DEFEAT")
+        universe_hail(DATA.get("citation", "The frontier is lost."), title="DEFEAT")
         signal_emit("universe_defeat", DATA)
         universe_campaign_end("lost", quest_get_display_name(AGENT_ID, QUEST_ID))
     # A finished step is saved within seconds, not at the next jump. The step that ENDS
@@ -757,10 +757,10 @@ default shared UNIVERSE_START_CELL = None
 //shared/signal/last_side_standing if universe_mode_is_pvp()
     UNIVERSE_GAME_OVER = True
     if WIN_SIDE == "":
-        universe_info_card("The war ends in mutual destruction - a draw.", "War Room", "#fa4")
+        universe_hail("The war ends in mutual destruction - a draw.", "War Room", "#fa4")
     else:
         comms_broadcast(role("__player__"), WIN_SIDE + " stands victorious - the last side in command.", "#0f0")
-        universe_info_card("VICTORY - " + WIN_SIDE + " is the last side standing.", "War Room", "#0f0")
+        universe_hail("VICTORY - " + WIN_SIDE + " is the last side standing.", "War Room", "#0f0")
     signal_emit("universe_victory", {"citation": "Last side standing.", "win": True, "WIN_SIDE": WIN_SIDE})
     ->END
 
@@ -868,8 +868,11 @@ default shared UNIVERSE_START_CELL = None
         ceasefire_cost = side_ceasefire_cost(dip_standing)
         # Statement-gated (see the engine rule above): dip_rel/dip_credits are
         # task variables and must not appear in a button condition.
+        # The price is on the button, the way a job's pay is: it is what standing moves,
+        # and the crew should not have to press it to find out.
+        ceasefire_label = f"Negotiate Ceasefire  ({ceasefire_cost} cr)"
         if dip_rel == sbs.DIPLOMACY.HOSTILE and dip_credits >= ceasefire_cost:
-            + "Negotiate Ceasefire":
+            + "{ceasefire_label}":
                 set_inventory_value(dip_side_id, "credits", dip_credits - ceasefire_cost)
                 side_set_relations(my_side, dip_side, sbs.DIPLOMACY.NEUTRAL)
                 universe_diplomacy = universe_set_dip(universe_diplomacy, my_side, dip_side, sbs.DIPLOMACY.NEUTRAL)
@@ -960,7 +963,12 @@ default shared UNIVERSE_START_CELL = None
     if dlg_node is not None:
         dlg_scene = dialogue_parse(dlg_node)
         dlg_spk = dialogue_speaker(UNIVERSE_SIDES, UNIVERSE_CAPTAINS, UNIVERSE_LIFEFORMS, dlg_scene.get("speaker"))
-        universe_chatter_card(dlg_spk, dialogue_pick_line(dlg_scene, COMMS_ORIGIN_ID, dlg_spk))
+        # AN INCOMING TRANSMISSION, in the conversation the crew opened - the way LM's own
+        # dialogue driver delivers it (comms/dialogue_cast.mast). It was an info-panel card,
+        # which the Comms console never showed: the crew got the answers and not the line.
+        # Not assigned first: a string assignment is re-run as an f-string, and an
+        # author's line may hold a brace.
+        comms_receive(mast_format_string(dialogue_pick_line(dlg_scene, COMMS_ORIGIN_ID, dlg_spk)), title=(dlg_spk.get("name") if dlg_spk is not None else None), face=(dlg_spk.get("face") if dlg_spk is not None else None), title_color=(dlg_spk.get("color") if dlg_spk is not None else None))
     comms_navigate("//comms/dialogue")
     ->END
 

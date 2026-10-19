@@ -22,7 +22,10 @@ from sbs_utils import scatter
 from sbs_utils.procedural.amd_doc import amd_section, amd_root_data
 from sbs_utils.procedural.roles import all_roles
 from sbs_utils.procedural.gui import gui_row, gui_text
-from sbs_utils.procedural.comms import comms_info_card
+from sbs_utils.procedural.comms import comms_info_card, comms_message, comms_receive_internal
+from sbs_utils.procedural.hail import hail_offer
+from sbs_utils.procedural.query import to_object_list
+from sbs_utils.procedural.space_objects import closest
 from sbs_utils.mast.mast_node import MastDataObject
 from sbs_utils.helpers import FrameContext
 from sbs_utils.procedural.query import to_object
@@ -272,29 +275,74 @@ def universe_chatter_line(side):
 
 
 
-# --- Chatter / narrative comms delivery (info panel, NOT the text waterfall) ---
-# Chatter reads as a hail from a side, not a log blip: an info-panel card carrying
-# the side's name + color (+ optional face/icon), kept in history, auto-dismissed.
-# These are thin wrappers over the reusable sbs_utils helper comms_info_card
-# (promoted from the HereThereBeMonsters here_*_info_message pattern).
+# --- Chatter / narrative delivery: the COMMS WATERFALL, or an incoming hail ---
+# What the crew should read and react to goes where the comms officer reads: the
+# conversation list on the Comms console. A side's line comes FROM that side's
+# station, so it files under the same contact the crew hails; a line with no
+# speaker (Sensors, Navigation, War Room) is the ship's own channel. Anything
+# important enough to stop for is an incoming hail instead (universe_hail).
+#
+# These used to be info-panel cards. The panel auto-dismissed them, it is not where
+# Comms looks, and in the engine an OU line sent that way never reached the Comms
+# screen at all (C5-04, 2026-10-19). The time= arguments are kept so no caller breaks.
 def universe_chatter_consoles():
-    """The comms consoles that should receive universe chatter/comms cards."""
+    """The comms consoles that should receive universe chatter (kept for callers)."""
     return all_roles("console, comms")
 
 
 
 
+def universe_comms_ships():
+    """The player ships whose Comms consoles receive universe chatter."""
+    return to_object_list(role("__player__"))
+
+
+
+
+def universe_comms(line, title=None, color=None, time=None):
+    """A line with no side behind it - Sensors, Navigation, the War Room - into each
+    player ship's comms waterfall, on the ship's own channel, under `title`."""
+    if not line:
+        return
+    for ship in universe_comms_ships():
+        comms_receive_internal(line, ship, from_name=(title or "Comms"), title_color=color)
+
+
+
+
 def universe_chatter_card(side, line, time=10):
-    """Deliver a side's ambient line as an info-panel card (face/name/color)."""
+    """A side's ambient line into each player ship's comms waterfall, sent by the
+    side's nearest station (so it files under the contact the crew hails), or under
+    the side's name when no station of theirs is out there."""
     if not line:
         return
     color = side.get("color", "#0cf") if side is not None else "#0cf"
     name = side.get("name") if side is not None else None
-    comms_info_card(
-        universe_chatter_consoles(), line, title=name, color=color,
-        face=(side.get("face") if side is not None else None),
-        icon_index=(side.get("icon") if side is not None else None), time=time,
-        notify=True)
+    face = side.get("face") if side is not None else None
+    key = side.get("key") if side is not None else None
+    stations = role("station") & role(key) if key else set()
+    for ship in universe_comms_ships():
+        home = closest(ship, stations) if stations else None
+        if home is not None:
+            home_obj = to_object(home.id)
+        else:
+            home_obj = None
+        if home_obj is not None:
+            comms_message(line, home_obj, ship, None, face, None, color, True)
+        else:
+            comms_receive_internal(line, ship, from_name=(name or "Comms"), face=face,
+                                   title_color=color)
+
+
+
+
+def universe_hail(line, title=None, color=None):
+    """A beat important enough to stop for (victory, defeat, a save that could not be
+    used): an INCOMING HAIL on every player ship, answered on Comms."""
+    if not line:
+        return
+    for ship in universe_comms_ships():
+        hail_offer(ship, name=(title or "Comms"), color=color, lines=[line])
 
 
 

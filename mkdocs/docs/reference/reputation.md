@@ -225,7 +225,7 @@ All of it shows on the buttons of a side's station, when Comms selects it:
 |---|---|
 | **Hail** and the side's name (**Hail Hollin Compact**) | The side has a Dialogue record with `Speaker:` its key and `When: comms` |
 | The job's title and its pay (**Escort (300 cr)**) | One for each job in the side's `Offers:` whose tier the standing has reached. The pay already includes the bonus |
-| **Negotiate Ceasefire** | The crew is at war with this side and has the credits for the price. It takes the credits and ends the war: "We have an understanding. Hostilities are suspended (tribute: 600 cr)." |
+| **Negotiate Ceasefire** and its price (**Negotiate Ceasefire (600 cr)**) | The crew is at war with this side and has the credits for the price. It takes the credits and ends the war: "We have an understanding. Hostilities are suspended (tribute: 600 cr)." |
 | **Propose Alliance** | The crew has a ceasefire with this side and standing 60 or more. "Then we stand together. The side is honored to call you ally." |
 | **Ransom** and an officer's name and price | Only with the Admiral: this side holds one of the Admiralty's officers. The price is 400, plus 15 credits for each point of standing short of 30 (850 at 0) |
 
