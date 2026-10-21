@@ -22,7 +22,6 @@ The resource bodies both admirals fight over - build Extractors on them, refine 
 
 | Fact | Value |
 |---|---|
-| Prefab | worldlet |
 | Palette | base #8c2f1c, emissive #48180c, clouds #776655 |
 | Also | economy |
 | Yields | ore 8 |
@@ -34,7 +33,6 @@ A cracked, mineral-rich ember of a world. Miners love it; nobody else does.
 
 | Fact | Value |
 |---|---|
-| Prefab | worldlet |
 | Palette | base #2c4a8c, clouds #b8c4e0, bands 3.7 |
 | Also | economy |
 | Yields | gas 10 |
@@ -46,7 +44,6 @@ A banded gas giant, its high winds rich in fuel-grade volatiles.
 
 | Fact | Value |
 |---|---|
-| Prefab | worldlet |
 | Palette | base #2f6e3a, clouds #ffffff |
 | Also | economy |
 | Yields | crew 2, ore 2, gas 2 |
