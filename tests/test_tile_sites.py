@@ -433,6 +433,33 @@ class TheTextSiteIsUnchanged(_Base):
         self.assertFalse(get_inventory_value(house, "SITE_ASKED", True))
 
 
+class ASiteVoiceSpeaksWithItsCard(_Base):
+    """The `## Voices` record a site's call names is who the call is FROM: its name, its
+    face, its color. Seen in the engine (2026-10-21): the Customs House called as
+    `customs_clerk` with no face - the raw key - because nothing read the chapter."""
+
+    def test_the_call_from_the_customs_house_is_the_clerk(self):
+        self.begin()
+        house = self.station("Customs House", "customs")
+        self.dock(house, accept=False)
+        pending = HAIL.hail_pending(self.ship)
+        self.assertTrue(pending, "docking offers the call")
+        card = HAIL.hail_speaker(pending[0].get("speaker"), self.ship)
+        self.assertEqual(card.get("name"), "The Clerk")
+        self.assertTrue(card.get("face"), "the voice's Face: is resolved to a face")
+        self.assertNotEqual(card.get("face"), "terran_female", "a face, not the keyword")
+        self.assertEqual(card.get("color"), "#8df")
+        # The SAME face every time it is asked for - a keyword resolved once.
+        self.assertEqual(HAIL.hail_speaker("customs_clerk", self.ship).get("face"),
+                         card.get("face"))
+
+    def test_the_pending_row_names_her_too(self):
+        self.begin()
+        house = self.station("Customs House", "customs")
+        self.dock(house, accept=False)
+        self.assertEqual(HAIL.hail_pending(self.ship)[0].get("name"), "The Clerk")
+
+
 class AUniverseWithNoTileFiles(_Base):
     tiles = False
 

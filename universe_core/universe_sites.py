@@ -44,6 +44,7 @@ from sbs_utils.procedural.execution import log
 from sbs_utils.procedural.inventory import set_inventory_value
 from sbs_utils.procedural.query import to_id
 from sbs_utils.procedural.roles import add_role
+from sbs_utils.mast.mast_node import MastDataObject
 
 
 # Live sites, so teardown and "what site is this object" can both answer per cell.
@@ -68,6 +69,12 @@ _UNIVERSE_SITE_SAID = set()
 # again - the system is rebuilt on every return - the answer is the same, and nothing
 # more is said: without this the second asking read as "that file is another site's".
 _UNIVERSE_SITE_REFUSED = set()
+
+# The `## [Voices](voices)` records of every site read: {speaker key: card}. A site's
+# call names one (`Speaker: customs_clerk`), and the hail screen asks the library who that
+# is - which, with nothing registered, answered with the raw key and no face.
+# {key: {"key", "name", "face", "color"}}
+_UNIVERSE_SITE_VOICES = {}
 
 # One watcher per ship with a visit open: {ship id: tick task}. It ends a visit nobody
 # went down to when the ship lets go of the place (`universe_site_visit_watch`).
@@ -209,6 +216,7 @@ def universe_site_load(key, fname, content=None):
         "stories": amd_section(doc, "side_stories"),
     }
     _UNIVERSE_SITE_RECORDS[key] = rec
+    _universe_site_read_voices(doc)
     if area is not None:
         _universe_site_ground(rec)
     elif _universe_site_ground_sections(doc):
@@ -230,6 +238,39 @@ def universe_site_load(key, fname, content=None):
             f"take the `## Hails` chapter out, and the party is offered on arrival.",
             once=f"nodown:{key}")
     return rec
+
+
+def _universe_site_read_voices(doc):
+    """Record a site file's voices and make sure the hail screen can find them."""
+    from sbs_utils.faces import face_resolve
+    section = amd_section(doc, "voices")
+    if section is None:
+        return
+    for n in section.get("children", []) or []:
+        vkey = n.get("key")
+        if not vkey:
+            continue
+        data = {str(k).lower(): v for k, v in (n.get("data") or {}).items()}
+        # Resolved ONCE, here: `Face: terran_female` is a kind of face, and asked for
+        # on every beat it would be a different woman each line.
+        face = face_resolve(data.get("face")) if data.get("face") else None
+        color = data.get("color")
+        if isinstance(color, str):
+            color = color.strip().strip('"').strip("'") or None   # `Color: "#8df"`
+        _UNIVERSE_SITE_VOICES[str(vkey)] = {"key": str(vkey), "name": n.get("display_text"),
+                                            "face": face, "color": color}
+    if _UNIVERSE_SITE_VOICES:
+        from sbs_utils.procedural.hail import hail_set_speaker_resolver
+        hail_set_speaker_resolver(universe_site_voice_card)
+
+
+def universe_site_voice_card(speaker_key, ship_id=None):
+    """The hail speaker card for a site voice, or None (the library's own lookup)."""
+    v = _UNIVERSE_SITE_VOICES.get(str(speaker_key or ""))
+    if v is None:
+        return None
+    return MastDataObject({"key": v["key"], "name": v["name"] or v["key"],
+                           "face": v["face"], "color": v["color"]})
 
 
 def _universe_site_hail_sends(hails):
@@ -612,6 +653,7 @@ def universe_sites_clear():
     _UNIVERSE_SITE_FILES.clear()
     _UNIVERSE_SITE_SAID.clear()
     _UNIVERSE_SITE_REFUSED.clear()
+    _UNIVERSE_SITE_VOICES.clear()
     for task in list(_UNIVERSE_SITE_WATCH.values()):
         try:
             task.stop()
