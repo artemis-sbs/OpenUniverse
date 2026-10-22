@@ -255,6 +255,10 @@
     if adm_cam_id is None or adm_cam is None:
         adm_cam = to_object(player_spawn(0, 1000, 0, "", "#,admiral_cam,admiral,has_science_scan", "invisible"))
         remove_role(adm_cam, "__player__")
+        # NOT SELECTABLE. The camera sits over whatever it last centred on, so on the 2D
+        # view it lies on top of that worldlet and took every click meant for it - the
+        # Admiral could never open a worldlet's build menu (engine, C5-14, 2026-10-22).
+        set_data_set_value(to_id(adm_cam), "unselectable", 1, 0)
         adm_cam_id = to_id(adm_cam)
         set_inventory_value(client_id, "ADMIRAL_CAM", adm_cam_id)
         link(adm_cam_id, "extra_scan_source", any_role("__npc__,__player__"))
