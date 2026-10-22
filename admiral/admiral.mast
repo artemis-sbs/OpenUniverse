@@ -223,7 +223,9 @@
     admiralty_builds(research_side).remove(research_label)
     research_complete(research_side, research_key)
     universe_save_players()
-    universe_info_card("Research complete: " + rdef.get("name") + ".", "Admiralty", "#0cf")
+    # The Admiral's status line too: it is where "Research started" was said, and the
+    # card alone goes to the crew's Comms, so the Admiral never heard it finish.
+    universe_info_card(admiralty_say(research_side, "Research complete: " + rdef.get("name") + "."), "Admiralty", "#0cf")
     ->END
 
 
@@ -743,12 +745,13 @@
     adm_side = COMMS_ORIGIN.side
     for adm_res in research_list():
         if research_state(adm_side, adm_res.key) == "available":
-            + "Research {adm_res.name} [{adm_res.branch}]" admiral_overseer_research {"RESEARCH_PICK": adm_res.key, "ADM_ACT_SIDE": adm_side}
+            + "Research {adm_res.name} [{adm_res.branch}]" admiral_overseer_research {"RESEARCH_PICK": adm_res.key, "ADM_ACT_SIDE": adm_side, "ADM_LAB_ID": COMMS_SELECTED_ID}
 
 
 === admiral_overseer_research
     default RESEARCH_PICK = None
     default ADM_ACT_SIDE = universe_primary_side()
+    default ADM_LAB_ID = None
     fail = research_try_start(ADM_ACT_SIDE, RESEARCH_PICK)
     if fail is None:
         task_schedule(admiralty_research_task, {"research_key": RESEARCH_PICK, "research_side": ADM_ACT_SIDE})
@@ -758,6 +761,10 @@
     else:
         admiralty_say(ADM_ACT_SIDE, fail)
     universe_info_card(admiralty_msg(ADM_ACT_SIDE), "Admiralty R&D", "#0cf")
+    # Refresh the Lab's buttons, as a build does: the step just started drops out of the
+    # menu instead of staying offered under the cursor.
+    if ADM_LAB_ID is not None:
+        comms_navigate_override(role("admiral_cam") & role(ADM_ACT_SIDE), ADM_LAB_ID)
     ->END
 
 
