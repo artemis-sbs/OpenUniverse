@@ -687,18 +687,17 @@ default shared UNIVERSE_START_CELL = None
     # On-change chatter: sides note a shift in your standing.
     if DATA.get("rep") is not None:
         universe_info_card("Word of your deeds spreads among the sides.", title="Comms Chatter")
-    # A campaign goal carrying Win/Lose ends the campaign when it completes. The end
-    # is announced as an incoming hail and broadcast as a signal so an end screen (or
-    # any addon) can hook it; the goal's own prose is the citation.
+    # A campaign goal carrying Win/Lose ends the campaign when it completes. It is
+    # broadcast as a signal so any addon can hook it. No hail: the end screen comes up in
+    # the same frame (LM's game_over route), so a VICTORY hail was never seen - the
+    # results screen prints the goal's Win: sentence and its Citation: instead.
     if DATA.get("end_win"):
         UNIVERSE_GAME_OVER = True
-        universe_hail(DATA.get("citation", "The frontier is yours."), title="VICTORY")
         signal_emit("universe_victory", DATA)
         # REMEMBERED, so the next Continue can say so (universe_campaign_card).
         universe_campaign_end("won", quest_get_display_name(AGENT_ID, QUEST_ID))
     if DATA.get("end_lose"):
         UNIVERSE_GAME_OVER = True
-        universe_hail(DATA.get("citation", "The frontier is lost."), title="DEFEAT")
         signal_emit("universe_defeat", DATA)
         universe_campaign_end("lost", quest_get_display_name(AGENT_ID, QUEST_ID))
     # A finished step is saved within seconds, not at the next jump. The step that ENDS

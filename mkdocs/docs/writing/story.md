@@ -71,8 +71,8 @@ captains who end this quietly.
 ## How it ends (Goals)
 
 A goal is written exactly like a story beat, plus one fact: `Win: true` (or
-`Lose: true`) ends the campaign when it completes. The `Citation:` is the text
-on the end card - write it like the closing lines of the episode.
+`Lose: true`) ends the campaign when it completes. The `Citation:` is printed on
+the end screen under that sentence - write it like the closing lines of the episode.
 
 <!-- amd:begin excerpt silver_reach.amd#goals --with-children -->
 ```amd
