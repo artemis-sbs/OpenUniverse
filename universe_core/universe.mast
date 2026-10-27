@@ -100,7 +100,7 @@ default shared UNIVERSE_START_CELL = None
     # with TSN here (a universe author sets rival relations below for PvP).
     prefab_spawn(prefab_side_generic, data={"key":"orion", "name": "Orion", "color": "#0c8", "desc":"The Orion Concord"})
     universe_register_player_side("orion")
-    prefab_spawn(prefab_side_generic, data={"key":"raider", "name": "Raider", "color": "#F00", "desc":"Hostile Aliens"})
+    prefab_spawn(prefab_side_generic, data={"key":"raider", "name": "Threat", "color": "#F00", "desc":"Hostile Aliens"})
     prefab_spawn(prefab_side_generic, data={"key":"civ", "name": "Civ", "color": "white", "desc":"Civilians."})
     side_set_relations("tsn", "raider", sbs.DIPLOMACY.HOSTILE)
     side_set_relations("raider", "civ", sbs.DIPLOMACY.HOSTILE)
