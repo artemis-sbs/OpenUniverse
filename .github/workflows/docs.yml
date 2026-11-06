@@ -28,7 +28,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: artemis-sbs/sbs_utils
-          ref: v1.4.0_dev
+          ref: v1.5.0_dev
           path: missions/sbs_utils
 
       # sbs_cli releases from `main` - it has no v1.4.0_dev branch, and naming one
