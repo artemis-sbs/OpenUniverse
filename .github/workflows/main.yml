@@ -71,4 +71,7 @@ jobs:
           file: artifacts/*/*
           tag: ${{ github.ref }}
           overwrite: true
+          # v1.5.0 is a PRE-RELEASE while in development: v1.4.0 stays the Latest release.
+          # Remove this line when 1.5.0 is declared final.
+          prerelease: true
           file_glob: true
